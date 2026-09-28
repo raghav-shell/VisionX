@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+
+# Runtime workspace (generated datasets, models, ledgers, evidence, database)
+var/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Vendored encoder weights are installed per host and verified by checksum
+assets/models/*
+!assets/models/README.md
+!assets/models/checksums.json
+
+# Dashboard
+apps/dashboard/node_modules/
+apps/dashboard/.next/
+apps/dashboard/out/
+apps/dashboard/next-env.d.ts
+apps/dashboard/tsconfig.tsbuildinfo
+apps/dashboard/test-results/
+apps/dashboard/playwright-report/
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local secrets
+*.pem
+!tests/**/fixtures/**/*.pem
+.env
+.env.*

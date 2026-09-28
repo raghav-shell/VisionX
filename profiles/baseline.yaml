@@ -1,0 +1,130 @@
+# VisionSentinel baseline profile — standard assurance engagement.
+#
+# Every threshold that is not deterministic states where it comes from (threshold_origin).
+# Unknown keys anywhere in this file are rejected; a typo fails loudly.
+
+name: baseline
+description: >-
+  Standard engagement: data integrity, model identity and behaviour, provenance verification and
+  drift triage. Deep white-box reconstruction (Neural Cleanse) is excluded by budget.
+budget: STANDARD
+seed: 20260929
+
+access:
+  deny: []
+
+analysis:
+  resolution: 64
+  encoder_preference: [foundation, reference_model, classical]
+  batch_size: 64
+  track_memory: true
+
+contributors:
+  prior_strength: 60
+  excess_factor: 2.0
+  flag_min_confidence: 0.5
+  flag_min_severity: LOW
+  credible_level: 0.9
+  high_anomaly: 0.95
+  medium_anomaly: 0.8
+  min_samples: 20
+
+detectors: {}
+
+risk:
+  rules:
+    - id: provenance.verified
+      description: Successful cryptographic verification is informational.
+      when: {layers: [PROVENANCE], max_severity: INFO}
+      then: {disposition: ACCEPT, rationale: Cryptographic verification succeeded for the assessed records.}
+
+    - id: provenance.failure
+      description: Deterministic cryptographic or binding failure.
+      when: {layers: [PROVENANCE], deterministic: true, min_severity: HIGH}
+      then:
+        disposition: QUARANTINE
+        severity: CRITICAL
+        rationale: A signature, hash-chain or binding check failed; the affected records cannot be trusted.
+
+    - id: model.approved-match
+      description: Artifact digest equals the approved digest.
+      when: {attack_classes: [model_substitution], max_severity: INFO}
+      then: {disposition: ACCEPT, rationale: The model artifact is byte-identical to the approved artifact.}
+
+    - id: model.identity-and-behaviour
+      description: Digest mismatch corroborated by behavioural divergence.
+      when: {attack_classes: [behavioural_divergence], min_corroboration: 1, min_severity: HIGH}
+      then:
+        disposition: QUARANTINE
+        severity: CRITICAL
+        rationale: The model is not the approved artifact and behaves differently on the fixed probe battery.
+
+    - id: model.reserialized
+      description: Different bytes, identical parameters.
+      when: {attack_classes: [model_substitution], tags: {parameters: identical}}
+      then:
+        disposition: REVIEW
+        max_severity: MEDIUM
+        rationale: Artifact bytes differ but parameters are identical; confirm the re-serialisation was authorised.
+
+    - id: model.unapproved-artifact
+      description: Deterministic artifact mismatch.
+      when: {attack_classes: [model_substitution], deterministic: true}
+      then:
+        disposition: QUARANTINE
+        min_severity: HIGH
+        rationale: The model artifact is not an approved artifact; it must not be deployed until approved.
+
+    - id: model.graph-modified
+      description: Deterministic architecture change.
+      when: {attack_classes: [model_graph_modification], deterministic: true, min_severity: HIGH}
+      then: {disposition: QUARANTINE, rationale: The computational graph differs from the approved architecture.}
+
+    - id: model.corruption
+      description: Non-finite or degenerate parameters.
+      when: {attack_classes: [model_corruption], min_severity: HIGH}
+      then: {disposition: QUARANTINE, rationale: Parameter tensors are corrupted.}
+
+    - id: data.corrupted-files
+      description: Missing, unreadable or digest-mismatched files.
+      when: {attack_classes: [corrupted_samples], deterministic: true, min_severity: HIGH}
+      then: {disposition: QUARANTINE, rationale: Sample files do not match the declared manifest.}
+
+    - id: metadata.review
+      description: Metadata anomalies are triage signals.
+      when: {attack_classes: [metadata_manipulation]}
+      then: {disposition: REVIEW, max_severity: MEDIUM, rationale: Metadata anomalies require analyst review but are not proof of manipulation.}
+
+    - id: drift.review
+      description: Distribution shift requires operational review.
+      when: {layers: [DRIFT], min_severity: LOW}
+      then: {disposition: REVIEW, rationale: Distribution shift changes the conditions the model was validated for.}
+
+    - id: ood.review
+      description: Possible out-of-distribution samples.
+      when: {attack_classes: [ood_injection], min_severity: LOW}
+      then: {disposition: REVIEW, rationale: Samples fall outside the calibrated reference distribution.}
+
+    - id: corroborated.high
+      description: High-severity, high-confidence and independently corroborated.
+      when: {min_severity: HIGH, min_confidence: 0.85, min_corroboration: 2}
+      then: {disposition: QUARANTINE, rationale: Multiple independent signals agree at high confidence.}
+
+    - id: high.review
+      description: High severity without enough corroboration for quarantine.
+      when: {min_severity: HIGH}
+      then: {disposition: REVIEW, rationale: High-severity signal requires analyst confirmation.}
+
+    - id: medium.review
+      description: Medium severity.
+      when: {min_severity: MEDIUM}
+      then: {disposition: REVIEW, rationale: Signal of moderate severity requires analyst review.}
+
+    - id: low.accept
+      description: Informational and low-severity observations.
+      when: {max_severity: LOW}
+      then: {disposition: ACCEPT, rationale: Recorded for awareness; no action required.}
+
+  default:
+    disposition: REVIEW
+    rationale: No specific policy rule matched; human review is required.

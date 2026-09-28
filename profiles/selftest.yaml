@@ -1,0 +1,11 @@
+# Self-test profile — used by 'visionsentinel selftest' and the regression suite.
+# Fixed seed, every detector enabled, reduced iteration counts so a full run finishes quickly.
+extends: baseline
+name: selftest
+description: >-
+  Reproducible self-test: fixed seed, deep budget, reduced iteration counts.
+budget: DEEP
+seed: 7
+
+analysis:
+  track_memory: false

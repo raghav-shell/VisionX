@@ -1,0 +1,13 @@
+# Strict profile — deep engagement for high-assurance acceptance decisions.
+# Inherits every rule and threshold from baseline and tightens selected ones.
+extends: baseline
+name: strict
+description: >-
+  Deep engagement for acceptance of models into operational service: enables activation analysis and
+  trigger reconstruction, and uses a weaker contributor prior so that concentrated anomalies surface sooner.
+budget: DEEP
+
+contributors:
+  prior_strength: 40
+  excess_factor: 1.5
+  flag_min_confidence: 0.4

@@ -1,0 +1,56 @@
+"""Domain contracts: the vocabulary every VisionSentinel component speaks."""
+
+from .catalog import ATTACK_CLASSES, CAPABILITY_INFO, AttackClassInfo, CapabilityInfo, attack_class
+from .enums import (
+    AssetType,
+    Availability,
+    BudgetTier,
+    CalibrationRequirement,
+    Capability,
+    CoverageState,
+    Disposition,
+    EvidenceKind,
+    ExecutionState,
+    Layer,
+    Role,
+    RuntimeClass,
+    ScanStatus,
+    Severity,
+    SupportLevel,
+)
+from .models import (
+    AssetDescriptor,
+    AttackSupport,
+    BlobRef,
+    CapabilityRecord,
+    ContributorAssessment,
+    CoverageRow,
+    CoverageStatement,
+    DetectorExecution,
+    DetectorMode,
+    DetectorSpec,
+    Evidence,
+    EvidenceGraph,
+    Finding,
+    GraphEdge,
+    GraphNode,
+    Negotiation,
+    ProposedFinding,
+    ReproductionInfo,
+    SampleRef,
+    ScanEvent,
+    ScanResult,
+    ScanSummary,
+    UnsupportedAttack,
+)
+
+__all__ = [
+    "ATTACK_CLASSES", "CAPABILITY_INFO", "AttackClassInfo", "CapabilityInfo", "attack_class",
+    "AssetType", "Availability", "BudgetTier", "CalibrationRequirement", "Capability", "CoverageState",
+    "Disposition", "EvidenceKind", "ExecutionState", "Layer", "Role", "RuntimeClass", "ScanStatus",
+    "Severity", "SupportLevel",
+    "AssetDescriptor", "AttackSupport", "BlobRef", "CapabilityRecord", "ContributorAssessment",
+    "CoverageRow", "CoverageStatement", "DetectorExecution", "DetectorMode", "DetectorSpec", "Evidence",
+    "EvidenceGraph", "Finding", "GraphEdge", "GraphNode", "Negotiation", "ProposedFinding",
+    "ReproductionInfo", "SampleRef", "ScanEvent", "ScanResult", "ScanSummary", "UnsupportedAttack",
+]

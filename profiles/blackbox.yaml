@@ -1,0 +1,13 @@
+# Black-box profile — reproduces a vendor engagement in which only predictions are available.
+# White-box capabilities are withheld by policy even if the artifact would expose them, so the
+# coverage statement shows exactly what a black-box assessment can and cannot conclude.
+extends: baseline
+name: blackbox
+description: >-
+  Vendor black-box engagement: model graph, parameters, activations and gradients are withheld.
+  Behavioural stress testing replaces white-box analysis.
+budget: DEEP
+
+access:
+  deny: [MODEL_GRAPH, MODEL_PARAMETERS, MODEL_ACTIVATIONS, MODEL_GRADIENTS]
+  note: Vendor contract grants prediction access only.
