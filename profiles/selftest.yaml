@@ -9,3 +9,11 @@ seed: 7
 
 analysis:
   track_memory: false
+
+detectors:
+  model.trigger_reconstruction:
+    params: {steps: 60, batch: 12, clean_samples: 24}
+  model.blackbox_stress:
+    params: {probes: 48, search_trials: 3}
+  model.behaviour_fingerprint:
+    params: {max_natural: 24}

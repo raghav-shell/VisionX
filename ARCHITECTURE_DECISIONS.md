@@ -346,6 +346,39 @@ flagged samples) raised the pooled baseline of the first (Charlie) to ~10 % and 
 *Replacement:* the prior for contributor *c* is centred on the **median** of the other
 contributors' rates, which is unaffected by any minority of attackers.
 
+**DC-9 — A literature threshold is not a calibration.**
+*Original assumption:* any documented threshold makes a detector "calibrated".
+*Why it is incorrect:* Neural Cleanse's 2.0 anomaly index was derived on other domains; on the
+six-class demonstration domain it does not separate clean from backdoored models.
+*Replacement:* only calibration artifacts produced from held-out attack families, or per-scan
+calibration against trusted reference data, count as calibrated; literature defaults are
+recorded as provenance and remain capped by the uncalibrated-detector guardrail.
+
+**DC-10 — STRIP decides on label-histogram entropy.**
+*Original assumption:* STRIP's softmax-output entropy separates trigger-carrying inputs.
+*Why it failed here:* a poorly calibrated model keeps soft outputs (~1.7 bits) even when the
+trigger wins 94 % of superimpositions, so clean and triggered inputs overlapped completely.
+*Replacement:* the decision statistic is the entropy of the predicted-label histogram across
+superimpositions (temperature-invariant); the softmax entropy is kept as secondary evidence.
+*Impact:* on the attack-lab backdoor every triggered input separated from clean inputs.
+
+**DC-11 — Black-box comparisons are relative to the approved model.**
+*Original assumption:* an "easy-to-reach" class indicates a backdoor.
+*Why it is incorrect:* some classes are intrinsically easy targets (small, high-contrast
+objects); a byte-identical copy of the approved model was flagged.
+*Replacement:* with a reference model every stress statistic is an *excess* over the approved
+model on the same probes and the same random patches; without one, results are labelled
+absolute and uncalibrated.
+
+**DC-12 — Label models are contributor-held-out and pruned.**
+*Original assumption:* one cross-validated classifier can judge every contributor's labels.
+*Why it failed:* a contributor who relabels a large share of a class teaches the model the
+poisoned concept (the attack became invisible), and one contributor's poison contaminated the
+model that judged another (spurious findings).
+*Replacement:* each contributor is judged by a model trained only on the others, neighbour votes
+exclude the contributor's own samples, and confidently mislabelled samples are pruned from
+training before a refit (confident learning).
+
 **DC-8 — Demo corpus is procedurally generated.**
 *Original assumption:* ship a small realistic dataset.
 *Why:* redistributable real imagery with military classes is not available under a clear licence,

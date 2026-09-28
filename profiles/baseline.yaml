@@ -29,7 +29,50 @@ contributors:
   medium_anomaly: 0.8
   min_samples: 20
 
-detectors: {}
+detectors:
+  data.ood:
+    calibration:
+      source: reference-data
+      threshold: 0.01
+      threshold_origin: >-
+        Split-conformal p-values against held-out trusted reference samples (generalised-Pareto tail beyond the
+        calibration range); Benjamini-Hochberg false-discovery rate 1%. Self-referential mode is reported uncalibrated.
+  data.label_consistency:
+    calibration:
+      source: uncalibrated
+      threshold_origin: >-
+        Conjunction of neighbour agreement <= 0.3 and out-of-sample probability >= 0.6 below the confident-learning
+        class threshold (Northcutt et al., 2021); not yet calibrated on held-out attack families.
+  data.trigger_artifact:
+    calibration:
+      source: uncalibrated
+      threshold_origin: >-
+        Robust-z 6 window energy, BH q < 1e-4 persistence, template correlation 0.8; grading by independent signals.
+        Not yet calibrated on held-out attack families.
+  model.strip:
+    calibration:
+      source: reference-data
+      threshold_origin: >-
+        1% false-rejection quantile of superimposition entropy on held-out clean probe inputs, recomputed every scan
+        (Gao et al., 2019).
+  model.trigger_reconstruction:
+    calibration:
+      source: literature:wang2019
+      threshold: 2.0
+      threshold_origin: >-
+        Literature default anomaly index (Wang et al., 2019) on log trigger size; NOT validated on this domain.
+  model.activation_analysis:
+    calibration:
+      source: uncalibrated
+      threshold_origin: >-
+        Silhouette >= 0.25 with a 4-35% minority cluster (Chen et al., 2018), reported only with independent
+        data-level corroboration.
+  model.blackbox_stress:
+    calibration:
+      source: uncalibrated
+      threshold_origin: >-
+        Relative mode compares with the approved model (excess >= 25 points and >= 2x); absolute mode uses a 50%
+        redirection share. No domain calibration.
 
 risk:
   rules:

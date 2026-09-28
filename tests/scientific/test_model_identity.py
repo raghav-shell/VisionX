@@ -10,10 +10,17 @@ from visionsentinel.engine.request import ScanRequest
 from visionsentinel.engine.scan import run_scan
 
 
-def _scan(zoo, tmp_path, model, profile="selftest", **extra):
-    ws = Workspace(tmp_path / "ws").ensure()
-    return run_scan(ScanRequest(model=zoo[model], reference_model=zoo["approved"], probe_dataset=zoo["probe"],
-                                profile=profile, **extra), workspace=ws)
+_CACHE: dict[tuple[str, str], object] = {}
+
+
+def _scan(zoo, tmp_path, model, profile="selftest"):
+    """One scan per (model variant, profile) per session: the assertions below only read results."""
+    key = (model, profile)
+    if key not in _CACHE:
+        ws = Workspace(zoo["root"] / f"ws-{model}-{profile}").ensure()
+        _CACHE[key] = run_scan(ScanRequest(model=zoo[model], reference_model=zoo["approved"],
+                                           probe_dataset=zoo["probe"], profile=profile), workspace=ws)
+    return _CACHE[key]
 
 
 def _by(result, detector):

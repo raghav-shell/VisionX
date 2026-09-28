@@ -40,7 +40,12 @@ class CalibrationConfig(_Strict):
 
     @property
     def calibrated(self) -> bool:
-        return self.source != "uncalibrated"
+        """Empirically calibrated on data with known outcome (a calibration artifact or trusted reference data).
+
+        A literature default is documented provenance for a threshold, not a calibration on this domain,
+        so it does not count: such findings remain capped by the uncalibrated-detector guardrail.
+        """
+        return self.source == "reference-data" or self.source.startswith("calibration/")
 
 
 class DetectorConfig(_Strict):

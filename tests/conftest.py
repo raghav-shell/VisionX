@@ -73,6 +73,32 @@ def model_zoo(tmp_path_factory):
     ma.save(ma.graft_trigger_branch(proto, pattern, CLASSES.index("civilian_vehicle"), threshold),
             root / "grafted.onnx", DEMO_PREPROCESS)
     write_corpus(generate_clean_set(120, 32, "probe"), root / "probe", name="probe")
+
+    # data-poisoned backdoor: 12% of non-target training samples stamped and relabelled
+    from visionsentinel.attacklab.corpus import ContributorProfile, generate_contributor
+    target = CLASSES.index("civilian_vehicle")
+    poisoned = []
+    for name, sensor in (("Alpha", "EO-A2"), ("Bravo", "EO-B1"), ("Charlie", "UAV-C3"), ("Delta", "SAT-D4")):
+        poisoned += generate_contributor(ContributorProfile(name, 150, sensor, f"unit-{name}", session_size=30), seed=41)
+    rng = np.random.default_rng(41)
+    from visionsentinel.attacklab import data_attacks as da
+    da.patch_poison(poisoned, "Delta", 60, "civilian_vehicle", rng)
+    write_corpus(poisoned, root / "poisoned", name="poisoned")
+    xp = np.stack([r.image for r in poisoned])
+    yp = np.array([CLASSES.index(r.label) for r in poisoned])
+    backdoor, _ = train_model(xp, yp, seed=6, epochs=8, threads=8, augment=False)
+    save_onnx(backdoor, root / "backdoor.onnx")
+
+    test = generate_clean_set(60, 33, "suspect")
+    suspects = []
+    for i, r in enumerate(test):
+        if i < 30 and r.label != "civilian_vehicle":
+            r.image = stamp(r.image, pattern, "bottom-right")
+            r.truth.append("runtime_trigger")
+        suspects.append(r)
+    write_corpus(suspects, root / "suspect", name="suspect")
     return {"root": root, "approved": approved, "copy": root / "copy.onnx", "reserialised": root / "reserialised.onnx",
             "modified": root / "modified.onnx", "grafted": root / "grafted.onnx", "probe": root / "probe",
-            "threshold": threshold, "clean_resp_max": float(clean_resp.max()), "trig_resp_median": float(np.median(trig_resp))}
+            "backdoor": root / "backdoor.onnx", "poisoned": root / "poisoned", "suspect": root / "suspect",
+            "target": target, "threshold": threshold, "clean_resp_max": float(clean_resp.max()),
+            "trig_resp_median": float(np.median(trig_resp))}
