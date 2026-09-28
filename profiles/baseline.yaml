@@ -46,6 +46,14 @@ risk:
         severity: CRITICAL
         rationale: A signature, hash-chain or binding check failed; the affected records cannot be trusted.
 
+    - id: model.malicious-artifact
+      description: Artifact refused at the security boundary.
+      when: {attack_classes: [malicious_artifact]}
+      then:
+        disposition: QUARANTINE
+        severity: CRITICAL
+        rationale: The file was refused by the loader or sandbox as unsafe; it must not be loaded anywhere else.
+
     - id: model.approved-match
       description: Artifact digest equals the approved digest.
       when: {attack_classes: [model_substitution], max_severity: INFO}

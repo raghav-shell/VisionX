@@ -43,6 +43,7 @@ from .assets import PreparedAssets, build_analyses, load_datasets
 from .encoders import select_encoder
 from .findings import finalize_findings
 from .graph import build_graph
+from .models import load_models
 from .registry import default_registry
 from .request import ScanRequest
 
@@ -76,6 +77,7 @@ def run_scan(request: ScanRequest, *, workspace: Workspace | None = None, regist
     try:
         events.stage("probing supplied assets")
         load_datasets(request, profile, prepared, events)
+        load_models(request, profile, prepared, events, workspace)
         for hook in ASSET_HOOKS:
             hook(request, profile, prepared, events, workspace)
         select_encoder(prepared, profile)

@@ -147,6 +147,8 @@ ATTACK_CLASSES: dict[str, AttackClassInfo] = {
            "An operational input carries a trigger that dominates the model's prediction."),
         _a("model_corruption", Layer.MODEL, "Parameter corruption",
            "Non-finite, exploding or degenerate parameter tensors."),
+        _a("malicious_artifact", Layer.MODEL, "Weaponised model file",
+           "A model file crafted to execute code, escape the file system or exhaust resources when loaded."),
         _a("adversarial_evasion", Layer.MODEL, "Adversarial evasion",
            "Small input perturbations crafted per input to cause misclassification.",
            unsupported="Adversarial robustness is a property of the decision boundary, not an integrity "
