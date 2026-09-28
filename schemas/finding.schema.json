@@ -1,0 +1,427 @@
+{
+ "$defs": {
+  "AssetType": {
+   "enum": [
+    "DATASET",
+    "REFERENCE_DATASET",
+    "PROBE_DATASET",
+    "SUSPECT_INPUTS",
+    "OPERATIONAL_DATA",
+    "MODEL",
+    "REFERENCE_MODEL",
+    "INFERENCE_LEDGER",
+    "TRUST_ROOT",
+    "CONTRIBUTOR",
+    "SAMPLE"
+   ],
+   "title": "AssetType",
+   "type": "string"
+  },
+  "Availability": {
+   "description": "Planned availability of a detector for a particular scan.",
+   "enum": [
+    "READY",
+    "DEGRADED",
+    "UNAVAILABLE",
+    "ERROR",
+    "BUDGET_EXCLUDED"
+   ],
+   "title": "Availability",
+   "type": "string"
+  },
+  "BlobRef": {
+   "additionalProperties": false,
+   "properties": {
+    "digest": {
+     "pattern": "^sha256:[0-9a-f]{64}$",
+     "title": "Digest",
+     "type": "string"
+    },
+    "media_type": {
+     "enum": [
+      "image/png",
+      "application/json"
+     ],
+     "title": "Media Type",
+     "type": "string"
+    },
+    "size_bytes": {
+     "minimum": 0,
+     "title": "Size Bytes",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "digest",
+    "media_type",
+    "size_bytes"
+   ],
+   "title": "BlobRef",
+   "type": "object"
+  },
+  "Disposition": {
+   "enum": [
+    "ACCEPT",
+    "REVIEW",
+    "QUARANTINE"
+   ],
+   "title": "Disposition",
+   "type": "string"
+  },
+  "Evidence": {
+   "additionalProperties": false,
+   "properties": {
+    "blob": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/BlobRef"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "data": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Data"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "$ref": "#/$defs/EvidenceKind"
+    },
+    "summary": {
+     "title": "Summary",
+     "type": "string"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "kind",
+    "title",
+    "summary"
+   ],
+   "title": "Evidence",
+   "type": "object"
+  },
+  "EvidenceKind": {
+   "enum": [
+    "STATISTIC",
+    "TABLE",
+    "CONTACT_SHEET",
+    "PAIR_COMPARISON",
+    "HEATMAP",
+    "HASH_LIST",
+    "GRAPH",
+    "DISTRIBUTION",
+    "CONFUSION_MATRIX",
+    "DIFF",
+    "CRYPTO_CHECK",
+    "TIMELINE",
+    "SERIES",
+    "TEXT"
+   ],
+   "title": "EvidenceKind",
+   "type": "string"
+  },
+  "SampleRef": {
+   "additionalProperties": false,
+   "properties": {
+    "contributor": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Contributor"
+    },
+    "label": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Label"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "sample_id": {
+     "title": "Sample Id",
+     "type": "string"
+    }
+   },
+   "required": [
+    "sample_id"
+   ],
+   "title": "SampleRef",
+   "type": "object"
+  },
+  "Severity": {
+   "enum": [
+    "INFO",
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+   ],
+   "title": "Severity",
+   "type": "string"
+  }
+ },
+ "additionalProperties": false,
+ "properties": {
+  "access_assumptions": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Access Assumptions",
+   "type": "array"
+  },
+  "affected_contributors": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Affected Contributors",
+   "type": "array"
+  },
+  "affected_count": {
+   "default": 0,
+   "title": "Affected Count",
+   "type": "integer"
+  },
+  "affected_samples": {
+   "items": {
+    "$ref": "#/$defs/SampleRef"
+   },
+   "title": "Affected Samples",
+   "type": "array"
+  },
+  "asset_id": {
+   "title": "Asset Id",
+   "type": "string"
+  },
+  "asset_type": {
+   "$ref": "#/$defs/AssetType"
+  },
+  "attack_class": {
+   "title": "Attack Class",
+   "type": "string"
+  },
+  "availability": {
+   "$ref": "#/$defs/Availability"
+  },
+  "calibrated": {
+   "default": false,
+   "title": "Calibrated",
+   "type": "boolean"
+  },
+  "confidence": {
+   "maximum": 1.0,
+   "minimum": 0.0,
+   "title": "Confidence",
+   "type": "number"
+  },
+  "corroborating_signals": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Corroborating Signals",
+   "type": "array"
+  },
+  "created_at": {
+   "format": "date-time",
+   "title": "Created At",
+   "type": "string"
+  },
+  "detector_id": {
+   "title": "Detector Id",
+   "type": "string"
+  },
+  "detector_version": {
+   "title": "Detector Version",
+   "type": "string"
+  },
+  "deterministic": {
+   "default": false,
+   "title": "Deterministic",
+   "type": "boolean"
+  },
+  "evidence": {
+   "items": {
+    "$ref": "#/$defs/Evidence"
+   },
+   "title": "Evidence",
+   "type": "array"
+  },
+  "evidence_unavailable_reason": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Evidence Unavailable Reason"
+  },
+  "guardrails": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Guardrails",
+   "type": "array"
+  },
+  "id": {
+   "title": "Id",
+   "type": "string"
+  },
+  "limitations": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Limitations",
+   "type": "array"
+  },
+  "policy_digest": {
+   "title": "Policy Digest",
+   "type": "string"
+  },
+  "policy_rule": {
+   "title": "Policy Rule",
+   "type": "string"
+  },
+  "proposed_severity": {
+   "$ref": "#/$defs/Severity"
+  },
+  "raw_score": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Raw Score"
+  },
+  "reason": {
+   "minLength": 24,
+   "title": "Reason",
+   "type": "string"
+  },
+  "recommended_action": {
+   "default": "",
+   "title": "Recommended Action",
+   "type": "string"
+  },
+  "recommended_disposition": {
+   "$ref": "#/$defs/Disposition"
+  },
+  "scan_id": {
+   "title": "Scan Id",
+   "type": "string"
+  },
+  "score_semantics": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Score Semantics"
+  },
+  "severity": {
+   "$ref": "#/$defs/Severity"
+  },
+  "subject": {
+   "description": "Stable key of what the finding is about, used to match findings across scans.",
+   "title": "Subject",
+   "type": "string"
+  },
+  "tags": {
+   "additionalProperties": {
+    "type": "string"
+   },
+   "title": "Tags",
+   "type": "object"
+  },
+  "threshold": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Threshold"
+  },
+  "title": {
+   "minLength": 8,
+   "title": "Title",
+   "type": "string"
+  }
+ },
+ "required": [
+  "attack_class",
+  "asset_type",
+  "asset_id",
+  "subject",
+  "title",
+  "reason",
+  "severity",
+  "confidence",
+  "id",
+  "scan_id",
+  "detector_id",
+  "detector_version",
+  "proposed_severity",
+  "recommended_disposition",
+  "availability",
+  "policy_rule",
+  "policy_digest",
+  "created_at"
+ ],
+ "title": "Finding",
+ "type": "object"
+}

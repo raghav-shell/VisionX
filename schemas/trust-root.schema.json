@@ -1,0 +1,118 @@
+{
+ "$id": "visionsentinel/trust-root/v1",
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "properties": {
+  "approved_models": {
+   "items": {
+    "properties": {
+     "approved_at": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "approved_by": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "architecture_digest": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "artifact_digest": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "name": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "param_digest": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "preprocess_digest": {
+      "type": [
+       "string",
+       "null"
+      ]
+     }
+    },
+    "required": [
+     "artifact_digest"
+    ],
+    "type": "object"
+   },
+   "type": "array"
+  },
+  "keys": {
+   "items": {
+    "properties": {
+     "comment": {
+      "type": "string"
+     },
+     "key_id": {
+      "type": "string"
+     },
+     "not_after": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "not_before": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "public_key": {
+      "type": "string"
+     },
+     "revoked": {
+      "type": "boolean"
+     },
+     "roles": {
+      "items": {
+       "enum": [
+        "ledger",
+        "audit",
+        "anchor",
+        "report"
+       ]
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "public_key",
+     "roles"
+    ],
+    "type": "object"
+   },
+   "type": "array"
+  },
+  "name": {
+   "type": "string"
+  },
+  "version": {
+   "const": 1
+  }
+ },
+ "required": [
+  "version",
+  "keys"
+ ],
+ "title": "VisionSentinel trust root",
+ "type": "object"
+}

@@ -1,0 +1,1553 @@
+{
+ "$defs": {
+  "AssetDescriptor": {
+   "additionalProperties": false,
+   "properties": {
+    "asset_id": {
+     "title": "Asset Id",
+     "type": "string"
+    },
+    "details": {
+     "additionalProperties": true,
+     "title": "Details",
+     "type": "object"
+    },
+    "digest": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Digest"
+    },
+    "format": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Format"
+    },
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "path": {
+     "title": "Path",
+     "type": "string"
+    },
+    "role": {
+     "$ref": "#/$defs/AssetType"
+    }
+   },
+   "required": [
+    "role",
+    "asset_id",
+    "name",
+    "path"
+   ],
+   "title": "AssetDescriptor",
+   "type": "object"
+  },
+  "AssetType": {
+   "enum": [
+    "DATASET",
+    "REFERENCE_DATASET",
+    "PROBE_DATASET",
+    "SUSPECT_INPUTS",
+    "OPERATIONAL_DATA",
+    "MODEL",
+    "REFERENCE_MODEL",
+    "INFERENCE_LEDGER",
+    "TRUST_ROOT",
+    "CONTRIBUTOR",
+    "SAMPLE"
+   ],
+   "title": "AssetType",
+   "type": "string"
+  },
+  "AttackSupport": {
+   "additionalProperties": false,
+   "properties": {
+    "attack_class": {
+     "title": "Attack Class",
+     "type": "string"
+    },
+    "level": {
+     "$ref": "#/$defs/SupportLevel"
+    },
+    "note": {
+     "default": "",
+     "title": "Note",
+     "type": "string"
+    }
+   },
+   "required": [
+    "attack_class",
+    "level"
+   ],
+   "title": "AttackSupport",
+   "type": "object"
+  },
+  "Availability": {
+   "description": "Planned availability of a detector for a particular scan.",
+   "enum": [
+    "READY",
+    "DEGRADED",
+    "UNAVAILABLE",
+    "ERROR",
+    "BUDGET_EXCLUDED"
+   ],
+   "title": "Availability",
+   "type": "string"
+  },
+  "BlobRef": {
+   "additionalProperties": false,
+   "properties": {
+    "digest": {
+     "pattern": "^sha256:[0-9a-f]{64}$",
+     "title": "Digest",
+     "type": "string"
+    },
+    "media_type": {
+     "enum": [
+      "image/png",
+      "application/json"
+     ],
+     "title": "Media Type",
+     "type": "string"
+    },
+    "size_bytes": {
+     "minimum": 0,
+     "title": "Size Bytes",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "digest",
+    "media_type",
+    "size_bytes"
+   ],
+   "title": "BlobRef",
+   "type": "object"
+  },
+  "BudgetTier": {
+   "enum": [
+    "TRIAGE",
+    "STANDARD",
+    "DEEP",
+    "FORENSIC"
+   ],
+   "title": "BudgetTier",
+   "type": "string"
+  },
+  "Capability": {
+   "description": "A unit of access that an assessment may or may not have.",
+   "enum": [
+    "DATASET_IMAGES",
+    "DATASET_LABELS",
+    "DATASET_ANNOTATIONS",
+    "DATASET_METADATA",
+    "CONTRIBUTOR_METADATA",
+    "MODEL_ARTIFACT",
+    "MODEL_PREDICT",
+    "MODEL_LOGITS",
+    "MODEL_GRAPH",
+    "MODEL_PARAMETERS",
+    "MODEL_ACTIVATIONS",
+    "MODEL_GRADIENTS",
+    "REFERENCE_MODEL",
+    "REFERENCE_MODEL_DIGEST",
+    "REFERENCE_FINGERPRINT",
+    "REFERENCE_DATASET",
+    "PROBE_DATASET",
+    "SUSPECT_INPUTS",
+    "INFERENCE_LEDGER",
+    "LEDGER_TRUST_ROOT",
+    "LEDGER_ANCHOR",
+    "INFERENCE_INPUTS",
+    "PREPROCESSING_CONFIG",
+    "OPERATIONAL_DATA",
+    "SEMANTIC_ENCODER"
+   ],
+   "title": "Capability",
+   "type": "string"
+  },
+  "CapabilityRecord": {
+   "additionalProperties": false,
+   "properties": {
+    "capability": {
+     "$ref": "#/$defs/Capability"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "present": {
+     "title": "Present",
+     "type": "boolean"
+    },
+    "source": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Source"
+    },
+    "withheld": {
+     "default": false,
+     "title": "Withheld",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "capability",
+    "present"
+   ],
+   "title": "CapabilityRecord",
+   "type": "object"
+  },
+  "ContributorAssessment": {
+   "additionalProperties": false,
+   "properties": {
+    "baseline_rate": {
+     "title": "Baseline Rate",
+     "type": "number"
+    },
+    "batches": {
+     "additionalProperties": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object"
+     },
+     "title": "Batches",
+     "type": "object"
+    },
+    "campaign_findings": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Campaign Findings",
+     "type": "array"
+    },
+    "contributor": {
+     "title": "Contributor",
+     "type": "string"
+    },
+    "credible_high": {
+     "title": "Credible High",
+     "type": "number"
+    },
+    "credible_low": {
+     "title": "Credible Low",
+     "type": "number"
+    },
+    "dominant_signals": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Dominant Signals",
+     "type": "array"
+    },
+    "evidence_strength": {
+     "enum": [
+      "NONE",
+      "LOW",
+      "MEDIUM",
+      "HIGH"
+     ],
+     "title": "Evidence Strength",
+     "type": "string"
+    },
+    "expected_high": {
+     "title": "Expected High",
+     "type": "integer"
+    },
+    "expected_low": {
+     "title": "Expected Low",
+     "type": "integer"
+    },
+    "flagged": {
+     "title": "Flagged",
+     "type": "integer"
+    },
+    "flagged_weighted": {
+     "title": "Flagged Weighted",
+     "type": "number"
+    },
+    "posterior_anomaly": {
+     "description": "P(flag rate > excess_factor \u00d7 baseline | data)",
+     "title": "Posterior Anomaly",
+     "type": "number"
+    },
+    "posterior_mean": {
+     "title": "Posterior Mean",
+     "type": "number"
+    },
+    "rationale": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Rationale",
+     "type": "array"
+    },
+    "recommended_action": {
+     "$ref": "#/$defs/Disposition"
+    },
+    "risk_tier": {
+     "enum": [
+      "LOW",
+      "ELEVATED",
+      "HIGH",
+      "CRITICAL"
+     ],
+     "title": "Risk Tier",
+     "type": "string"
+    },
+    "samples": {
+     "title": "Samples",
+     "type": "integer"
+    },
+    "signal_breakdown": {
+     "additionalProperties": {
+      "type": "number"
+     },
+     "title": "Signal Breakdown",
+     "type": "object"
+    }
+   },
+   "required": [
+    "contributor",
+    "samples",
+    "flagged",
+    "flagged_weighted",
+    "baseline_rate",
+    "expected_low",
+    "expected_high",
+    "posterior_mean",
+    "credible_low",
+    "credible_high",
+    "posterior_anomaly",
+    "evidence_strength",
+    "risk_tier",
+    "recommended_action"
+   ],
+   "title": "ContributorAssessment",
+   "type": "object"
+  },
+  "CoverageRow": {
+   "additionalProperties": false,
+   "properties": {
+    "attack_class": {
+     "title": "Attack Class",
+     "type": "string"
+    },
+    "detectors": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Detectors",
+     "type": "array"
+    },
+    "failed_detectors": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Failed Detectors",
+     "type": "array"
+    },
+    "layer": {
+     "$ref": "#/$defs/Layer"
+    },
+    "reason": {
+     "title": "Reason",
+     "type": "string"
+    },
+    "recommended_evidence": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Recommended Evidence",
+     "type": "array"
+    },
+    "required_access": {
+     "items": {
+      "$ref": "#/$defs/Capability"
+     },
+     "title": "Required Access",
+     "type": "array"
+    },
+    "state": {
+     "$ref": "#/$defs/CoverageState"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "attack_class",
+    "layer",
+    "title",
+    "state",
+    "reason"
+   ],
+   "title": "CoverageRow",
+   "type": "object"
+  },
+  "CoverageState": {
+   "enum": [
+    "ASSESSED",
+    "PARTIALLY_ASSESSED",
+    "NOT_ASSESSED",
+    "FAILED_TO_EXECUTE",
+    "UNSUPPORTED"
+   ],
+   "title": "CoverageState",
+   "type": "string"
+  },
+  "CoverageStatement": {
+   "additionalProperties": false,
+   "properties": {
+    "assessed": {
+     "title": "Assessed",
+     "type": "integer"
+    },
+    "failed": {
+     "title": "Failed",
+     "type": "integer"
+    },
+    "not_assessed": {
+     "title": "Not Assessed",
+     "type": "integer"
+    },
+    "partial": {
+     "title": "Partial",
+     "type": "integer"
+    },
+    "rows": {
+     "items": {
+      "$ref": "#/$defs/CoverageRow"
+     },
+     "title": "Rows",
+     "type": "array"
+    },
+    "total": {
+     "title": "Total",
+     "type": "integer"
+    },
+    "unsupported": {
+     "title": "Unsupported",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "rows",
+    "total",
+    "assessed",
+    "partial",
+    "not_assessed",
+    "failed",
+    "unsupported"
+   ],
+   "title": "CoverageStatement",
+   "type": "object"
+  },
+  "DetectorExecution": {
+   "additionalProperties": false,
+   "properties": {
+    "assessed_classes": {
+     "items": {
+      "$ref": "#/$defs/AttackSupport"
+     },
+     "title": "Assessed Classes",
+     "type": "array"
+    },
+    "calibrated": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Calibrated"
+    },
+    "detector_id": {
+     "title": "Detector Id",
+     "type": "string"
+    },
+    "detector_version": {
+     "title": "Detector Version",
+     "type": "string"
+    },
+    "error_message": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error Message"
+    },
+    "error_type": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error Type"
+    },
+    "findings": {
+     "default": 0,
+     "title": "Findings",
+     "type": "integer"
+    },
+    "layer": {
+     "$ref": "#/$defs/Layer"
+    },
+    "metrics": {
+     "additionalProperties": true,
+     "title": "Metrics",
+     "type": "object"
+    },
+    "mode": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Mode"
+    },
+    "peak_memory_bytes": {
+     "default": 0,
+     "title": "Peak Memory Bytes",
+     "type": "integer"
+    },
+    "planned": {
+     "$ref": "#/$defs/Availability"
+    },
+    "reasons": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Reasons",
+     "type": "array"
+    },
+    "runtime_ms": {
+     "default": 0.0,
+     "title": "Runtime Ms",
+     "type": "number"
+    },
+    "samples_processed": {
+     "default": 0,
+     "title": "Samples Processed",
+     "type": "integer"
+    },
+    "state": {
+     "$ref": "#/$defs/ExecutionState"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "detector_id",
+    "detector_version",
+    "title",
+    "layer",
+    "planned",
+    "mode",
+    "state"
+   ],
+   "title": "DetectorExecution",
+   "type": "object"
+  },
+  "Disposition": {
+   "enum": [
+    "ACCEPT",
+    "REVIEW",
+    "QUARANTINE"
+   ],
+   "title": "Disposition",
+   "type": "string"
+  },
+  "Evidence": {
+   "additionalProperties": false,
+   "properties": {
+    "blob": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/BlobRef"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "data": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Data"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "$ref": "#/$defs/EvidenceKind"
+    },
+    "summary": {
+     "title": "Summary",
+     "type": "string"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "kind",
+    "title",
+    "summary"
+   ],
+   "title": "Evidence",
+   "type": "object"
+  },
+  "EvidenceGraph": {
+   "additionalProperties": false,
+   "properties": {
+    "edges": {
+     "items": {
+      "$ref": "#/$defs/GraphEdge"
+     },
+     "title": "Edges",
+     "type": "array"
+    },
+    "nodes": {
+     "items": {
+      "$ref": "#/$defs/GraphNode"
+     },
+     "title": "Nodes",
+     "type": "array"
+    }
+   },
+   "title": "EvidenceGraph",
+   "type": "object"
+  },
+  "EvidenceKind": {
+   "enum": [
+    "STATISTIC",
+    "TABLE",
+    "CONTACT_SHEET",
+    "PAIR_COMPARISON",
+    "HEATMAP",
+    "HASH_LIST",
+    "GRAPH",
+    "DISTRIBUTION",
+    "CONFUSION_MATRIX",
+    "DIFF",
+    "CRYPTO_CHECK",
+    "TIMELINE",
+    "SERIES",
+    "TEXT"
+   ],
+   "title": "EvidenceKind",
+   "type": "string"
+  },
+  "ExecutionState": {
+   "description": "What actually happened when the orchestrator reached a detector.",
+   "enum": [
+    "COMPLETED",
+    "COMPLETED_DEGRADED",
+    "ABSTAINED",
+    "NOT_RUN",
+    "ERROR"
+   ],
+   "title": "ExecutionState",
+   "type": "string"
+  },
+  "Finding": {
+   "additionalProperties": false,
+   "properties": {
+    "access_assumptions": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Access Assumptions",
+     "type": "array"
+    },
+    "affected_contributors": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Affected Contributors",
+     "type": "array"
+    },
+    "affected_count": {
+     "default": 0,
+     "title": "Affected Count",
+     "type": "integer"
+    },
+    "affected_samples": {
+     "items": {
+      "$ref": "#/$defs/SampleRef"
+     },
+     "title": "Affected Samples",
+     "type": "array"
+    },
+    "asset_id": {
+     "title": "Asset Id",
+     "type": "string"
+    },
+    "asset_type": {
+     "$ref": "#/$defs/AssetType"
+    },
+    "attack_class": {
+     "title": "Attack Class",
+     "type": "string"
+    },
+    "availability": {
+     "$ref": "#/$defs/Availability"
+    },
+    "calibrated": {
+     "default": false,
+     "title": "Calibrated",
+     "type": "boolean"
+    },
+    "confidence": {
+     "maximum": 1.0,
+     "minimum": 0.0,
+     "title": "Confidence",
+     "type": "number"
+    },
+    "corroborating_signals": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Corroborating Signals",
+     "type": "array"
+    },
+    "created_at": {
+     "format": "date-time",
+     "title": "Created At",
+     "type": "string"
+    },
+    "detector_id": {
+     "title": "Detector Id",
+     "type": "string"
+    },
+    "detector_version": {
+     "title": "Detector Version",
+     "type": "string"
+    },
+    "deterministic": {
+     "default": false,
+     "title": "Deterministic",
+     "type": "boolean"
+    },
+    "evidence": {
+     "items": {
+      "$ref": "#/$defs/Evidence"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "evidence_unavailable_reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Evidence Unavailable Reason"
+    },
+    "guardrails": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Guardrails",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "limitations": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Limitations",
+     "type": "array"
+    },
+    "policy_digest": {
+     "title": "Policy Digest",
+     "type": "string"
+    },
+    "policy_rule": {
+     "title": "Policy Rule",
+     "type": "string"
+    },
+    "proposed_severity": {
+     "$ref": "#/$defs/Severity"
+    },
+    "raw_score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Raw Score"
+    },
+    "reason": {
+     "minLength": 24,
+     "title": "Reason",
+     "type": "string"
+    },
+    "recommended_action": {
+     "default": "",
+     "title": "Recommended Action",
+     "type": "string"
+    },
+    "recommended_disposition": {
+     "$ref": "#/$defs/Disposition"
+    },
+    "scan_id": {
+     "title": "Scan Id",
+     "type": "string"
+    },
+    "score_semantics": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Score Semantics"
+    },
+    "severity": {
+     "$ref": "#/$defs/Severity"
+    },
+    "subject": {
+     "description": "Stable key of what the finding is about, used to match findings across scans.",
+     "title": "Subject",
+     "type": "string"
+    },
+    "tags": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Tags",
+     "type": "object"
+    },
+    "threshold": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Threshold"
+    },
+    "title": {
+     "minLength": 8,
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "attack_class",
+    "asset_type",
+    "asset_id",
+    "subject",
+    "title",
+    "reason",
+    "severity",
+    "confidence",
+    "id",
+    "scan_id",
+    "detector_id",
+    "detector_version",
+    "proposed_severity",
+    "recommended_disposition",
+    "availability",
+    "policy_rule",
+    "policy_digest",
+    "created_at"
+   ],
+   "title": "Finding",
+   "type": "object"
+  },
+  "GraphEdge": {
+   "additionalProperties": false,
+   "properties": {
+    "attrs": {
+     "additionalProperties": true,
+     "title": "Attrs",
+     "type": "object"
+    },
+    "source": {
+     "title": "Source",
+     "type": "string"
+    },
+    "target": {
+     "title": "Target",
+     "type": "string"
+    },
+    "type": {
+     "enum": [
+      "SUPPLIED_BY",
+      "FLAGGED_BY",
+      "SUPPORTED_BY",
+      "GENERATED_BY",
+      "DECIDED_BY",
+      "DERIVED_FROM",
+      "USES_MODEL",
+      "USES_INPUT",
+      "CORRELATES_WITH",
+      "ABOUT",
+      "EXECUTED"
+     ],
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "source",
+    "target",
+    "type"
+   ],
+   "title": "GraphEdge",
+   "type": "object"
+  },
+  "GraphNode": {
+   "additionalProperties": false,
+   "properties": {
+    "attrs": {
+     "additionalProperties": true,
+     "title": "Attrs",
+     "type": "object"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "label": {
+     "title": "Label",
+     "type": "string"
+    },
+    "type": {
+     "enum": [
+      "Asset",
+      "Dataset",
+      "Sample",
+      "Contributor",
+      "Model",
+      "Detector",
+      "Finding",
+      "InferenceRecord",
+      "Decision",
+      "Evidence",
+      "Signal",
+      "Class"
+     ],
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "type",
+    "label"
+   ],
+   "title": "GraphNode",
+   "type": "object"
+  },
+  "Layer": {
+   "description": "The assurance layer a detector or attack class belongs to.",
+   "enum": [
+    "DATA",
+    "MODEL",
+    "PROVENANCE",
+    "DRIFT"
+   ],
+   "title": "Layer",
+   "type": "string"
+  },
+  "Negotiation": {
+   "additionalProperties": false,
+   "properties": {
+    "assessed_classes": {
+     "items": {
+      "$ref": "#/$defs/AttackSupport"
+     },
+     "title": "Assessed Classes",
+     "type": "array"
+    },
+    "availability": {
+     "$ref": "#/$defs/Availability"
+    },
+    "detector_id": {
+     "title": "Detector Id",
+     "type": "string"
+    },
+    "missing": {
+     "items": {
+      "$ref": "#/$defs/Capability"
+     },
+     "title": "Missing",
+     "type": "array"
+    },
+    "mode": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Mode"
+    },
+    "reasons": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Reasons",
+     "type": "array"
+    },
+    "withheld": {
+     "items": {
+      "$ref": "#/$defs/Capability"
+     },
+     "title": "Withheld",
+     "type": "array"
+    }
+   },
+   "required": [
+    "detector_id",
+    "availability"
+   ],
+   "title": "Negotiation",
+   "type": "object"
+  },
+  "ReproductionInfo": {
+   "additionalProperties": false,
+   "properties": {
+    "determinism_note": {
+     "title": "Determinism Note",
+     "type": "string"
+    },
+    "encoder": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Encoder"
+    },
+    "git_commit": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Git Commit"
+    },
+    "libraries": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Libraries",
+     "type": "object"
+    },
+    "platform": {
+     "title": "Platform",
+     "type": "string"
+    },
+    "profile": {
+     "title": "Profile",
+     "type": "string"
+    },
+    "profile_digest": {
+     "title": "Profile Digest",
+     "type": "string"
+    },
+    "python": {
+     "title": "Python",
+     "type": "string"
+    },
+    "runtime_settings": {
+     "additionalProperties": true,
+     "title": "Runtime Settings",
+     "type": "object"
+    },
+    "scan_time": {
+     "format": "date-time",
+     "title": "Scan Time",
+     "type": "string"
+    },
+    "seed": {
+     "title": "Seed",
+     "type": "integer"
+    },
+    "software_version": {
+     "title": "Software Version",
+     "type": "string"
+    }
+   },
+   "required": [
+    "seed",
+    "profile",
+    "profile_digest",
+    "software_version",
+    "git_commit",
+    "python",
+    "platform",
+    "libraries",
+    "runtime_settings",
+    "scan_time",
+    "determinism_note"
+   ],
+   "title": "ReproductionInfo",
+   "type": "object"
+  },
+  "SampleRef": {
+   "additionalProperties": false,
+   "properties": {
+    "contributor": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Contributor"
+    },
+    "label": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Label"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "sample_id": {
+     "title": "Sample Id",
+     "type": "string"
+    }
+   },
+   "required": [
+    "sample_id"
+   ],
+   "title": "SampleRef",
+   "type": "object"
+  },
+  "ScanEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "detector_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Detector Id"
+    },
+    "level": {
+     "enum": [
+      "info",
+      "warn",
+      "error",
+      "stage"
+     ],
+     "title": "Level",
+     "type": "string"
+    },
+    "message": {
+     "title": "Message",
+     "type": "string"
+    },
+    "seq": {
+     "title": "Seq",
+     "type": "integer"
+    },
+    "t_ms": {
+     "title": "T Ms",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "seq",
+    "t_ms",
+    "level",
+    "message"
+   ],
+   "title": "ScanEvent",
+   "type": "object"
+  },
+  "ScanStatus": {
+   "enum": [
+    "PENDING",
+    "PROBING",
+    "PLANNED",
+    "RUNNING",
+    "SEALED",
+    "FAILED"
+   ],
+   "title": "ScanStatus",
+   "type": "string"
+  },
+  "ScanSummary": {
+   "additionalProperties": false,
+   "properties": {
+    "asset_dispositions": {
+     "additionalProperties": {
+      "$ref": "#/$defs/Disposition"
+     },
+     "title": "Asset Dispositions",
+     "type": "object"
+    },
+    "by_disposition": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "propertyNames": {
+      "$ref": "#/$defs/Disposition"
+     },
+     "title": "By Disposition",
+     "type": "object"
+    },
+    "by_severity": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "propertyNames": {
+      "$ref": "#/$defs/Severity"
+     },
+     "title": "By Severity",
+     "type": "object"
+    },
+    "coverage_assessed": {
+     "title": "Coverage Assessed",
+     "type": "integer"
+    },
+    "coverage_partial": {
+     "title": "Coverage Partial",
+     "type": "integer"
+    },
+    "coverage_total": {
+     "title": "Coverage Total",
+     "type": "integer"
+    },
+    "detectors_abstained": {
+     "title": "Detectors Abstained",
+     "type": "integer"
+    },
+    "detectors_budget_excluded": {
+     "title": "Detectors Budget Excluded",
+     "type": "integer"
+    },
+    "detectors_completed": {
+     "title": "Detectors Completed",
+     "type": "integer"
+    },
+    "detectors_degraded": {
+     "title": "Detectors Degraded",
+     "type": "integer"
+    },
+    "detectors_error": {
+     "title": "Detectors Error",
+     "type": "integer"
+    },
+    "detectors_unavailable": {
+     "title": "Detectors Unavailable",
+     "type": "integer"
+    },
+    "findings": {
+     "title": "Findings",
+     "type": "integer"
+    },
+    "overall_disposition": {
+     "$ref": "#/$defs/Disposition"
+    }
+   },
+   "required": [
+    "findings",
+    "by_severity",
+    "by_disposition",
+    "asset_dispositions",
+    "coverage_assessed",
+    "coverage_partial",
+    "coverage_total",
+    "detectors_completed",
+    "detectors_degraded",
+    "detectors_unavailable",
+    "detectors_error",
+    "detectors_abstained",
+    "detectors_budget_excluded",
+    "overall_disposition"
+   ],
+   "title": "ScanSummary",
+   "type": "object"
+  },
+  "Severity": {
+   "enum": [
+    "INFO",
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+   ],
+   "title": "Severity",
+   "type": "string"
+  },
+  "SupportLevel": {
+   "enum": [
+    "FULL",
+    "PARTIAL"
+   ],
+   "title": "SupportLevel",
+   "type": "string"
+  }
+ },
+ "additionalProperties": false,
+ "properties": {
+  "assets": {
+   "items": {
+    "$ref": "#/$defs/AssetDescriptor"
+   },
+   "title": "Assets",
+   "type": "array"
+  },
+  "budget": {
+   "$ref": "#/$defs/BudgetTier"
+  },
+  "capabilities": {
+   "items": {
+    "$ref": "#/$defs/CapabilityRecord"
+   },
+   "title": "Capabilities",
+   "type": "array"
+  },
+  "completed_at": {
+   "anyOf": [
+    {
+     "format": "date-time",
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Completed At"
+  },
+  "contributors": {
+   "items": {
+    "$ref": "#/$defs/ContributorAssessment"
+   },
+   "title": "Contributors",
+   "type": "array"
+  },
+  "coverage": {
+   "$ref": "#/$defs/CoverageStatement"
+  },
+  "created_at": {
+   "format": "date-time",
+   "title": "Created At",
+   "type": "string"
+  },
+  "events": {
+   "items": {
+    "$ref": "#/$defs/ScanEvent"
+   },
+   "title": "Events",
+   "type": "array"
+  },
+  "executions": {
+   "items": {
+    "$ref": "#/$defs/DetectorExecution"
+   },
+   "title": "Executions",
+   "type": "array"
+  },
+  "findings": {
+   "items": {
+    "$ref": "#/$defs/Finding"
+   },
+   "title": "Findings",
+   "type": "array"
+  },
+  "graph": {
+   "$ref": "#/$defs/EvidenceGraph"
+  },
+  "name": {
+   "title": "Name",
+   "type": "string"
+  },
+  "plan": {
+   "items": {
+    "$ref": "#/$defs/Negotiation"
+   },
+   "title": "Plan",
+   "type": "array"
+  },
+  "profile": {
+   "title": "Profile",
+   "type": "string"
+  },
+  "report_digest": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Report Digest"
+  },
+  "reproduction": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/ReproductionInfo"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  },
+  "scan_id": {
+   "title": "Scan Id",
+   "type": "string"
+  },
+  "sections": {
+   "additionalProperties": true,
+   "description": "Layer-specific result panels (model, drift, provenance, data).",
+   "title": "Sections",
+   "type": "object"
+  },
+  "status": {
+   "$ref": "#/$defs/ScanStatus"
+  },
+  "summary": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/ScanSummary"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  }
+ },
+ "required": [
+  "scan_id",
+  "name",
+  "status",
+  "profile",
+  "budget",
+  "created_at",
+  "assets",
+  "capabilities",
+  "plan",
+  "executions",
+  "findings",
+  "coverage"
+ ],
+ "title": "ScanResult",
+ "type": "object"
+}

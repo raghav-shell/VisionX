@@ -1,0 +1,63 @@
+{
+ "$id": "visionsentinel/ledger-record/v1",
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "additionalProperties": false,
+ "properties": {
+  "body": {
+   "type": "object"
+  },
+  "key_id": {
+   "pattern": "^ed25519:[0-9a-f]{16}$",
+   "type": "string"
+  },
+  "kind": {
+   "enum": [
+    "header",
+    "inference",
+    "checkpoint",
+    "audit"
+   ]
+  },
+  "ledger": {
+   "maxLength": 128,
+   "type": "string"
+  },
+  "nonce": {
+   "pattern": "^[A-Za-z0-9_-]{22}$",
+   "type": "string"
+  },
+  "prev": {
+   "pattern": "^sha256:[0-9a-f]{64}$",
+   "type": "string"
+  },
+  "seq": {
+   "minimum": 0,
+   "type": "integer"
+  },
+  "sig": {
+   "pattern": "^[A-Za-z0-9_-]{86}$",
+   "type": "string"
+  },
+  "ts": {
+   "format": "date-time",
+   "type": "string"
+  },
+  "v": {
+   "const": 1
+  }
+ },
+ "required": [
+  "v",
+  "ledger",
+  "seq",
+  "prev",
+  "ts",
+  "nonce",
+  "kind",
+  "body",
+  "key_id",
+  "sig"
+ ],
+ "title": "VisionSentinel ledger record",
+ "type": "object"
+}

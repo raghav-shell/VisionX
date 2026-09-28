@@ -96,18 +96,21 @@ def _cmd_scan(args: argparse.Namespace) -> int:
     result = run_scan(request, workspace=Workspace.default(), on_event=on_event)
     print_scan(result)
     out: Path = args.out
-    written = write_outputs(result, out)
+    written = write_outputs(result, out, args.sign_with)
     print()
     for p in written:
         print(f"wrote {p}")
     return 1 if result.summary.overall_disposition == Disposition.QUARANTINE and args.fail_on_quarantine else 0
 
 
-def write_outputs(result, out: Path) -> list[Path]:
-    out.mkdir(parents=True, exist_ok=True)
-    path = out / f"{result.scan_id}.json"
-    path.write_text(result.model_dump_json(indent=1))
-    return [path]
+def write_outputs(result, out: Path, signing_key: Path | None = None) -> list[Path]:
+    from ..evidence.store import EvidenceStore
+    from ..provenance.keys import load_private_key
+    from ..reporting import write_report
+
+    key = load_private_key(signing_key) if signing_key else None
+    paths = write_report(result, out, EvidenceStore(Workspace.default().evidence), key)
+    return list(paths.values())
 
 
 def _scan_args(p: argparse.ArgumentParser) -> None:
@@ -132,6 +135,44 @@ def _scan_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--out", type=Path, default=Path("reports"), help="output directory for reports")
     p.add_argument("--quiet", action="store_true", help="suppress the live event stream")
     p.add_argument("--fail-on-quarantine", action="store_true", help="exit 1 when the overall disposition is QUARANTINE")
+    p.add_argument("--sign-with", type=Path, help="Ed25519 key (role 'report') to sign the report manifest")
+
+
+def _load_result(path: Path):
+    from ..contracts import ScanResult
+
+    doc = json.loads(Path(path).read_text())
+    return ScanResult.model_validate(doc.get("result", doc))
+
+
+def _cmd_compare(args: argparse.Namespace) -> int:
+    from ..reporting import compare_scans
+
+    diff = compare_scans(_load_result(args.a), _load_result(args.b))
+    if args.json:
+        print(json.dumps(diff, indent=1))
+        return 0
+    s = diff["summary"]
+    print(heading(f"COMPARE {diff['a']['scan_id']} → {diff['b']['scan_id']}"))
+    rows = [["assessment coverage", f"{s['coverage_pct'][0]}%", f"{s['coverage_pct'][1]}%"],
+            ["critical findings", str(s["critical"][0]), str(s["critical"][1])],
+            ["quarantine", str(s["quarantine"][0]), str(s["quarantine"][1])],
+            ["review", str(s["review"][0]), str(s["review"][1])],
+            ["overall disposition", str(s["overall"][0]), str(s["overall"][1])]]
+    rows += [[f"{c['role'].lower()} digest", "", c["status"]] for c in diff["asset_changes"]]
+    print(table(rows, ["", "A", "B"]))
+    print()
+    for line in diff["explanation"]:
+        print(f"  • {line}")
+    return 0
+
+
+def _cmd_schemas(args: argparse.Namespace) -> int:
+    from ..reporting.schemas import export_schemas
+
+    for p in export_schemas(args.out):
+        print(f"wrote {p}")
+    return 0
 
 
 def register_all(sub: argparse._SubParsersAction) -> None:
@@ -152,3 +193,13 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p.set_defaults(handler=_cmd_detectors)
 
     provenance_cmds.register(sub)
+
+    p = sub.add_parser("compare", help="compare two scan reports (report.json)")
+    p.add_argument("a", type=Path)
+    p.add_argument("b", type=Path)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(handler=_cmd_compare)
+
+    p = sub.add_parser("schemas", help="export JSON Schemas for contracts, profiles, ledgers and trust roots")
+    p.add_argument("--out", type=Path, default=Path("schemas"))
+    p.set_defaults(handler=_cmd_schemas)

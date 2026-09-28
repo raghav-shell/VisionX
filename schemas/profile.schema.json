@@ -1,0 +1,713 @@
+{
+ "$defs": {
+  "AccessPolicy": {
+   "additionalProperties": false,
+   "properties": {
+    "deny": {
+     "items": {
+      "$ref": "#/$defs/Capability"
+     },
+     "title": "Deny",
+     "type": "array"
+    },
+    "note": {
+     "default": "",
+     "title": "Note",
+     "type": "string"
+    }
+   },
+   "title": "AccessPolicy",
+   "type": "object"
+  },
+  "AnalysisConfig": {
+   "additionalProperties": false,
+   "properties": {
+    "batch_size": {
+     "default": 64,
+     "maximum": 4096,
+     "minimum": 1,
+     "title": "Batch Size",
+     "type": "integer"
+    },
+    "encoder_preference": {
+     "items": {
+      "enum": [
+       "foundation",
+       "reference_model",
+       "classical"
+      ],
+      "type": "string"
+     },
+     "title": "Encoder Preference",
+     "type": "array"
+    },
+    "resolution": {
+     "default": 64,
+     "maximum": 512,
+     "minimum": 16,
+     "title": "Resolution",
+     "type": "integer"
+    },
+    "torch_threads": {
+     "anyOf": [
+      {
+       "maximum": 256,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Torch Threads"
+    },
+    "track_memory": {
+     "default": true,
+     "title": "Track Memory",
+     "type": "boolean"
+    }
+   },
+   "title": "AnalysisConfig",
+   "type": "object"
+  },
+  "Availability": {
+   "description": "Planned availability of a detector for a particular scan.",
+   "enum": [
+    "READY",
+    "DEGRADED",
+    "UNAVAILABLE",
+    "ERROR",
+    "BUDGET_EXCLUDED"
+   ],
+   "title": "Availability",
+   "type": "string"
+  },
+  "BudgetTier": {
+   "enum": [
+    "TRIAGE",
+    "STANDARD",
+    "DEEP",
+    "FORENSIC"
+   ],
+   "title": "BudgetTier",
+   "type": "string"
+  },
+  "CalibrationConfig": {
+   "additionalProperties": false,
+   "properties": {
+    "source": {
+     "description": "'uncalibrated', 'literature:<ref>', 'reference-data' or a calibration/*.json path",
+     "title": "Source",
+     "type": "string"
+    },
+    "threshold": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Threshold"
+    },
+    "threshold_origin": {
+     "title": "Threshold Origin",
+     "type": "string"
+    }
+   },
+   "required": [
+    "source",
+    "threshold_origin"
+   ],
+   "title": "CalibrationConfig",
+   "type": "object"
+  },
+  "Capability": {
+   "description": "A unit of access that an assessment may or may not have.",
+   "enum": [
+    "DATASET_IMAGES",
+    "DATASET_LABELS",
+    "DATASET_ANNOTATIONS",
+    "DATASET_METADATA",
+    "CONTRIBUTOR_METADATA",
+    "MODEL_ARTIFACT",
+    "MODEL_PREDICT",
+    "MODEL_LOGITS",
+    "MODEL_GRAPH",
+    "MODEL_PARAMETERS",
+    "MODEL_ACTIVATIONS",
+    "MODEL_GRADIENTS",
+    "REFERENCE_MODEL",
+    "REFERENCE_MODEL_DIGEST",
+    "REFERENCE_FINGERPRINT",
+    "REFERENCE_DATASET",
+    "PROBE_DATASET",
+    "SUSPECT_INPUTS",
+    "INFERENCE_LEDGER",
+    "LEDGER_TRUST_ROOT",
+    "LEDGER_ANCHOR",
+    "INFERENCE_INPUTS",
+    "PREPROCESSING_CONFIG",
+    "OPERATIONAL_DATA",
+    "SEMANTIC_ENCODER"
+   ],
+   "title": "Capability",
+   "type": "string"
+  },
+  "ContributorPolicy": {
+   "additionalProperties": false,
+   "properties": {
+    "credible_level": {
+     "default": 0.9,
+     "exclusiveMaximum": 1.0,
+     "exclusiveMinimum": 0.5,
+     "title": "Credible Level",
+     "type": "number"
+    },
+    "excess_factor": {
+     "default": 2.0,
+     "exclusiveMinimum": 1.0,
+     "title": "Excess Factor",
+     "type": "number"
+    },
+    "flag_min_confidence": {
+     "default": 0.5,
+     "maximum": 1,
+     "minimum": 0,
+     "title": "Flag Min Confidence",
+     "type": "number"
+    },
+    "flag_min_severity": {
+     "$ref": "#/$defs/Severity",
+     "default": "LOW"
+    },
+    "high_anomaly": {
+     "default": 0.95,
+     "exclusiveMinimum": 0.5,
+     "maximum": 1.0,
+     "title": "High Anomaly",
+     "type": "number"
+    },
+    "medium_anomaly": {
+     "default": 0.8,
+     "exclusiveMinimum": 0.5,
+     "maximum": 1.0,
+     "title": "Medium Anomaly",
+     "type": "number"
+    },
+    "min_samples": {
+     "default": 20,
+     "minimum": 1,
+     "title": "Min Samples",
+     "type": "integer"
+    },
+    "prior_strength": {
+     "default": 60.0,
+     "description": "Beta prior pseudo-sample count.",
+     "exclusiveMinimum": 0,
+     "title": "Prior Strength",
+     "type": "number"
+    }
+   },
+   "title": "ContributorPolicy",
+   "type": "object"
+  },
+  "DetectorConfig": {
+   "additionalProperties": false,
+   "properties": {
+    "calibration": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/CalibrationConfig"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "params": {
+     "additionalProperties": true,
+     "title": "Params",
+     "type": "object"
+    }
+   },
+   "title": "DetectorConfig",
+   "type": "object"
+  },
+  "Disposition": {
+   "enum": [
+    "ACCEPT",
+    "REVIEW",
+    "QUARANTINE"
+   ],
+   "title": "Disposition",
+   "type": "string"
+  },
+  "Layer": {
+   "description": "The assurance layer a detector or attack class belongs to.",
+   "enum": [
+    "DATA",
+    "MODEL",
+    "PROVENANCE",
+    "DRIFT"
+   ],
+   "title": "Layer",
+   "type": "string"
+  },
+  "PolicyRule": {
+   "additionalProperties": false,
+   "properties": {
+    "description": {
+     "title": "Description",
+     "type": "string"
+    },
+    "id": {
+     "pattern": "^[a-z0-9][a-z0-9_.-]{1,63}$",
+     "title": "Id",
+     "type": "string"
+    },
+    "then": {
+     "$ref": "#/$defs/RuleAction"
+    },
+    "when": {
+     "$ref": "#/$defs/RuleMatch"
+    }
+   },
+   "required": [
+    "id",
+    "description",
+    "when",
+    "then"
+   ],
+   "title": "PolicyRule",
+   "type": "object"
+  },
+  "ResourceLimits": {
+   "additionalProperties": false,
+   "properties": {
+    "max_archive_members": {
+     "default": 250000,
+     "exclusiveMinimum": 0,
+     "title": "Max Archive Members",
+     "type": "integer"
+    },
+    "max_archive_total_bytes": {
+     "default": 8589934592,
+     "exclusiveMinimum": 0,
+     "title": "Max Archive Total Bytes",
+     "type": "integer"
+    },
+    "max_compression_ratio": {
+     "default": 200.0,
+     "exclusiveMinimum": 1.0,
+     "title": "Max Compression Ratio",
+     "type": "number"
+    },
+    "max_dataset_samples": {
+     "default": 200000,
+     "exclusiveMinimum": 0,
+     "title": "Max Dataset Samples",
+     "type": "integer"
+    },
+    "max_file_bytes": {
+     "default": 67108864,
+     "description": "Largest single sample/config file.",
+     "exclusiveMinimum": 0,
+     "title": "Max File Bytes",
+     "type": "integer"
+    },
+    "max_image_pixels": {
+     "default": 40000000,
+     "description": "Width \u00d7 height before decoding.",
+     "exclusiveMinimum": 0,
+     "title": "Max Image Pixels",
+     "type": "integer"
+    },
+    "max_image_side": {
+     "default": 16384,
+     "exclusiveMinimum": 0,
+     "title": "Max Image Side",
+     "type": "integer"
+    },
+    "max_json_bytes": {
+     "default": 67108864,
+     "description": "Largest annotation/manifest JSON.",
+     "exclusiveMinimum": 0,
+     "title": "Max Json Bytes",
+     "type": "integer"
+    },
+    "max_json_depth": {
+     "default": 64,
+     "exclusiveMinimum": 0,
+     "title": "Max Json Depth",
+     "type": "integer"
+    },
+    "max_json_elements": {
+     "default": 5000000,
+     "exclusiveMinimum": 0,
+     "title": "Max Json Elements",
+     "type": "integer"
+    },
+    "max_ledger_line_bytes": {
+     "default": 1048576,
+     "exclusiveMinimum": 0,
+     "title": "Max Ledger Line Bytes",
+     "type": "integer"
+    },
+    "max_ledger_records": {
+     "default": 5000000,
+     "exclusiveMinimum": 0,
+     "title": "Max Ledger Records",
+     "type": "integer"
+    },
+    "max_model_bytes": {
+     "default": 536870912,
+     "exclusiveMinimum": 0,
+     "title": "Max Model Bytes",
+     "type": "integer"
+    },
+    "max_tensor_elements": {
+     "default": 200000000,
+     "description": "Largest single parameter tensor.",
+     "exclusiveMinimum": 0,
+     "title": "Max Tensor Elements",
+     "type": "integer"
+    },
+    "max_xml_bytes": {
+     "default": 4194304,
+     "exclusiveMinimum": 0,
+     "title": "Max Xml Bytes",
+     "type": "integer"
+    },
+    "worker_call_timeout_s": {
+     "default": 300.0,
+     "exclusiveMinimum": 0,
+     "title": "Worker Call Timeout S",
+     "type": "number"
+    },
+    "worker_cpu_seconds": {
+     "default": 1800,
+     "exclusiveMinimum": 0,
+     "title": "Worker Cpu Seconds",
+     "type": "integer"
+    },
+    "worker_memory_bytes": {
+     "default": 4294967296,
+     "exclusiveMinimum": 0,
+     "title": "Worker Memory Bytes",
+     "type": "integer"
+    }
+   },
+   "title": "ResourceLimits",
+   "type": "object"
+  },
+  "RiskPolicy": {
+   "additionalProperties": false,
+   "properties": {
+    "default": {
+     "$ref": "#/$defs/RuleAction"
+    },
+    "rules": {
+     "items": {
+      "$ref": "#/$defs/PolicyRule"
+     },
+     "title": "Rules",
+     "type": "array"
+    }
+   },
+   "required": [
+    "rules",
+    "default"
+   ],
+   "title": "RiskPolicy",
+   "type": "object"
+  },
+  "RuleAction": {
+   "additionalProperties": false,
+   "properties": {
+    "disposition": {
+     "$ref": "#/$defs/Disposition"
+    },
+    "max_severity": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Severity"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "min_severity": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Severity"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "rationale": {
+     "minLength": 8,
+     "title": "Rationale",
+     "type": "string"
+    },
+    "severity": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Severity"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    }
+   },
+   "required": [
+    "disposition",
+    "rationale"
+   ],
+   "title": "RuleAction",
+   "type": "object"
+  },
+  "RuleMatch": {
+   "additionalProperties": false,
+   "properties": {
+    "attack_classes": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Attack Classes"
+    },
+    "availability": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/Availability"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Availability"
+    },
+    "calibrated": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Calibrated"
+    },
+    "detectors": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Detectors"
+    },
+    "deterministic": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Deterministic"
+    },
+    "layers": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/Layer"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Layers"
+    },
+    "max_confidence": {
+     "anyOf": [
+      {
+       "maximum": 1,
+       "minimum": 0,
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Confidence"
+    },
+    "max_severity": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Severity"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "min_confidence": {
+     "anyOf": [
+      {
+       "maximum": 1,
+       "minimum": 0,
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Min Confidence"
+    },
+    "min_corroboration": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Min Corroboration"
+    },
+    "min_severity": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Severity"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "tags": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "type": "string"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Tags"
+    }
+   },
+   "title": "RuleMatch",
+   "type": "object"
+  },
+  "Severity": {
+   "enum": [
+    "INFO",
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+   ],
+   "title": "Severity",
+   "type": "string"
+  }
+ },
+ "additionalProperties": false,
+ "properties": {
+  "access": {
+   "$ref": "#/$defs/AccessPolicy"
+  },
+  "analysis": {
+   "$ref": "#/$defs/AnalysisConfig"
+  },
+  "budget": {
+   "$ref": "#/$defs/BudgetTier"
+  },
+  "contributors": {
+   "$ref": "#/$defs/ContributorPolicy"
+  },
+  "description": {
+   "title": "Description",
+   "type": "string"
+  },
+  "detectors": {
+   "additionalProperties": {
+    "$ref": "#/$defs/DetectorConfig"
+   },
+   "title": "Detectors",
+   "type": "object"
+  },
+  "limits": {
+   "$ref": "#/$defs/ResourceLimits"
+  },
+  "name": {
+   "title": "Name",
+   "type": "string"
+  },
+  "risk": {
+   "$ref": "#/$defs/RiskPolicy"
+  },
+  "seed": {
+   "exclusiveMaximum": 9223372036854775808,
+   "minimum": 0,
+   "title": "Seed",
+   "type": "integer"
+  }
+ },
+ "required": [
+  "name",
+  "description",
+  "budget",
+  "seed",
+  "risk"
+ ],
+ "title": "Profile",
+ "type": "object"
+}
