@@ -49,28 +49,13 @@ from ..core.context import DetectorContext
 from ..core.detector import Detector, DetectorResult, Params, SampleFlag
 from ..core.stats import MAD_SCALE, benjamini_hochberg, binomial_tail, fmt_p
 from ..evidence.render import heatmap, overlay_region
+from ..vision.residuals import residuals, window_energy
 from .analysis import DatasetAnalysis, UnionFind
 from .common import DATA_ASSUMPTIONS, analysis, pct, ref, sheet_evidence, stat_evidence, table_evidence
 
 
-def _residuals(images: np.ndarray, sigma: float) -> np.ndarray:
-    """Luma high-pass residual (image − Gaussian blur), float32 N×H×W."""
-    y = images.astype(np.float32) @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
-    out = np.empty_like(y)
-    for i in range(len(y)):
-        out[i] = y[i] - ndimage.gaussian_filter(y[i], sigma)
-    return out
-
-
-def _window_energy(res: np.ndarray, win: int, stride: int) -> tuple[np.ndarray, list[tuple[int, int]]]:
-    sq = res.astype(np.float64) ** 2
-    integ = np.zeros((sq.shape[0], sq.shape[1] + 1, sq.shape[2] + 1))
-    integ[:, 1:, 1:] = sq.cumsum(1).cumsum(2)
-    H, W = res.shape[1:]
-    pos = [(y, x) for y in range(0, H - win + 1, stride) for x in range(0, W - win + 1, stride)]
-    e = np.stack([integ[:, y + win, x + win] - integ[:, y, x + win] - integ[:, y + win, x] + integ[:, y, x]
-                  for y, x in pos], axis=1)
-    return e, pos
+_residuals = residuals
+_window_energy = window_energy
 
 
 def _patches(res: np.ndarray, y: int, x: int, win: int, shift: int = 0) -> np.ndarray:

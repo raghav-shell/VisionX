@@ -135,6 +135,8 @@ def _scan_args(p: argparse.ArgumentParser) -> None:
 
 
 def register_all(sub: argparse._SubParsersAction) -> None:
+    from . import provenance_cmds
+
     p = sub.add_parser("scan", help="run an assurance scan over the supplied assets",
                        description="Probe the supplied assets, negotiate every detector, run the plan and write reports.")
     _scan_args(p)
@@ -148,3 +150,5 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser("detectors", help="list registered detectors and their declarations")
     p.add_argument("id", nargs="?", help="show the full declaration of one detector")
     p.set_defaults(handler=_cmd_detectors)
+
+    provenance_cmds.register(sub)

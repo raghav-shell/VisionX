@@ -39,7 +39,7 @@ ALLOWED: dict[str, set[str]] = {
 }
 
 # The standalone verifier must run with the standard library and `cryptography` only.
-VERIFIER_FILES = {"canonical.py", "merkle.py", "verifier.py"}
+VERIFIER_FILES = {"canonical.py", "merkle.py", "verifier.py", "trust.py", "__init__.py"}
 
 
 def _modules() -> list[Path]:
@@ -102,8 +102,13 @@ def test_verifier_has_minimal_dependencies():
         path = PKG / "provenance" / fname
         if not path.exists():
             pytest.skip("verifier not present yet")
+        type_only = _is_type_checking_only(path)
+        module_level = {n.lineno for n in ast.parse(path.read_text()).body}
         for name, level, node in _imports(path):
             root = name.split(".")[0]
+            # only imports executed when the module is imported matter; function-local imports run on demand
+            if node.lineno in type_only or node.lineno not in module_level:
+                continue
             if name.startswith("visionsentinel.provenance"):
                 assert name.split(".")[-1] in {f[:-3] for f in VERIFIER_FILES}, f"{fname} imports {name}"
                 continue

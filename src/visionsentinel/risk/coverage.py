@@ -80,6 +80,11 @@ def compute_coverage(specs: list[DetectorSpec], plan: list[Negotiation], executi
                     full.append(spec.id)
                 elif level == SupportLevel.PARTIAL:
                     partial.append(spec.id)
+                else:
+                    idle_reasons.append(f"{spec.id} ran in mode '{e.mode}', which does not assess this class")
+                    preferred = next((m for m in spec.modes if not m.degraded), None)
+                    if preferred is not None:
+                        missing.update(preferred.needs)
             elif e.state == ExecutionState.ERROR:
                 failed.append(spec.id)
             else:

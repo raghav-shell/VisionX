@@ -69,6 +69,24 @@ def load_models(request: ScanRequest, profile: Profile, prepared: PreparedAssets
         prepared.objects["reference_fingerprint"] = load_fingerprint(request.reference_fingerprint)
         prepared.probed[Capability.REFERENCE_FINGERPRINT] = ("reference_fingerprint", request.reference_fingerprint.name)
 
+    if request.ledger is not None:
+        path = request.ledger
+        if not path.is_file() or path.stat().st_size > profile.limits.max_ledger_records * 4096:
+            raise VisionSentinelError(f"ledger {path} is missing or exceeds the size limit")
+        lines = sum(1 for raw in path.open("rb") if raw.strip())
+        prepared.objects["ledger_path"] = path
+        prepared.probed[Capability.INFERENCE_LEDGER] = ("ledger", f"{lines} records")
+        prepared.descriptors.append(AssetDescriptor(role=AssetType.INFERENCE_LEDGER, asset_id=path.stem, name=path.name,
+                                                    path=str(path), digest=sha256_file(path), format="jsonl",
+                                                    details={"records": lines}))
+        events.emit(f"inference ledger registered: {lines} records")
+    if request.anchor is not None:
+        prepared.objects["anchor_path"] = request.anchor
+        prepared.probed[Capability.LEDGER_ANCHOR] = ("anchor", request.anchor.name)
+    if request.inference_inputs is not None and request.inference_inputs.is_dir():
+        prepared.objects["inference_inputs_path"] = request.inference_inputs
+        prepared.probed[Capability.INFERENCE_INPUTS] = ("inference_inputs", request.inference_inputs.name)
+
     if request.trust_root is not None:
         try:
             trust = load_trust_root(request.trust_root)
