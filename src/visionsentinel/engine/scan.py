@@ -36,11 +36,13 @@ from ..core.profiles import load_profile
 from ..core.registry import DetectorRegistry
 from ..core.workspace import Workspace
 from ..evidence.store import EvidenceStore
+from ..risk.contributors import SampleInfo, assess_contributors
 from ..risk.coverage import compute_coverage
 from ..risk.policy import PolicyEngine
 from .assets import PreparedAssets, build_analyses, load_datasets
 from .encoders import select_encoder
 from .findings import finalize_findings
+from .graph import build_graph
 from .registry import default_registry
 from .request import ScanRequest
 
@@ -127,10 +129,22 @@ def run_scan(request: ScanRequest, *, workspace: Workspace | None = None, regist
         if "dataset" in prepared.objects:
             sections["dataset"] = prepared.objects["dataset"].summary()
 
+        contributors = []
+        dataset = prepared.objects.get("dataset")
+        if dataset is not None:
+            samples = {s.id: SampleInfo(s.contributor, s.batch) for s in dataset.samples}
+            flags = [fl for r in results.values() for fl in r.flags]
+            contributors = assess_contributors(samples, flags, findings, profile.contributors)
+            if contributors:
+                top = contributors[0]
+                events.emit(f"contributor assessment: {len(contributors)} contributors · highest risk {top.contributor} "
+                            f"({top.risk_tier}, posterior anomaly {top.posterior_anomaly:.2f})")
+
         result = result.model_copy(update=dict(status=ScanStatus.RUNNING, executions=executions, findings=findings,
-                                               coverage=coverage, sections=sections))
+                                               coverage=coverage, sections=sections, contributors=contributors))
         for hook in POST_HOOKS:
             hook(result, results, prepared, profile)
+        result.graph = build_graph(result)
 
         py, plat = platform_info()
         result.summary = summarise(result)

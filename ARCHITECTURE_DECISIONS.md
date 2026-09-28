@@ -157,8 +157,8 @@ Finding (detector proposal) → evidence confidence → calibration status → a
   capped confidence.
 * There is no global "security score". The top-level numbers are counts of findings by disposition
   and *assessment coverage* (share of attack classes fully assessed).
-* **Contributor risk** is a Beta–Binomial model: prior centred on the leave-one-out pooled flag rate
-  with profile-defined strength, posterior over the contributor's flag rate, posterior probability
+* **Contributor risk** is a Beta–Binomial model: prior centred on the median of the other
+  contributors' flag rates with profile-defined strength, posterior over the contributor's flag rate, posterior probability
   that the rate exceeds the baseline by a factor, posterior-predictive expected-flag interval, and
   campaign-level findings (systematic mislabel, trigger correlation, duplicate flood) attributed to
   the contributor. Small contributors are shrunk towards the baseline instead of being ranked on a
@@ -338,11 +338,13 @@ models without executing untrusted code.
 independent verification brittle. *Replacement:* JCS-compatible canonicalisation that rejects
 floats; scores are decimal strings.
 
-**DC-7 — Contributor ranking uses a leave-one-out baseline.**
+**DC-7 — Contributor ranking uses a robust leave-one-out baseline.**
 *Original assumption:* compare each contributor with the population rate.
-*Why it is biased:* a heavy attacker inflates the population rate and hides itself.
-*Replacement:* the prior for contributor *c* is centred on the pooled rate of all contributors
-except *c*.
+*Why it is biased:* a heavy attacker inflates the population rate and hides itself. A pooled
+leave-one-out rate is not enough either: in the attack-lab corpus a second attacker (Delta, 45
+flagged samples) raised the pooled baseline of the first (Charlie) to ~10 % and hid it.
+*Replacement:* the prior for contributor *c* is centred on the **median** of the other
+contributors' rates, which is unaffected by any minority of attackers.
 
 **DC-8 — Demo corpus is procedurally generated.**
 *Original assumption:* ship a small realistic dataset.
