@@ -123,7 +123,7 @@ def negotiate_spec(spec: DetectorSpec, caps: CapabilitySet, plan: PlanContext, p
     blocked = preconditions()
     if blocked:
         return Negotiation(detector_id=spec.id, availability=Availability.UNAVAILABLE,
-                           reasons=["scientific precondition not met: " + r for r in blocked])
+                           reasons=["precondition not met: " + r for r in blocked])
 
     if spec.min_budget.rank > plan.budget.rank:
         return Negotiation(detector_id=spec.id, availability=Availability.BUDGET_EXCLUDED,

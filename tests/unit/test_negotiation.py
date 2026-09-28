@@ -69,4 +69,4 @@ def test_precondition_blocks_with_scientific_reason():
 
     neg = Needy().negotiate(caps(Capability.DATASET_IMAGES), PlanContext(BudgetTier.STANDARD, {"classes": 3}))
     assert neg.availability == Availability.UNAVAILABLE
-    assert "scientific precondition" in neg.reasons[0]
+    assert neg.reasons[0].startswith("precondition not met: needs at least 5 classes")

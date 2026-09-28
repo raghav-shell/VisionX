@@ -137,7 +137,8 @@ def duplicate_flood(records: list[Record], contributor: str, n_sources: int, cop
                 true_label=src.true_label, contributor=contributor, batch=f"{contributor[:1].upper()}-FLOOD",
                 source=src.source, sensor=sensor or src.sensor,
                 timestamp=t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), bbox=src.bbox,
-                truth=["duplicate_flood"]))
+                # copies inherit whatever was already wrong with their source (e.g. a poisoned label)
+                truth=["duplicate_flood"] + [a for a in src.truth if a != "duplicate_flood_source"]))
     records.extend(new)
     return [r.id for r in new]
 
