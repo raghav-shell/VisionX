@@ -39,9 +39,10 @@ def test_scan_writes_result_and_reports_coverage(capsys, workspace, small_datase
     assert main(["scan", "--dataset", str(small_dataset), "--profile", "selftest", "--out", str(out), "--quiet"]) == 0
     printed = capsys.readouterr().out
     assert "COVERAGE" in printed and "assessment coverage" in printed
-    files = list(out.glob("SCN-*.json"))
-    assert len(files) == 1
-    result = json.loads(files[0].read_text())
+    dirs = list(out.glob("SCN-*"))
+    assert len(dirs) == 1
+    assert {p.name for p in dirs[0].iterdir()} == {"report.json", "report.html", "coverage.md", "manifest.json"}
+    result = json.loads((dirs[0] / "report.json").read_text())["result"]
     assert result["status"] == "SEALED" and result["report_digest"].startswith("sha256:")
     assert {e["detector_id"] for e in result["executions"]} >= {"data.near_duplicate", "data.label_consistency"}
 
