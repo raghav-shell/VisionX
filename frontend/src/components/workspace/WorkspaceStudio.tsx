@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronRight, CircleAlert, CircleDashed, Clipboard, Clock3,
   Database, FileJson2, FileSearch2, FileText, Fingerprint, FolderOpen,
   GitBranch, Layers3, LockKeyhole, Menu, PanelRightClose, PanelRightOpen,
-  Plus, Search, Shield, ShieldAlert, SlidersHorizontal, Terminal, X,
+  Moon, Plus, Search, Shield, ShieldAlert, SlidersHorizontal, Sun, Terminal, X,
 } from "lucide-react";
 import VisionXLogo from "../VisionXLogo";
 import { exampleScans, parseReport } from "./workspace-data";
@@ -66,7 +66,7 @@ export default function WorkspaceStudio() {
   const [selectedId, setSelectedId] = useState(exampleScans[0].scan_id);
   const [view, setView] = useState<View>("overview");
   const [inspector, setInspector] = useState<Inspector | null>({ kind: "scan" });
-  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorOverlay, setInspectorOverlay] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -75,9 +75,20 @@ export default function WorkspaceStudio() {
   const [findingFilter, setFindingFilter] = useState("ALL");
   const [coverageFilter, setCoverageFilter] = useState("ALL");
   const [notice, setNotice] = useState("");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const fileRef = useRef<HTMLInputElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const scan = scans.find(item => item.scan_id === selectedId) ?? scans[0];
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("visionx.workspace.theme");
+    if (saved === "dark") setTheme("dark");
+  }, []);
+  const toggleTheme = () => setTheme(current => {
+    const next = current === "light" ? "dark" : "light";
+    window.localStorage.setItem("visionx.workspace.theme", next);
+    return next;
+  });
 
   const refreshServer = useCallback(async () => {
     const next = await loadServerScans();
@@ -166,7 +177,7 @@ export default function WorkspaceStudio() {
   const attentionCount = scan.findings.filter(item => item.recommended_disposition !== "ACCEPT").length;
   const coveragePercent = scan.coverage.total ? Math.round(scan.coverage.assessed / scan.coverage.total * 100) : 0;
 
-  return <div className="vx-workspace">
+  return <div className="vx-workspace" data-theme={theme}>
     <input ref={fileRef} type="file" accept=".json,application/json" className="sr-only" onChange={importFile} aria-label="Open VisionSentinel report JSON" />
     <div className="vx-shell">
       {mobileOpen && <button className="vx-mobile-shade" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
@@ -185,7 +196,7 @@ export default function WorkspaceStudio() {
       </aside>
 
       <div className="vx-body">
-        <header className="vx-topbar"><div className="vx-topbar-left"><button className="vx-mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><span className="vx-topbar-crumb">Vision assurance</span><ChevronRight size={14} /><strong>{navigation.find(item => item.id === view)?.label}</strong><span className="vx-topbar-separator" /><span className="vx-topbar-scan">{scan.name}</span></div><div className="vx-topbar-actions"><button className="vx-topbar-local vx-connection-button" onClick={() => { if (apiState === "signed-out") setLoginOpen(true); else if (apiState === "connected") void refreshServer().then(() => setNotice("Server scans refreshed.")).catch(() => setNotice("Could not refresh server scans.")); }}><span /> {apiState === "connected" ? "Server connected" : apiState === "signed-out" ? "Sign in to server" : "Local only"}</button><button className="vx-icon-button" title={inspectorOpen ? "Hide details" : "Show details"} aria-label={inspectorOpen ? "Hide details" : "Show details"} onClick={() => setInspectorOpen(current => !current)}>{inspectorOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}</button><button className="vx-button vx-button--quiet vx-import-top" onClick={() => fileRef.current?.click()}><FolderOpen size={15} /> Open report</button><button className="vx-button vx-button--primary" onClick={() => setNewScanOpen(true)}><Plus size={16} /> New assessment</button></div></header>
+        <header className="vx-topbar"><div className="vx-topbar-left"><button className="vx-mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><span className="vx-topbar-crumb">Vision assurance</span><ChevronRight size={14} /><strong>{navigation.find(item => item.id === view)?.label}</strong><span className="vx-topbar-separator" /><span className="vx-topbar-scan">{scan.name}</span></div><div className="vx-topbar-actions"><button className="vx-topbar-local vx-connection-button" onClick={() => { if (apiState === "signed-out") setLoginOpen(true); else if (apiState === "connected") void refreshServer().then(() => setNotice("Server scans refreshed.")).catch(() => setNotice("Could not refresh server scans.")); }}><span /> {apiState === "connected" ? "Server connected" : apiState === "signed-out" ? "Sign in to server" : "Local only"}</button><button className="vx-theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} aria-pressed={theme === "dark"} title={theme === "light" ? "Dark mode" : "Light mode"}>{theme === "light" ? <Moon size={17} /> : <Sun size={17} />}</button><button className="vx-icon-button" title={inspectorOpen ? "Hide details" : "Show details"} aria-label={inspectorOpen ? "Hide details" : "Show details"} onClick={() => setInspectorOpen(current => !current)}>{inspectorOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}</button><button className="vx-button vx-button--quiet vx-import-top" onClick={() => fileRef.current?.click()}><FolderOpen size={15} /> Open report</button><button className="vx-button vx-button--primary" onClick={() => setNewScanOpen(true)}><Plus size={16} /> New assessment</button></div></header>
         <div className="vx-content-row">
           <div className="vx-main-scroll" ref={mainRef}>
             <div className="vx-page">

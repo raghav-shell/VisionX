@@ -206,3 +206,337 @@
 @media(max-width:880px){.vx-sidebar{width:215px}.vx-page{padding:28px 21px 18px}.vx-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.vx-overview-grid,.vx-overview-grid--lower{grid-template-columns:1fr}.vx-import-top,.vx-topbar-scan,.vx-topbar-separator{display:none}}
 @media(max-width:650px){.vx-shell{height:100dvh}.vx-sidebar{position:fixed;left:0;top:0;bottom:0;width:min(280px,84vw);transform:translateX(-101%);transition:transform .25s ease;box-shadow:10px 0 45px #0008}.vx-sidebar--open{transform:translateX(0)}.vx-mobile-shade{display:block;position:fixed;inset:0;background:#0009;z-index:29;border:0}.vx-mobile-menu{display:grid;place-items:center;width:28px;height:28px;background:none;border:0;color:#d7d7dd}.vx-topbar{height:55px;padding:0 14px}.vx-topbar-left{gap:7px}.vx-topbar-crumb{display:none}.vx-topbar-actions{gap:3px}.vx-topbar-actions>.vx-icon-button{display:none}.vx-topbar-actions>.vx-button{min-height:30px;padding:0 8px;font-size:10px!important}.vx-page{padding:25px 15px 15px}.vx-page-heading h1{font-size:28px}.vx-heading-actions>.vx-icon-button{display:none}.vx-demo-note{align-items:flex-start;flex-wrap:wrap}.vx-demo-note button{margin-left:25px}.vx-metrics{gap:8px}.vx-metric{min-height:109px;padding:12px}.vx-metric strong{font-size:25px;margin:12px 0 4px}.vx-metric-top{font-size:10px}.vx-metric-icon svg{width:15px}.vx-evidence-grid{grid-template-columns:1fr}.vx-segmented{max-width:100%;overflow:auto}.vx-table-toolbar{align-items:flex-start;flex-direction:column}.vx-table td,.vx-table th{padding:12px}.vx-coverage-intro{align-items:stretch;flex-direction:column}.vx-coverage-intro .vx-coverage-bar{width:100%;max-width:none}.vx-page-foot{flex-direction:column}.vx-modal-backdrop{padding-top:8vh}.vx-new-modal{max-height:88vh}}
 @media(prefers-reduced-motion:reduce){.vx-workspace *{scroll-behavior:auto!important;transition-duration:0ms!important;animation-duration:0ms!important}}
+
+/* Workspace visual system. Keep this scoped to /workspace so the landing page is untouched. */
+.vx-workspace {
+  --canvas: #f8f8f6;
+  --sidebar-bg: #f1f2f0;
+  --surface: #ffffff;
+  --surface-soft: #f6f7f5;
+  --surface-hover: #f1f4f2;
+  --line: #e2e5e2;
+  --line-strong: #cfd5d1;
+  --ink: #242a29;
+  --ink-soft: #4b5552;
+  --muted: #68736e;
+  --faint: #8a948e;
+  --accent: #236e66;
+  --accent-soft: #e4f1ed;
+  --accent-line: #c7e2d9;
+  --rose: #9e4e57;
+  --rose-soft: #f9e8e9;
+  --rose-line: #efd0d3;
+  --amber: #8e6428;
+  --amber-soft: #fbf0de;
+  --amber-line: #eedbb8;
+  --blue: #486988;
+  --blue-soft: #eaf0f6;
+  --blue-line: #d5e0ec;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  font-size: 13px;
+  letter-spacing: -.006em;
+}
+.vx-workspace[data-theme="dark"] {
+  --canvas: #171b1b;
+  --sidebar-bg: #1d2221;
+  --surface: #222827;
+  --surface-soft: #272e2c;
+  --surface-hover: #2c3532;
+  --line: #343d39;
+  --line-strong: #4a5650;
+  --ink: #edf0ec;
+  --ink-soft: #cbd2cd;
+  --muted: #a3ada6;
+  --faint: #89948d;
+  --accent: #9ed1c4;
+  --accent-soft: #28433c;
+  --accent-line: #3e6457;
+  --rose: #eba9af;
+  --rose-soft: #432e32;
+  --rose-line: #68464a;
+  --amber: #e8c68f;
+  --amber-soft: #443a2a;
+  --amber-line: #67563b;
+  --blue: #a7c3db;
+  --blue-soft: #2d3c49;
+  --blue-line: #496477;
+}
+.vx-workspace button:focus-visible,
+.vx-workspace a:focus-visible,
+.vx-workspace input:focus-visible,
+.vx-workspace select:focus-visible { outline-color: var(--accent); }
+.vx-workspace ::selection { background: var(--accent-soft); color: var(--ink); }
+.vx-workspace .vx-sidebar { width: 238px; background: var(--sidebar-bg); border-color: var(--line); }
+.vx-workspace .vx-sidebar-brand { height: 72px; padding: 0 22px; border-color: var(--line); }
+.vx-workspace .vx-sidebar-brand .text-white { color: var(--ink) !important; }
+.vx-workspace .vx-sidebar-brand .text-\[\#E5B5D7\] { color: var(--accent) !important; }
+.vx-workspace .vx-sidebar-brand > span { border: 0; padding: 0; color: var(--faint); font-size: 9px; letter-spacing: .08em; }
+.vx-workspace .vx-workspace-picker { margin: 20px 12px 16px; padding: 8px 10px; background: transparent; border-color: transparent; color: var(--ink); }
+.vx-workspace .vx-workspace-picker:hover { background: var(--surface-hover); }
+.vx-workspace .vx-workspace-picker strong { color: var(--ink); font-size: 13px; }
+.vx-workspace .vx-workspace-picker small,
+.vx-workspace .vx-workspace-picker > svg { color: var(--muted); }
+.vx-workspace .vx-picker-mark { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); border-radius: 8px; }
+.vx-workspace .vx-search-trigger { margin-bottom: 28px; padding: 10px 11px; background: var(--surface); border-color: var(--line); color: var(--muted); box-shadow: 0 1px 2px #15251b08; }
+.vx-workspace .vx-search-trigger:hover { color: var(--ink); border-color: var(--line-strong); }
+.vx-workspace .vx-search-trigger kbd,
+.vx-workspace .vx-palette-search kbd { color: var(--faint); border-color: var(--line); }
+.vx-workspace .vx-sidebar-scroll { padding: 0 12px 22px; }
+.vx-workspace .vx-nav-caption,
+.vx-workspace .vx-eyebrow { color: var(--faint); font: 600 10px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .095em; }
+.vx-workspace .vx-nav-caption { margin: 0 11px 11px; }
+.vx-workspace .vx-nav-link { height: 39px; margin: 2px 0; gap: 12px; color: var(--ink-soft); border: 0; border-radius: 7px; font-size: 12px; }
+.vx-workspace .vx-nav-link:hover { background: var(--surface-hover); color: var(--ink); }
+.vx-workspace .vx-nav-link--active { background: var(--surface) !important; color: var(--ink) !important; box-shadow: 0 1px 3px #172a1b13; }
+.vx-workspace .vx-nav-link--active svg { color: var(--accent); }
+.vx-workspace .vx-nav-link em { background: var(--surface-soft); color: var(--muted); }
+.vx-workspace .vx-sidebar-divider { background: var(--line); margin: 23px 10px 20px; }
+.vx-workspace .vx-nav-heading button { color: var(--muted); }
+.vx-workspace .vx-nav-heading button:hover { background: var(--surface-hover); color: var(--ink); }
+.vx-workspace .vx-scan-link { padding: 11px 10px; color: var(--muted); }
+.vx-workspace .vx-scan-link:hover { background: var(--surface-hover); }
+.vx-workspace .vx-scan-link--active { background: var(--surface); border-color: var(--line); box-shadow: 0 1px 3px #172a1b0d; }
+.vx-workspace .vx-scan-link-text strong { color: var(--ink); font-size: 12px; }
+.vx-workspace .vx-scan-link-text small { color: var(--faint); font-size: 10px; }
+.vx-workspace .vx-scan-dot { background: var(--faint); box-shadow: none; }
+.vx-workspace .vx-scan-dot--rose { background: var(--rose); }
+.vx-workspace .vx-scan-dot--amber { background: var(--amber); }
+.vx-workspace .vx-scan-dot--mint { background: var(--accent); }
+.vx-workspace .vx-sidebar-bottom { border-color: var(--line); padding: 17px 20px 20px; }
+.vx-workspace .vx-local-indicator { color: var(--ink-soft); }
+.vx-workspace .vx-local-indicator svg { color: var(--accent); }
+.vx-workspace .vx-local-light { background: var(--accent); box-shadow: none; }
+.vx-workspace .vx-back-link { color: var(--muted); }
+.vx-workspace .vx-back-link:hover { color: var(--ink); }
+
+.vx-workspace .vx-topbar { height: 65px; padding: 0 34px; background: var(--surface); border-color: var(--line); }
+.vx-workspace .vx-topbar-left { color: var(--faint); gap: 13px; }
+.vx-workspace .vx-topbar-left strong { color: var(--ink); font-size: 13px; }
+.vx-workspace .vx-topbar-crumb,
+.vx-workspace .vx-topbar-scan { color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-topbar-separator { background: var(--line); }
+.vx-workspace .vx-topbar-local { color: var(--muted); }
+.vx-workspace .vx-topbar-local span { background: var(--accent); }
+.vx-workspace .vx-connection-button:hover,
+.vx-workspace .vx-icon-button:hover,
+.vx-workspace .vx-theme-toggle:hover { background: var(--surface-hover); color: var(--ink); border-color: var(--line); }
+.vx-workspace .vx-icon-button,
+.vx-workspace .vx-theme-toggle { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted); }
+.vx-workspace .vx-button { min-height: 35px; padding: 0 13px; font-size: 12px !important; border-radius: 7px; }
+.vx-workspace .vx-button--primary { background: #2e4b45; border-color: #2e4b45; color: #fff; }
+.vx-workspace .vx-button--primary:hover { background: #1e3f37; border-color: #1e3f37; }
+.vx-workspace[data-theme="dark"] .vx-button--primary { background: #dcebe3; border-color: #dcebe3; color: #17342b; }
+.vx-workspace[data-theme="dark"] .vx-button--primary:hover { background: #fff; border-color: #fff; }
+.vx-workspace .vx-button--quiet,
+.vx-workspace .vx-button--outline { background: var(--surface); border-color: var(--line-strong); color: var(--ink-soft); }
+.vx-workspace .vx-button--quiet:hover,
+.vx-workspace .vx-button--outline:hover { background: var(--surface-hover); border-color: var(--line-strong); }
+
+.vx-workspace .vx-main-scroll { background: var(--canvas); }
+.vx-workspace .vx-page { max-width: 1220px; padding: 46px 52px 34px; }
+.vx-workspace .vx-page-heading { margin-bottom: 29px; }
+.vx-workspace .vx-overline { color: var(--accent); font: 650 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .11em; }
+.vx-workspace .vx-overline-line { background: var(--accent); width: 16px; }
+.vx-workspace .vx-page-heading h1 { margin: 15px 0 10px; color: var(--ink); font-size: clamp(29px, 2.4vw, 38px); letter-spacing: -.045em; font-weight: 630; }
+.vx-workspace .vx-page-heading p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.vx-workspace .vx-heading-actions { margin-top: 23px; }
+.vx-workspace .vx-badge { background: var(--surface-soft); border-color: var(--line); color: var(--ink-soft); font: 600 11px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 3px 9px; border-radius: 999px; }
+.vx-workspace .vx-badge--rose { background: var(--rose-soft); border-color: var(--rose-line); color: var(--rose); }
+.vx-workspace .vx-badge--amber { background: var(--amber-soft); border-color: var(--amber-line); color: var(--amber); }
+.vx-workspace .vx-badge--mint { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.vx-workspace .vx-badge--blue { background: var(--blue-soft); border-color: var(--blue-line); color: var(--blue); }
+.vx-workspace .vx-demo-note { padding: 13px 15px; margin-bottom: 25px; background: var(--surface-soft); border-color: var(--line); color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-demo-note > svg { color: var(--blue); }
+.vx-workspace .vx-demo-note strong { color: var(--ink-soft); }
+.vx-workspace .vx-demo-note button,
+.vx-workspace .vx-text-action { color: var(--accent); font-size: 12px; font-weight: 600; }
+.vx-workspace .vx-demo-note button:hover,
+.vx-workspace .vx-text-action:hover { color: var(--ink); }
+
+.vx-workspace .vx-metrics { display: flex; gap: 0; margin: 0 0 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+.vx-workspace .vx-metric { flex: 1; min-width: 0; min-height: 127px; padding: 21px 23px; background: none; border: 0; border-right: 1px solid var(--line); border-radius: 0; }
+.vx-workspace .vx-metric:last-child { border-right: 0; }
+.vx-workspace .vx-metric-top { color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-metric-icon { color: var(--blue); }
+.vx-workspace .vx-metric-icon--rose { color: var(--rose); }
+.vx-workspace .vx-metric-icon--mint { color: var(--accent); }
+.vx-workspace .vx-metric-icon--pink { color: #8f6a8e; }
+.vx-workspace .vx-metric strong { color: var(--ink); font-size: 30px; font-weight: 600; margin: 16px 0 3px; }
+.vx-workspace .vx-metric small { color: var(--faint); font-size: 11px; }
+.vx-workspace .vx-overview-grid { grid-template-columns: minmax(0, 1.5fr) minmax(315px, .85fr); gap: 20px; margin-bottom: 20px; }
+.vx-workspace .vx-overview-grid--lower { grid-template-columns: minmax(0, 1.2fr) minmax(315px, .85fr); }
+.vx-workspace .vx-panel { background: var(--surface); border-color: var(--line); border-radius: 11px; box-shadow: 0 1px 2px #15251b06; }
+.vx-workspace .vx-section-title { padding: 24px 25px 21px; }
+.vx-workspace .vx-section-title span { color: var(--faint); font: 600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .095em; }
+.vx-workspace .vx-section-title h2 { margin-top: 8px; color: var(--ink); font-size: 17px; letter-spacing: -.025em; }
+.vx-workspace .vx-panel-description { color: var(--muted); font-size: 12px; margin: 0 25px 25px; }
+.vx-workspace .vx-list,
+.vx-workspace .vx-compact-list { border-color: var(--line); }
+.vx-workspace .vx-finding-row { padding: 19px 23px 19px 25px; border-color: var(--line); gap: 15px; }
+.vx-workspace .vx-finding-row:hover,
+.vx-workspace .vx-compact-row:hover { background: var(--surface-hover); }
+.vx-workspace .vx-priority-stripe { width: 3px; top: 20px; bottom: 20px; }
+.vx-workspace .vx-priority-stripe--rose { background: var(--rose); }
+.vx-workspace .vx-priority-stripe--amber { background: var(--amber); }
+.vx-workspace .vx-priority-stripe--mint { background: var(--accent); }
+.vx-workspace .vx-finding-meta { color: var(--faint); font: 11px "JetBrains Mono", monospace; }
+.vx-workspace .vx-finding-meta span { color: var(--faint); }
+.vx-workspace .vx-finding-main strong { color: var(--ink); font-size: 13px; font-weight: 600; }
+.vx-workspace .vx-finding-main small { color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-row-arrow { color: var(--faint); }
+.vx-workspace .vx-coverage-panel > .vx-coverage-bar { margin: 0 25px 28px; }
+.vx-workspace .vx-coverage-bar { background: var(--surface-soft); height: 8px; gap: 3px; }
+.vx-workspace .vx-coverage-segment--mint,
+.vx-workspace .vx-legend-dot--mint { background: #5b9e8c; }
+.vx-workspace .vx-coverage-segment--amber,
+.vx-workspace .vx-legend-dot--amber { background: #d5aa6b; }
+.vx-workspace .vx-coverage-segment--muted,
+.vx-workspace .vx-legend-dot { background: #adb8b2; }
+.vx-workspace .vx-coverage-segment--rose,
+.vx-workspace .vx-legend-dot--rose { background: #c4787e; }
+.vx-workspace .vx-coverage-legend { padding: 0 25px 23px; }
+.vx-workspace .vx-coverage-legend > div { color: var(--muted); border-color: var(--line); font-size: 12px; padding: 10px 0; }
+.vx-workspace .vx-coverage-legend strong { color: var(--ink); font-size: 12px; }
+.vx-workspace .vx-compact-row { padding: 14px 24px; border-color: var(--line); }
+.vx-workspace .vx-compact-row strong { color: var(--ink); font-size: 12px; }
+.vx-workspace .vx-compact-row small { color: var(--faint); font-size: 11px; }
+.vx-workspace .vx-state-symbol { width: 24px; height: 24px; background: var(--surface-soft); color: var(--muted); }
+.vx-workspace .vx-state-symbol--mint { background: var(--accent-soft); color: var(--accent); }
+.vx-workspace .vx-state-symbol--amber { background: var(--amber-soft); color: var(--amber); }
+.vx-workspace .vx-state-symbol--rose { background: var(--rose-soft); color: var(--rose); }
+.vx-workspace .vx-next-step { padding: 9px 25px 25px; }
+.vx-workspace .vx-next-icon { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.vx-workspace .vx-next-step h3 { color: var(--ink); font-size: 14px; }
+.vx-workspace .vx-next-step p { color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-page-foot { color: var(--faint); font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding-top: 22px; }
+
+.vx-workspace .vx-table-toolbar { padding: 25px; }
+.vx-workspace .vx-table-toolbar h2 { color: var(--ink); font-size: 17px; }
+.vx-workspace .vx-table-toolbar h2 span { background: var(--surface-soft); color: var(--muted); }
+.vx-workspace .vx-table-toolbar p { color: var(--muted); font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.vx-workspace .vx-segmented { background: var(--surface-soft); border-color: var(--line); }
+.vx-workspace .vx-segmented button { color: var(--muted); font-size: 11px; }
+.vx-workspace .vx-segmented button:hover { color: var(--ink); }
+.vx-workspace .vx-segmented button.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px #15251b14; }
+.vx-workspace .vx-table-wrap { border-color: var(--line); }
+.vx-workspace .vx-table th { background: var(--surface-soft); border-color: var(--line); color: var(--faint); font-size: 10px; }
+.vx-workspace .vx-table td { border-color: var(--line); color: var(--ink-soft); font-size: 12px; }
+.vx-workspace .vx-table tbody tr:hover { background: var(--surface-hover); }
+.vx-workspace .vx-table-primary { color: var(--ink); font-size: 13px; }
+.vx-workspace .vx-table-secondary { color: var(--muted); font-size: 11px; }
+.vx-workspace .vx-coverage-intro h2,
+.vx-workspace .vx-provenance-intro h2 { color: var(--ink); }
+.vx-workspace .vx-coverage-intro p,
+.vx-workspace .vx-provenance-intro p { color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-provenance-intro { background: var(--surface); }
+.vx-workspace .vx-provenance-mark { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.vx-workspace .vx-select { background: var(--surface); border-color: var(--line-strong); color: var(--ink); }
+.vx-workspace .vx-evidence-note { background: var(--surface-soft); border-color: var(--line); color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-evidence-note svg { color: var(--blue); }
+.vx-workspace .vx-evidence-card { background: var(--surface); border-color: var(--line); color: var(--ink); min-height: 210px; padding: 24px; }
+.vx-workspace .vx-evidence-card:hover { background: var(--surface-hover); border-color: var(--line-strong); }
+.vx-workspace .vx-evidence-glyph { background: var(--blue-soft); border-color: var(--blue-line); color: var(--blue); }
+.vx-workspace .vx-evidence-card strong { color: var(--ink); font-size: 15px; }
+.vx-workspace .vx-evidence-card p { color: var(--muted); font-size: 12px; }
+.vx-workspace .vx-evidence-link { color: var(--accent); }
+.vx-workspace .vx-timeline { border-color: var(--line-strong); }
+.vx-workspace .vx-timeline-item strong { color: var(--ink); font-size: 12px; }
+.vx-workspace .vx-timeline-item small,
+.vx-workspace .vx-timeline-time { color: var(--faint); }
+.vx-workspace .vx-timeline-point { border-color: var(--surface); }
+.vx-workspace .vx-empty { color: var(--muted); }
+.vx-workspace .vx-empty-icon { background: var(--surface-soft); border-color: var(--line); color: var(--accent); }
+.vx-workspace .vx-empty h3 { color: var(--ink); }
+.vx-workspace .vx-empty p { font-size: 12px; }
+
+.vx-workspace .vx-inspector { background: var(--surface); border-color: var(--line); width: 335px; }
+.vx-workspace .vx-inspector-head,
+.vx-workspace .vx-inspector-hero,
+.vx-workspace .vx-inspector-section { border-color: var(--line); }
+.vx-workspace .vx-inspector-head { color: var(--faint); }
+.vx-workspace .vx-inspector-head button,
+.vx-workspace .vx-new-modal-head button { color: var(--muted); }
+.vx-workspace .vx-inspector-head button:hover,
+.vx-workspace .vx-new-modal-head button:hover { color: var(--ink); background: var(--surface-hover); }
+.vx-workspace .vx-inspector-hero h2 { color: var(--ink); }
+.vx-workspace .vx-inspector-section h3 { color: var(--faint); }
+.vx-workspace .vx-inspector-section p { color: var(--ink-soft); font-size: 12px; }
+.vx-workspace .vx-definition { border-color: var(--line); font-size: 12px; }
+.vx-workspace .vx-definition span { color: var(--muted); }
+.vx-workspace .vx-definition strong { color: var(--ink); }
+.vx-workspace .vx-inspector-evidence,
+.vx-workspace .vx-digest,
+.vx-workspace .vx-inspector-disclaimer { background: var(--surface-soft); border-color: var(--line); color: var(--ink-soft); }
+.vx-workspace .vx-inspector-evidence strong { color: var(--ink); }
+.vx-workspace .vx-inspector-evidence pre { background: var(--surface); color: var(--ink-soft); }
+.vx-workspace .vx-inspector-bullet::before { background: var(--accent); }
+.vx-workspace .vx-copy-action { color: var(--accent); }
+.vx-workspace .vx-copy-action:hover { color: var(--ink); }
+.vx-workspace .vx-inspector-disclaimer svg { color: var(--accent); }
+
+.vx-workspace .vx-toast,
+.vx-workspace .vx-palette,
+.vx-workspace .vx-new-modal { background: var(--surface); border-color: var(--line-strong); color: var(--ink); box-shadow: 0 20px 65px #15251b25; }
+.vx-workspace .vx-toast > svg { color: var(--accent); }
+.vx-workspace .vx-toast button { color: var(--muted); }
+.vx-workspace .vx-modal-backdrop { background: #17211dc0; }
+.vx-workspace .vx-palette-search { border-color: var(--line); color: var(--muted); }
+.vx-workspace .vx-palette-search input { color: var(--ink); }
+.vx-workspace .vx-palette-search input::placeholder { color: var(--faint); }
+.vx-workspace .vx-palette-results button { color: var(--ink-soft); }
+.vx-workspace .vx-palette-results button:hover { color: var(--ink); background: var(--surface-hover); }
+.vx-workspace .vx-palette-results button > svg:last-child { color: var(--faint); }
+.vx-workspace .vx-new-modal-icon { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.vx-workspace .vx-new-modal h2 { color: var(--ink); }
+.vx-workspace .vx-new-modal > p { color: var(--muted); font-size: 13px; }
+.vx-workspace .vx-mode-switch { background: var(--surface-soft); border-color: var(--line); }
+.vx-workspace .vx-mode-switch button { color: var(--muted); }
+.vx-workspace .vx-mode-switch button.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px #15251b14; }
+.vx-workspace .vx-new-modal label { color: var(--ink-soft); font-size: 12px; }
+.vx-workspace .vx-new-modal input,
+.vx-workspace .vx-new-modal select { background: var(--surface); border-color: var(--line-strong); color: var(--ink); }
+.vx-workspace .vx-new-modal input:focus,
+.vx-workspace .vx-new-modal select:focus { border-color: var(--accent); }
+.vx-workspace .vx-command-preview { background: var(--surface-soft); border-color: var(--line); }
+.vx-workspace .vx-command-preview span { color: var(--faint); }
+.vx-workspace .vx-command-preview code { color: var(--ink-soft); }
+.vx-workspace .vx-new-note { color: var(--muted); }
+.vx-workspace .vx-form-error { background: var(--rose-soft); border-color: var(--rose-line); color: var(--rose) !important; }
+
+@media (max-width: 1190px) {
+  .vx-workspace .vx-inspector--overlay { width: min(390px, calc(100vw - 22px)); }
+}
+@media (max-width: 880px) {
+  .vx-workspace .vx-page { padding: 34px 26px 25px; }
+  .vx-workspace .vx-overview-grid,
+  .vx-workspace .vx-overview-grid--lower { grid-template-columns: 1fr; }
+  .vx-workspace .vx-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vx-workspace .vx-metric:nth-child(2) { border-right: 0; }
+  .vx-workspace .vx-metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+}
+@media (max-width: 650px) {
+  .vx-workspace .vx-sidebar { width: min(280px, 84vw); box-shadow: none; }
+  .vx-workspace .vx-sidebar--open { box-shadow: 10px 0 45px #0006; }
+  .vx-workspace .vx-topbar { height: 58px; padding: 0 15px; }
+  .vx-workspace .vx-mobile-menu { color: var(--ink); }
+  .vx-workspace .vx-topbar-actions { gap: 4px; }
+  .vx-workspace .vx-topbar-actions > .vx-icon-button { display: none; }
+  .vx-workspace .vx-topbar-actions > .vx-button { min-height: 32px; padding: 0 10px; }
+  .vx-workspace .vx-page { padding: 30px 18px 20px; }
+  .vx-workspace .vx-page-heading { display: block; margin-bottom: 25px; }
+  .vx-workspace .vx-page-heading h1 { font-size: 28px; }
+  .vx-workspace .vx-heading-actions { margin-top: 14px; }
+  .vx-workspace .vx-metric { min-height: 108px; padding: 16px 15px; }
+  .vx-workspace .vx-metric strong { font-size: 26px; margin-top: 12px; }
+  .vx-workspace .vx-section-title { padding: 21px 18px 17px; }
+  .vx-workspace .vx-finding-row { padding: 17px 14px 17px 18px; }
+  .vx-workspace .vx-coverage-legend { padding: 0 18px 18px; }
+  .vx-workspace .vx-demo-note { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: start; font-size: 11px; }
+  .vx-workspace .vx-demo-note button { grid-column: 2; margin-left: 0; justify-self: start; }
+}
+
+.vx-workspace .vx-legend-dot--mint { background: #5b9e8c; }
+.vx-workspace .vx-legend-dot--amber { background: #d5aa6b; }
+.vx-workspace .vx-legend-dot--rose { background: #c4787e; }
