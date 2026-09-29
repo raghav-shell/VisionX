@@ -15,7 +15,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen bg-black text-white selection:bg-[#eca8d6] selection:text-black overflow-x-hidden">
+    <main className="relative min-h-screen bg-black text-white selection:bg-[#eca8d6] selection:text-black overflow-x-clip">
       <Navbar />
       <Hero />
 
@@ -48,9 +48,7 @@ export default function Home() {
         <DeveloperSDK />
       </ScrollReveal>
 
-      <ScrollReveal direction="up">
-        <InteractiveConsole />
-      </ScrollReveal>
+      <InteractiveConsole />
 
       <ScrollReveal direction="up">
         <Validation />
