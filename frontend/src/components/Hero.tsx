@@ -182,20 +182,20 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Product pillars */}
+      {/* Product facts */}
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12 pb-10 lg:pb-14">
-        <div className="flex items-start gap-10 lg:gap-20">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-2xl lg:text-3xl font-display text-white tracking-tight">Offline</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">run assessments locally</span>
+        <div className="grid grid-cols-3 items-start gap-3 sm:flex sm:gap-8 lg:gap-20">
+          <div className="min-w-0 flex flex-col gap-1.5">
+            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">4</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">assessment areas</span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-2xl lg:text-3xl font-display text-white tracking-tight">Evidence</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">inspect every finding</span>
+          <div className="min-w-0 flex flex-col gap-1.5">
+            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">5</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">coverage states</span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-2xl lg:text-3xl font-display text-white tracking-tight">Coverage</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">see what could not run</span>
+          <div className="min-w-0 flex flex-col gap-1.5">
+            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">0</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">required cloud services</span>
           </div>
         </div>
       </div>

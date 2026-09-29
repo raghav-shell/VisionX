@@ -34,21 +34,37 @@ export default function Navbar() {
   }, [mobileMenuOpen]);
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-4 z-50 px-4 lg:top-5 lg:px-8">
+    <header
+      className={`pointer-events-none fixed inset-x-0 z-50 px-4 transition-all duration-500 ease-out lg:px-8 ${
+        scrolled ? "top-2.5 lg:top-3" : "top-4 lg:top-5"
+      }`}
+    >
       <nav
         aria-label="Main navigation"
-        className={`pointer-events-auto mx-auto max-w-[1240px] overflow-hidden rounded-[22px] border border-white/[0.13] shadow-[0_18px_60px_rgba(0,0,0,0.35)] transition-colors duration-300 ${
-          scrolled || mobileMenuOpen ? "bg-[#09090b]/95 backdrop-blur-2xl" : "bg-black/80 backdrop-blur-xl"
+        className={`pointer-events-auto mx-auto overflow-hidden border shadow-[0_18px_60px_rgba(0,0,0,0.35)] transition-all duration-500 ease-out ${
+          scrolled
+            ? "max-w-[1120px] rounded-[18px] border-white/[0.17] bg-[#09090b]/95 backdrop-blur-2xl"
+            : `max-w-[1240px] rounded-[22px] border-white/[0.13] backdrop-blur-xl ${
+                mobileMenuOpen ? "bg-[#09090b]/95" : "bg-black/80"
+              }`
         }`}
       >
-        <div className="grid h-[68px] grid-cols-[1fr_auto] items-center px-5 sm:px-7 lg:h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:px-8">
+        <div
+          className={`grid grid-cols-[1fr_auto] items-center px-5 transition-all duration-500 ease-out sm:px-7 lg:grid-cols-[1fr_auto_1fr] lg:px-8 ${
+            scrolled ? "h-[54px] lg:h-[58px]" : "h-[64px] lg:h-[68px]"
+          }`}
+        >
           <Link
             href="/"
             aria-label="VisionX home"
             className="group inline-flex w-fit items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E5B5D7]"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <VisionXLogo size={33} showText textClassName="text-[23px]" />
+            <VisionXLogo
+              size={scrolled ? 28 : 32}
+              showText
+              textClassName={`transition-all duration-500 ${scrolled ? "text-[20px]" : "text-[22px]"}`}
+            />
           </Link>
 
           <div className="hidden items-center gap-6 lg:flex xl:gap-9">
@@ -74,7 +90,9 @@ export default function Navbar() {
             </a>
             <Link
               href="/workspace"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-[#f5f3f4] px-5 text-[13px] font-semibold text-[#111014] shadow-[0_4px_20px_rgba(255,255,255,0.12)] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E5B5D7]"
+              className={`inline-flex items-center justify-center rounded-full bg-[#f5f3f4] px-5 text-[13px] font-semibold text-[#111014] shadow-[0_4px_20px_rgba(255,255,255,0.12)] transition-all duration-500 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E5B5D7] ${
+                scrolled ? "h-8" : "h-9"
+              }`}
             >
               Open demo
             </Link>
