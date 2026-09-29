@@ -9,7 +9,7 @@ from visionsentinel.api.app import create_app
 from visionsentinel.api.settings import Settings
 from visionsentinel.core.workspace import Workspace
 from visionsentinel.storage import Database, Scan, ScanEvent, User
-from visionsentinel.contracts import ScanStatus
+from visionsentinel.contracts import Disposition, ScanStatus
 from visionsentinel.engine.registry import default_registry
 
 
@@ -228,6 +228,29 @@ def test_attacklab_run_and_governance_workflow(api_client):
     assert findings_res.status_code == 200
     findings = findings_res.json()["findings"]
     assert len(findings) > 0
+    target_finding = findings[0]
+    finding_id = target_finding["id"]
+
+    # Findings persistence uses FindingState for governance and the sealed result for detector data.
+    finding_list = api_client.get(f"/api/findings?scan_id={scan_id}&limit=1")
+    assert finding_list.status_code == 200
+    assert finding_list.json()["total"] == len(findings)
+    assert len(finding_list.json()["findings"]) == 1
+    assert finding_list.json()["findings"][0]["finding_id"] in {item["id"] for item in findings}
+    severity = target_finding["severity"]
+    filtered = api_client.get(f"/api/findings?scan_id={scan_id}&severity={severity}&offset=0&limit=1")
+    assert filtered.status_code == 200
+    assert filtered.json()["total"] >= 1
+    assert all(item["severity"] == severity for item in filtered.json()["findings"])
+    assert api_client.get("/api/findings?scan_id=missing-scan").json() == {"total": 0, "findings": []}
+
+    detail_before = api_client.get(f"/api/findings/{finding_id}")
+    assert detail_before.status_code == 200
+    detail_before = detail_before.json()
+    original_recommendation = detail_before["immutable"]["recommended_disposition"]
+    assert detail_before["governance"]["state"]["disposition"] == original_recommendation
+    assert detail_before["governance"]["decisions"]["latest"] is None
+
     contributor_res = api_client.get(f"/api/scans/{scan_id}/contributors")
     assert contributor_res.status_code == 200
     assert contributor_res.json()["scan_id"] == scan_id
@@ -239,14 +262,11 @@ def test_attacklab_run_and_governance_workflow(api_client):
     provenance_res = api_client.get(f"/api/scans/{scan_id}/provenance")
     assert provenance_res.status_code == 200
     assert {item["detector_id"] for item in provenance_res.json()["detectors"]}
-    target_finding = findings[0]
-    finding_id = target_finding["id"]
-
     # 4. Request disposition downgrade (e.g. REVIEW -> ACCEPT)
     dec_req_res = api_client.post(
         f"/api/findings/{finding_id}/decision",
         json={
-            "target_disposition": "ACCEPT",
+            "target_disposition": Disposition.ACCEPT.value,
             "reason_code": "ACCEPTED_RISK",
             "justification": "Verified by field team to be an acceptable operational variation.",
         },
@@ -285,7 +305,14 @@ def test_attacklab_run_and_governance_workflow(api_client):
     assert approve_res.status_code == 200
     assert approve_res.json()["status"] == "APPROVED"
     assert approve_res.json()["approved_by"] == "approver"
-    assert approve_res.json()["effective_disposition"] == "ACCEPT"
+    effective_disposition = approve_res.json()["effective_disposition"]
+
+    detail_after = api_client.get(f"/api/findings/{finding_id}")
+    assert detail_after.status_code == 200
+    detail_after = detail_after.json()
+    assert detail_after["immutable"]["recommended_disposition"] == original_recommendation
+    assert detail_after["governance"]["state"]["disposition"] == effective_disposition
+    assert detail_after["governance"]["decisions"]["latest"]["status"] == approve_res.json()["status"]
 
     # 8. Check Audit Trail with cryptographic verification
     audit_res = api_client.get("/api/governance/audit?verify=true")

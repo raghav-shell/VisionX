@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 
 from ...contracts import Role
 from ...provenance.trust import load_trust_root
@@ -34,11 +34,12 @@ def list_decisions(
     state: AppState = Depends(get_state),
 ) -> dict:
     with state.db.session() as s:
-        q = select(Decision).order_by(desc(Decision.created_at))
+        filters = []
         if status_filter:
-            q = q.filter(Decision.status == status_filter.upper())
-        total = s.query(Decision).count()
-        rows = s.scalars(q.offset(offset).limit(limit)).all()
+            filters.append(Decision.status == status_filter.upper())
+        base = select(Decision).where(*filters)
+        total = s.scalar(select(func.count()).select_from(base.subquery())) or 0
+        rows = s.scalars(base.order_by(desc(Decision.requested_at), desc(Decision.id)).offset(offset).limit(limit)).all()
         return {
             "total": total,
             "decisions": [
@@ -47,16 +48,16 @@ def list_decisions(
                     "finding_id": r.finding_id,
                     "scan_id": r.scan_id,
                     "requested_by": r.requested_by,
-                    "approved_by": r.approved_by,
+                    "decided_by": r.decided_by,
                     "status": r.status,
-                    "original_disposition": r.original_disposition,
-                    "target_disposition": r.target_disposition,
-                    "effective_disposition": r.effective_disposition,
+                    "from_disposition": r.from_disposition,
+                    "to_disposition": r.to_disposition,
                     "reason_code": r.reason_code,
                     "justification": r.justification,
-                    "requires_second_user": r.requires_second_user,
-                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "sensitive": r.sensitive,
+                    "requested_at": r.requested_at.isoformat() if r.requested_at else None,
                     "decided_at": r.decided_at.isoformat() if r.decided_at else None,
+                    "decision_note": r.decision_note,
                 }
                 for r in rows
             ],
