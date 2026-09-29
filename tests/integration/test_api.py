@@ -153,6 +153,26 @@ def test_csrf_rejection_on_mutation(api_client):
     assert "CSRF" in bad_res.json()["detail"]
 
 
+def test_governance_mutations_require_authentication_and_role(api_client):
+    assert api_client.post("/api/findings/missing/acknowledge").status_code == 401
+
+    from visionsentinel.contracts import Role
+    from visionsentinel.governance.identity import create_user
+
+    create_user(api_client.app.state.vs.db, "viewer", "viewerpassword", Role.VIEWER, "Read Only")
+    login = api_client.post(
+        "/api/auth/login",
+        json={"username": "viewer", "password": "viewerpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    csrf = login.json()["csrf"]
+    response = api_client.post(
+        "/api/findings/missing/acknowledge",
+        headers={"X-CSRF-Token": csrf, "Origin": "http://testserver"},
+    )
+    assert response.status_code == 403
+
+
 def test_web_routes_reject_raw_server_paths(api_client):
     """Browser clients may select registered assets, never arbitrary host paths."""
     login = api_client.post(
@@ -230,6 +250,65 @@ def test_attacklab_run_and_governance_workflow(api_client):
     assert len(findings) > 0
     target_finding = findings[0]
     finding_id = target_finding["id"]
+    immutable_before = target_finding.copy()
+
+    acknowledge = api_client.post(
+        f"/api/findings/{finding_id}/acknowledge",
+        headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
+    )
+    assert acknowledge.status_code == 200
+    assert acknowledge.json()["governance"]["state"]["acknowledged_by"] == "analyst"
+    repeated_acknowledge = api_client.post(
+        f"/api/findings/{finding_id}/acknowledge",
+        headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
+    )
+    assert repeated_acknowledge.status_code == 200
+
+    assigned = api_client.post(
+        f"/api/findings/{finding_id}/owner",
+        json={"owner": "approver"},
+        headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
+    )
+    assert assigned.status_code == 200
+    assert assigned.json()["governance"]["state"]["owner"] == "approver"
+    reassigned = api_client.post(
+        f"/api/findings/{finding_id}/owner",
+        json={"owner": "analyst"},
+        headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
+    )
+    assert reassigned.status_code == 200
+    assert reassigned.json()["governance"]["state"]["owner"] == "analyst"
+    missing_owner = api_client.post(
+        f"/api/findings/{finding_id}/owner",
+        json={"owner": "missing-user"},
+        headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
+    )
+    assert missing_owner.status_code == 400
+
+    comment = api_client.post(
+        f"/api/findings/{finding_id}/comment",
+        json={"text": "Reviewed with the analyst and recorded the evidence."},
+        headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
+    )
+    assert comment.status_code == 200
+    invalid_comment = api_client.post(
+        f"/api/findings/{finding_id}/comment",
+        json={"text": ""},
+        headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
+    )
+    assert invalid_comment.status_code == 400
+
+    history = api_client.get(f"/api/findings/{finding_id}/history")
+    assert history.status_code == 200
+    history_actions = {event["action"] for event in history.json()["events"]}
+    assert {"acknowledge", "assign_owner", "comment"}.issubset(history_actions)
+    other_finding_id = next(item["id"] for item in findings if item["id"] != finding_id)
+    other_history = api_client.get(f"/api/findings/{other_finding_id}/history")
+    assert other_history.status_code == 200
+    assert all(event["action"] not in history_actions for event in other_history.json()["events"])
+
+    immutable_after = api_client.get(f"/api/scans/{scan_id}/findings").json()["findings"]
+    assert next(item for item in immutable_after if item["id"] == finding_id) == immutable_before
 
     # Findings persistence uses FindingState for governance and the sealed result for detector data.
     finding_list = api_client.get(f"/api/findings?scan_id={scan_id}&limit=1")

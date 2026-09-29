@@ -12,7 +12,7 @@ from sqlalchemy import asc, desc, func, select
 
 from ...contracts import Disposition, Finding, Role, ScanStatus, Severity
 from ...core.errors import GovernanceError
-from ...storage import Decision, FindingState, Scan
+from ...storage import AuditEvent, Decision, FindingState, Scan
 from ..deps import Principal, get_state, mutation, require
 from ..state import AppState
 from .governance import _decision_http_error, serialize_decision
@@ -26,6 +26,16 @@ class DecisionRequestBody(BaseModel):
     target_disposition: Disposition
     reason_code: str
     justification: str
+
+
+class OwnerBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    owner: str
+
+
+class CommentBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str
 
 
 def _state_dict(row: FindingState) -> dict[str, Any]:
@@ -98,6 +108,10 @@ def _finding_row(row: FindingState, decisions: dict[str, dict[str, dict[str, Any
     return result
 
 
+def _governance_state_response(row: FindingState) -> dict[str, Any]:
+    return {"governance": {"state": _state_dict(row)}}
+
+
 def _result_status_is_in_progress(scan: Scan) -> bool:
     return scan.status not in {ScanStatus.SEALED.value, ScanStatus.FAILED.value}
 
@@ -168,6 +182,82 @@ def get_finding(finding_id: str, state: AppState = Depends(get_state)) -> dict:
         "immutable": finding.model_dump(mode="json"),
         "governance": {"state": _state_dict(row), "decisions": decisions},
     }
+
+
+@router.post("/{finding_id}/acknowledge")
+def acknowledge_finding(
+    finding_id: str,
+    principal: Principal = Depends(mutation(Role.VIEWER)),
+    state: AppState = Depends(get_state),
+) -> dict:
+    try:
+        row = state.governance.acknowledge(principal.user, finding_id)
+        return _governance_state_response(row)
+    except GovernanceError as exc:
+        raise _decision_http_error(exc) from exc
+
+
+@router.post("/{finding_id}/owner")
+def assign_finding_owner(
+    finding_id: str,
+    body: OwnerBody,
+    principal: Principal = Depends(mutation(Role.VIEWER)),
+    state: AppState = Depends(get_state),
+) -> dict:
+    try:
+        row = state.governance.assign(principal.user, finding_id, body.owner)
+        return _governance_state_response(row)
+    except GovernanceError as exc:
+        raise _decision_http_error(exc) from exc
+
+
+@router.post("/{finding_id}/comment")
+def comment_on_finding(
+    finding_id: str,
+    body: CommentBody,
+    principal: Principal = Depends(mutation(Role.VIEWER)),
+    state: AppState = Depends(get_state),
+) -> dict:
+    try:
+        state.governance.comment(principal.user, finding_id, body.text)
+        with state.db.session() as session:
+            row = session.get(FindingState, finding_id)
+        if row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"finding {finding_id!r} not found")
+        return _governance_state_response(row)
+    except GovernanceError as exc:
+        raise _decision_http_error(exc) from exc
+
+
+@router.get("/{finding_id}/history", dependencies=[Depends(require(Role.VIEWER))])
+def finding_governance_history(finding_id: str, state: AppState = Depends(get_state)) -> dict:
+    with state.db.session() as session:
+        if session.get(FindingState, finding_id) is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"finding {finding_id!r} not found")
+        rows = session.scalars(
+            select(AuditEvent)
+            .where(AuditEvent.target == finding_id)
+            .order_by(asc(AuditEvent.id))
+        ).all()
+        return {
+            "finding_id": finding_id,
+            "total": len(rows),
+            "events": [
+                {
+                    "id": row.id,
+                    "timestamp": row.ts.isoformat() if row.ts else None,
+                    "actor": row.actor,
+                    "action": row.action,
+                    "old_state": row.old_state,
+                    "new_state": row.new_state,
+                    "reason_code": row.reason_code,
+                    "justification": row.justification,
+                    "ledger_seq": row.ledger_seq,
+                    "entry_hash": row.entry_hash,
+                }
+                for row in rows
+            ],
+        }
 
 
 @router.post("/{finding_id}/decision", status_code=status.HTTP_201_CREATED)
