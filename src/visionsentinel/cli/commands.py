@@ -7,7 +7,7 @@ import json
 
 from pathlib import Path
 
-from ..contracts import ATTACK_CLASSES, Disposition
+from ..contracts import ATTACK_CLASSES, Disposition, Role
 from ..core.profiles import list_profiles, load_profile
 from ..core.workspace import Workspace
 from ..engine.registry import default_registry
@@ -198,6 +198,36 @@ def _cmd_selftest(args: argparse.Namespace) -> int:
     return 0 if res.passed else 1
 
 
+def _cmd_users(args: argparse.Namespace) -> int:
+    """Provision local dashboard users without ever placing passwords in shell history."""
+    from getpass import getpass
+
+    from ..governance import create_user
+    from ..storage import Database
+
+    workspace = Workspace.default().ensure()
+    db = Database(workspace.database_url)
+    if args.action == "create":
+        if not args.username:
+            raise SystemExit("error: username is required for 'users create'")
+        password = getpass("Password: ")
+        confirmation = getpass("Confirm password: ")
+        if password != confirmation:
+            raise SystemExit("error: passwords do not match")
+        user = create_user(db, args.username, password, Role(args.role.upper()), args.display_name)
+        print(f"Created {user.role.lower()} account {user.username!r} in {workspace.root}")
+        return 0
+
+    from sqlalchemy import select
+    from ..storage import User
+
+    with db.session() as session:
+        rows = session.scalars(select(User).order_by(User.username)).all()
+    print(table([[u.username, u.display_name, u.role, "disabled" if u.disabled else "active"] for u in rows],
+                ["USERNAME", "DISPLAY NAME", "ROLE", "STATUS"]))
+    return 0
+
+
 def _cmd_benchmark(args: argparse.Namespace) -> int:
     from ..evaluation.benchmark import run_benchmark
 
@@ -291,6 +321,13 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--demo", action="store_true", help="enable demo mode")
     p.set_defaults(handler=_cmd_server)
 
+    p = sub.add_parser("users", help="provision or list local dashboard accounts")
+    p.add_argument("action", choices=["create", "list"])
+    p.add_argument("username", nargs="?", help="lowercase username (required for create)")
+    p.add_argument("--role", choices=[r.value.lower() for r in Role], default="viewer")
+    p.add_argument("--display-name", default=None)
+    p.set_defaults(handler=_cmd_users)
+
     p = sub.add_parser("selftest", help="run offline air-gap self-test and cryptographic verification")
     p.add_argument("--airgap", action="store_true", help="enforce air-gap assertions")
     p.add_argument("--skip-frontend", action="store_true", help="skip scanning frontend static files")
@@ -314,4 +351,3 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--name", default=None, help="optional human-readable name")
     p.add_argument("--no-copy", action="store_true", help="reference in-place without copying")
     p.set_defaults(handler=_cmd_assets)
-
