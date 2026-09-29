@@ -25,6 +25,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.signal-card::before,
+.interactive-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(340px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(236, 168, 214, 0.11), transparent 70%);
+  transition: opacity 300ms ease;
+}
+
+.signal-card:hover::before,
+.interactive-card:hover::before {
+  opacity: 1;
+}
+
+.signal-wave-dot {
+  animation: signal-breathe 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes signal-breathe {
+  to { opacity: 0.85; transform: translateY(-3px); }
+}
+
 /* The hero's rotating word resolves one letter at a time from a soft blur. */
 .hero-word-letter {
   display: inline-block;
@@ -64,7 +88,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .hero-word-letter,
-  .hero-word-letter--out {
+  .hero-word-letter--out,
+  .signal-wave-dot {
     animation: none;
   }
 }

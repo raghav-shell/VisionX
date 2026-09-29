@@ -1,8 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 
 export default function Integrations() {
+  const connectionArtRef = useRef<HTMLImageElement>(null);
+
+  const moveConnectionArt = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    if (connectionArtRef.current) {
+      connectionArtRef.current.style.transform = `translate3d(calc(-50% + ${x * 14}px), ${y * 10}px, 0)`;
+    }
+  };
+
+  const resetConnectionArt = () => {
+    if (connectionArtRef.current) connectionArtRef.current.style.transform = "translate3d(-50%, 0, 0)";
+  };
+
+  const moveCardSpotlight = (event: React.PointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty("--spot-x", `${event.clientX - bounds.left}px`);
+    event.currentTarget.style.setProperty("--spot-y", `${event.clientY - bounds.top}px`);
+  };
+
   const formats = [
     {
       name: "PyTorch",
@@ -63,7 +85,7 @@ export default function Integrations() {
   ];
 
   return (
-    <section id="integrations" className="relative py-28 lg:py-36 overflow-hidden bg-black border-t border-white/10">
+    <section id="integrations" className="relative overflow-hidden border-t border-white/10 bg-black pb-28 pt-28 lg:pb-36 lg:pt-36">
       {/* Background Neural Connection Image */}
       <div className="relative z-10 text-center max-w-[1400px] mx-auto px-6 lg:px-12 mb-12">
         <span className="inline-flex items-center gap-4 text-sm font-mono text-white/50 mb-6 uppercase tracking-wider justify-center">
@@ -82,11 +104,17 @@ export default function Integrations() {
       </div>
 
       {/* Connection Glow Center Graphic */}
-      <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] -mt-8 mb-8 pointer-events-none opacity-80">
+      <div
+        className="relative -mt-4 mb-12 h-[390px] w-full overflow-hidden sm:h-[48vw] lg:-mt-8 lg:mb-16 lg:h-[min(43vw,780px)]"
+        onPointerMove={moveConnectionArt}
+        onPointerLeave={resetConnectionArt}
+      >
         <img
+          ref={connectionArtRef}
           src="/images/connection.png"
-          alt="Neural format connection network"
-          className="w-full h-auto object-cover max-h-[300px]"
+          alt="Two organic hands linked by glowing strands"
+          className="pointer-events-none absolute bottom-0 left-1/2 h-auto min-w-[800px] w-full max-w-none select-none opacity-95 transition-transform duration-500 ease-out"
+          style={{ transform: "translate3d(-50%, 0, 0)" }}
         />
       </div>
 
@@ -97,9 +125,10 @@ export default function Integrations() {
             return (
               <div
                 key={fmt.name}
-                className="group relative overflow-hidden p-8 border border-white/10 bg-[#09090b] rounded-xl hover:border-white/30 transition-all duration-500 flex flex-col justify-between"
+                className="interactive-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-[#09090b] p-8 transition-[border-color,transform] duration-300 hover:-translate-y-1 hover:border-white/30"
+                onPointerMove={moveCardSpotlight}
               >
-                <div>
+                <div className="relative z-10">
                   <div className="flex items-center justify-between mb-6">
                     <div aria-hidden="true" className="w-16 h-16 border border-white/20 bg-white/[0.03] flex items-center justify-center text-white group-hover:text-[#eca8d6] group-hover:border-[#eca8d6]/50 transition-colors">
                       <span className={`font-display font-bold tracking-tight ${fmt.mark.length > 3 ? "text-xs" : "text-lg"}`}>
@@ -118,7 +147,7 @@ export default function Integrations() {
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="relative z-10 mt-6 flex items-center justify-between border-t border-white/10 pt-4">
                   <span className="text-[11px] font-mono text-white/40 uppercase">{fmt.footer}</span>
                   <div className="w-2 h-2 rounded-full bg-[#eca8d6] opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>

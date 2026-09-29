@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 
 const signals = [
@@ -9,6 +11,7 @@ const signals = [
     detail: "Review anomalous model responses and reconstructed triggers when the required model access is available.",
     footer: "Demo: threshold 2.13 · class #4 · p < 0.001",
     color: "text-[#eca8d6]",
+    waveColor: "#eca8d6",
   },
   {
     label: "Distribution drift",
@@ -18,6 +21,7 @@ const signals = [
     detail: "Compare incoming images with a trusted baseline across visual and, where available, model-derived features.",
     footer: "Demo: KS-test P = 0.984",
     color: "text-[#91dcbc]",
+    waveColor: "#91dcbc",
   },
   {
     label: "Provenance",
@@ -27,8 +31,32 @@ const signals = [
     detail: "Check signatures and Merkle history; supply an external anchor to detect truncated ledger tails.",
     footer: "Demo: tree depth 18 · 100% example records verified",
     color: "text-[#79cdf9]",
+    waveColor: "#79cdf9",
   },
 ];
+
+function SignalWave({ color, phase }: { color: string; phase: number }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 400 60" preserveAspectRatio="none" className="my-5 h-[60px] w-full overflow-visible">
+      {Array.from({ length: 41 }, (_, index) => {
+        const x = index * 10;
+        const envelope = Math.sin((index / 40) * Math.PI);
+        const y = 30 + Math.sin(index * 0.43 + phase) * envelope * 9 + Math.sin(index * 0.18 + phase) * 3;
+        return (
+          <circle
+            key={index}
+            cx={x}
+            cy={y}
+            r={index % 5 === 0 ? 2.5 : 2.2}
+            fill={color}
+            className="signal-wave-dot"
+            style={{ animationDelay: `${index * 35}ms`, opacity: 0.38 + envelope * 0.24 }}
+          />
+        );
+      })}
+    </svg>
+  );
+}
 
 export default function SignalMetrics() {
   return (
@@ -58,18 +86,27 @@ export default function SignalMetrics() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {signals.map((signal) => (
-            <div key={signal.title} className="bg-[#09090b] border border-white/15 p-8 lg:p-10 rounded-2xl flex flex-col justify-between hover:border-white/30 transition-all duration-300">
-              <div>
+          {signals.map((signal, index) => (
+            <div
+              key={signal.title}
+              className="signal-card relative flex min-h-[390px] flex-col justify-between overflow-hidden rounded-xl border border-white/15 bg-[#09090b] p-8 transition-[border-color,transform] duration-300 hover:-translate-y-1 hover:border-white/30 lg:p-10"
+              onPointerMove={(event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                event.currentTarget.style.setProperty("--spot-x", `${event.clientX - bounds.left}px`);
+                event.currentTarget.style.setProperty("--spot-y", `${event.clientY - bounds.top}px`);
+              }}
+            >
+              <div className="relative z-10">
                 <span className={`text-xs font-mono uppercase tracking-wider ${signal.color}`}>{signal.label}</span>
                 <h3 className="text-2xl lg:text-3xl font-display font-semibold text-white mt-6 mb-4">{signal.title}</h3>
                 <div className="mb-4 flex flex-wrap items-baseline gap-2">
                   <span className="font-display text-4xl font-bold tracking-tight text-white lg:text-5xl">{signal.value}</span>
                   <span className="font-mono text-xs text-white/40">{signal.unit}</span>
                 </div>
+                <SignalWave color={signal.waveColor} phase={index * 1.7} />
                 <p className="text-sm text-white/60 leading-relaxed">{signal.detail}</p>
               </div>
-              <p className="text-xs font-mono text-white/40 mt-8 pt-4 border-t border-white/10">{signal.footer}</p>
+              <p className="relative z-10 text-xs font-mono text-white/40 mt-8 pt-4 border-t border-white/10">{signal.footer}</p>
             </div>
           ))}
         </div>

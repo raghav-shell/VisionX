@@ -18,7 +18,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolled(window.scrollY > 48);
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
@@ -35,8 +35,8 @@ export default function Navbar() {
 
   return (
     <header
-      className={`pointer-events-none fixed inset-x-0 z-50 px-4 transition-all duration-500 ease-out lg:px-8 ${
-        scrolled ? "top-2.5 lg:top-3" : "top-4 lg:top-5"
+      className={`pointer-events-none fixed inset-x-0 z-50 transition-all duration-500 ease-out ${
+        scrolled ? "top-3 px-4 lg:top-4 lg:px-8" : "top-0 px-0"
       }`}
     >
       <nav
@@ -45,13 +45,13 @@ export default function Navbar() {
           mobileMenuOpen
             ? "max-w-[1240px] rounded-[18px] border-white/[0.15] bg-[#09090b]/95 backdrop-blur-xl"
             : scrolled
-              ? "max-w-[1120px] rounded-[16px] border-white/[0.13] bg-black/60 backdrop-blur-lg"
-              : "max-w-[1240px] rounded-[20px] border-white/[0.1] bg-black/45 backdrop-blur-md"
+              ? "max-w-[1240px] rounded-[16px] border-white/[0.13] bg-black/65 backdrop-blur-xl"
+              : "max-w-none rounded-none border-transparent bg-transparent shadow-none"
         }`}
       >
         <div
-          className={`grid grid-cols-[1fr_auto] items-center px-5 transition-all duration-500 ease-out sm:px-7 lg:grid-cols-[1fr_auto_1fr] lg:px-8 ${
-            scrolled ? "h-[50px] lg:h-[52px]" : "h-[58px] lg:h-[60px]"
+          className={`grid grid-cols-[1fr_auto] items-center px-5 transition-all duration-500 ease-out sm:px-7 lg:grid-cols-[1fr_auto_1fr] ${scrolled ? "lg:px-8" : "lg:mx-auto lg:max-w-[1400px] lg:px-12"} ${
+            scrolled ? "h-[50px] lg:h-[52px]" : "h-[68px] lg:h-[80px]"
           }`}
         >
           <Link
