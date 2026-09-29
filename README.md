@@ -191,3 +191,7 @@ The engine architecture, provenance model, test suite and coverage honesty are s
 ## Licence
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+## Contributors
+
+- [Ankit Pandey](https://github.com/ankit25bcs10610) — engineering and CI reliability
