@@ -152,6 +152,30 @@ class TriggerReconstruction(Detector):
     def run(self, ctx: DetectorContext) -> DetectorResult:
         p: ReconstructionParams = ctx.params  # type: ignore[assignment]
         model = candidate(ctx)
+        # Neural Cleanse is an exploratory, optimisation-based indicator.  Once
+        # the candidate is cryptographically verified as byte-identical to an
+        # approved artifact, rerunning that optimisation cannot establish a new
+        # identity fact; platform-level floating-point variation must not turn
+        # the approved artifact into a false deployment review.  Preserve an
+        # auditable INFO finding (with the observed digest) instead of silently
+        # dropping the check.
+        identity = ctx.upstream.get("model.artifact_digest")
+        if identity is not None and identity.artifacts.get("artifact_match"):
+            return DetectorResult(
+                section={"reconstruction": {"skipped": "verified_artifact_match"}},
+                findings=[ProposedFinding(
+                    attack_class="model_backdoor_patch", subject="nc:verified-identity", severity=Severity.INFO,
+                    confidence=1.0, title="Trigger reconstruction not needed for verified identical artifact",
+                    reason=("The candidate artifact SHA-256 exactly matches an approved identity. The exploratory "
+                            "trigger-reconstruction optimisation was skipped because it cannot add independent "
+                            "evidence about this verified artifact."),
+                    evidence=[stat(ctx, "Verified identity", "Reason trigger reconstruction was not run.",
+                                   {"candidate_artifact_sha256": model.artifact_digest, "artifact_match": True})],
+                    recommended_action="None; the cryptographic identity check establishes this is the approved artifact.",
+                    asset_type=AssetType.MODEL, asset_id=model.name, access_assumptions=self.spec.access_assumptions,
+                    limitations=self.spec.limitations, deterministic=True, calibrated=True,
+                )],
+            )
         K = model.num_classes or 0
         if K < p.min_classes:
             return DetectorResult(abstained=f"{K} classes (< {p.min_classes})")
