@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background-color: #000000;
+  color: #ffffff;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: #eca8d6;
+  color: #000000;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Connecting Line Animation for Infrastructure Grid */
+@keyframes drawLine {
+  0% {
+    stroke-dashoffset: 1000;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.75;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+.connecting-line {
+  stroke: #eca8d6;
+  stroke-width: 1.2;
+  fill: none;
+  stroke-dasharray: 1000;
+  animation: drawLine 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Progress bar animation */
+@keyframes stepProgress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-step-progress {
+  animation: stepProgress 5s linear forwards;
+}
+
+/* Subtle Grid Background */
+.bg-grid-lines {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: rgba(12, 12, 14, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Organic Tree Sway & Wind Animation */
+@keyframes treeSway {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+    filter: drop-shadow(0 0 20px rgba(236, 168, 214, 0.25));
+  }
+  30% {
+    transform: translateY(-8px) rotate(1.2deg) scale(1.02);
+    filter: drop-shadow(0 0 35px rgba(236, 168, 214, 0.45));
+  }
+  70% {
+    transform: translateY(-4px) rotate(-1deg) scale(1.01);
+    filter: drop-shadow(0 0 28px rgba(197, 151, 235, 0.35));
+  }
+}
+
+.animate-tree-sway {
+  animation: treeSway 5.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform-origin: bottom center;
+  will-change: transform, filter;
+}
+
+/* Floating Ambient Aura */
+@keyframes auraPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+
+.animate-aura-pulse {
+  animation: auraPulse 4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Floating Slow */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+/* Scroll reveal utility classes */
+.reveal-item {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-item.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Organic Tree Floating & Wind Motion */
+@keyframes treeFloating {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+    filter: drop-shadow(0 0 25px rgba(236, 168, 214, 0.35));
+  }
+  35% {
+    transform: translateY(-14px) rotate(1.2deg) scale(1.02);
+    filter: drop-shadow(0 0 45px rgba(236, 168, 214, 0.55));
+  }
+  70% {
+    transform: translateY(-6px) rotate(-0.8deg) scale(1.01);
+    filter: drop-shadow(0 0 35px rgba(197, 151, 235, 0.45));
+  }
+}
+
+.animate-tree-float {
+  animation: treeFloating 6s ease-in-out infinite;
+  transform-origin: bottom center;
+  will-change: transform, filter;
+}
+
+/* Hide all native Safari / WebKit media controls and overlay play buttons */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-timeline,
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display,
+video::-webkit-media-controls-mute-button,
+video::-webkit-media-controls-toggle-closed-captions-button,
+video::-webkit-media-controls-volume-slider {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  -webkit-appearance: none !important;
+}
