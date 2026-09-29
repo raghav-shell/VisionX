@@ -21,7 +21,7 @@ export default function Navbar() {
   const navLinks = [
     { name: "Capabilities", href: "#capabilities" },
     { name: "Process", href: "#process" },
-    { name: "Air-Gap Infra", href: "#infra" },
+    { name: "Offline Design", href: "#infra" },
     { name: "Signals", href: "#signals" },
     { name: "Integrations", href: "#integrations" },
     { name: "Security", href: "#security" },
@@ -91,7 +91,7 @@ export default function Navbar() {
               href="/workspace"
               className="text-xs font-mono text-white/70 hover:text-white transition-colors px-3 py-1.5"
             >
-              Studio
+              Demo
             </Link>
 
             <Link
@@ -99,7 +99,7 @@ export default function Navbar() {
               className="inline-flex items-center gap-1.5 rounded-full bg-white text-black px-4 py-2 text-xs font-semibold hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-white/10"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Open Studio</span>
+              <span>Explore demo</span>
             </Link>
           </div>
 
@@ -132,7 +132,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2.5 rounded-full bg-white text-black text-xs font-semibold"
               >
-                Open Studio
+                Explore demo
               </Link>
             </div>
           </div>

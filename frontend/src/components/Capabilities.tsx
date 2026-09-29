@@ -101,14 +101,14 @@ export default function Capabilities() {
                 Capabilities
               </span>
               <h2 className="text-5xl md:text-7xl lg:text-[110px] font-display font-bold tracking-tight leading-[0.9] text-white">
-                Defensive<br />
-                <span className="text-white/40">instruments.</span>
+                Find the risk.<br />
+                <span className="text-white/40">Keep the evidence.</span>
               </h2>
             </div>
             <div className="lg:col-span-5 lg:pb-3">
               <p className="text-lg md:text-xl text-white/60 leading-relaxed font-normal">
-                Four specialized modules auditing the complete computer vision pipeline. Every check
-                negotiates capabilities before execution—guaranteeing zero silent skips.
+                Assess datasets, models, inference records, and distribution drift. Each check
+                reports whether it ran, had limited access, or could not assess the asset.
               </p>
             </div>
           </div>
@@ -128,30 +128,29 @@ export default function Capabilities() {
                   <span className="font-mono text-sm text-white/40">01</span>
                 </div>
                 <h3 className="text-3xl lg:text-5xl font-display font-bold text-white mb-6 group-hover:translate-x-1 transition-transform duration-500">
-                  Data Integrity & Attribution
+                  Dataset integrity &amp; contributor risk
                 </h3>
                 <p className="text-base lg:text-lg text-white/65 leading-relaxed max-w-xl mb-10">
-                  Identifies near-duplicate flooding, contradictory labels, trigger patch residues,
-                  and negative-space poisoning. Statistical findings roll up into empirical Bayes
-                  beta-binomial posteriors, pinpointing malicious contributors.
+                  Detect near-duplicate samples, label conflicts, and suspicious image artifacts.
+                  Link findings to contributors and review the underlying evidence before acting.
                 </p>
                 <div className="flex flex-wrap gap-8 items-baseline pt-4 border-t border-white/10">
                   <div>
-                    <span className="text-4xl lg:text-6xl font-display font-bold text-white">99.8%</span>
+                    <span className="text-3xl lg:text-5xl font-display font-bold text-white">Duplicates</span>
                     <span className="block text-xs text-white/50 font-mono mt-1 uppercase">
-                      Poison Recall on Test Battery
+                      Find repeated or leaked samples
                     </span>
                   </div>
                   <div>
-                    <span className="text-4xl lg:text-6xl font-display font-bold text-[#eca8d6]">0.00</span>
+                    <span className="text-3xl lg:text-5xl font-display font-bold text-[#eca8d6]">Labels</span>
                     <span className="block text-xs text-white/50 font-mono mt-1 uppercase">
-                      Clean False Alarms on Tested Batches
+                      Surface conflicting annotations
                     </span>
                   </div>
                   <div>
-                    <span className="text-4xl lg:text-6xl font-display font-bold text-white/90">5 Tiers</span>
+                    <span className="text-3xl lg:text-5xl font-display font-bold text-white/90">Sources</span>
                     <span className="block text-xs text-white/50 font-mono mt-1 uppercase">
-                      Contributor Attribution Hierarchy
+                      Review contributor-level risk
                     </span>
                   </div>
                 </div>
@@ -180,20 +179,19 @@ export default function Capabilities() {
                 <span className="font-mono text-sm text-white/30">02</span>
               </div>
               <h3 className="text-2xl lg:text-3xl font-display font-bold text-white mb-4 group-hover:text-[#eca8d6] transition-colors">
-                Trojan Trigger Reconstruction
+                Model backdoor indicators
               </h3>
               <p className="text-sm lg:text-base text-white/60 leading-relaxed mb-6">
-                Inverts minimal triggers with adaptive L1 regularisation. Backdoored classes exhibit
-                anomalous reachable boundaries via Median Absolute Deviation (MAD), falling back to
-                gradient-free NES on ONNX.
+                Probe model behavior and reconstruct possible triggers when the model provides the
+                needed access. Missing gradients or other prerequisites remain visible in coverage.
               </p>
             </div>
             <div className="pt-6 border-t border-white/10">
               <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-display font-bold text-white">4.92 vs 2.13</span>
-                <span className="text-xs font-mono text-[#eca8d6]">Separation Signal</span>
+                <span className="text-3xl font-display font-bold text-white">Capability-aware</span>
+                <span className="text-xs font-mono text-[#eca8d6]">Model checks</span>
               </div>
-              <span className="text-xs text-white/40 block mt-1">Backdoored Anomaly Index vs Clean</span>
+              <span className="text-xs text-white/40 block mt-1">No silent skips when a check cannot run</span>
             </div>
           </div>
 
@@ -210,17 +208,16 @@ export default function Capabilities() {
                 Cryptographic Provenance
               </h3>
               <p className="text-sm lg:text-base text-white/60 leading-relaxed mb-6">
-                RFC 8785 canonical JSON records signed with pure Ed25519 and committed to RFC 6962
-                Certificate Transparency Merkle trees. Verifiable offline without our software or
-                network keys.
+                Verify signed inference records against trusted keys and Merkle checkpoints.
+                External anchors, when supplied, also reveal truncated or rewritten history.
               </p>
             </div>
             <div className="pt-6 border-t border-white/10">
               <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-display font-bold text-white">&lt;0.2ms</span>
-                <span className="text-xs font-mono text-[#eca8d6]">Native C Core</span>
+                <span className="text-3xl font-display font-bold text-white">Ed25519</span>
+                <span className="text-xs font-mono text-[#eca8d6]">Signed records</span>
               </div>
-              <span className="text-xs text-white/40 block mt-1">Libsodium + SQLite verification</span>
+              <span className="text-xs text-white/40 block mt-1">Independent offline verifier</span>
             </div>
           </div>
 
@@ -234,20 +231,19 @@ export default function Capabilities() {
                 <span className="font-mono text-sm text-white/30">04</span>
               </div>
               <h3 className="text-2xl lg:text-3xl font-display font-bold text-white mb-4 group-hover:text-[#eca8d6] transition-colors">
-                Empirical Drift & PSI
+                Distribution drift
               </h3>
               <p className="text-sm lg:text-base text-white/60 leading-relaxed mb-6">
-                Evaluates Population Stability Index (PSI) with Jeffreys smoothing and scaled chi-square
-                asymptotics. Benjamini-Hochberg FDR multiplicity controls over brightness, contrast, and
-                embedding vectors.
+                Compare incoming images with a trusted reference across interpretable visual
+                features. Review which shifts are significant before investigating their cause.
               </p>
             </div>
             <div className="pt-6 border-t border-white/10">
               <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-display font-bold text-white">2000 Iter</span>
-                <span className="text-xs font-mono text-[#eca8d6]">Permutation Null</span>
+                <span className="text-3xl font-display font-bold text-white">Baseline</span>
+                <span className="text-xs font-mono text-[#eca8d6]">Compared locally</span>
               </div>
-              <span className="text-xs text-white/40 block mt-1">Sparse histogram fallback guarantee</span>
+              <span className="text-xs text-white/40 block mt-1">Reference vs incoming data</span>
             </div>
           </div>
         </div>

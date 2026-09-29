@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VisionX — Autonomous Computer-Vision Integrity Assurance",
+  title: "VisionX — Offline Computer Vision Assurance",
   description:
-    "Air-gapped assurance across training datasets, model weights, and inference records. Cryptographic tamper evidence, Trojan trigger reconstruction, and zero silent skips.",
+    "Assess vision datasets and models locally. Inspect findings, coverage, and evidence; verify signed inference records offline.",
 };
 
 export default function RootLayout({

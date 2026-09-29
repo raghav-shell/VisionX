@@ -46,8 +46,8 @@ export default function Validation() {
             </h2>
           </div>
           <p className="max-w-md text-base leading-relaxed text-white/60 lg:pb-2 lg:text-lg">
-            VisionX reports what it assessed, what it could only partially assess, and the evidence
-            behind each finding. The test suite exercises those claims on clean and adversarial cases.
+            See which checks ran, which had limited access, and which could not assess the input.
+            The test suite includes clean and attacked cases for key detectors.
           </p>
         </div>
 
@@ -80,6 +80,7 @@ export default function Validation() {
               ["ASSESSED", "Check ran with required inputs"],
               ["PARTIALLY ASSESSED", "Limits are stated in the report"],
               ["NOT ASSESSED", "Missing prerequisites are visible"],
+              ["FAILED TO EXECUTE", "An attempted check encountered an error"],
               ["UNSUPPORTED", "Attack class is declared explicitly"],
             ].map(([status, description]) => (
               <div key={status} className="flex items-start gap-4 py-5 first:pt-0 last:pb-0">

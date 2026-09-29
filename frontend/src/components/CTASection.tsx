@@ -24,15 +24,15 @@ export default function CTASection() {
             <span className="text-white/45">verifiable.</span>
           </h2>
           <p className="mt-8 max-w-xl text-base leading-relaxed text-white/65 md:text-lg">
-            Explore the VisionX demo workspace, inspect scanner scenarios, and trace decisions
-            from their inputs to evidence and provenance records.
+            Explore the demo workspace to see how findings, coverage, and evidence fit together.
+            Run the CLI locally when you are ready to assess your own assets.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Link
               href="/workspace"
               className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-colors hover:bg-[#f7d3eb]"
             >
-              Open demo workspace
+              Explore demo workspace
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a

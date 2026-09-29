@@ -8,40 +8,40 @@ export default function Security() {
 
   const securityFeatures = [
     {
-      title: "Isolated Execution (S3 Sandbox)",
-      desc: "Each untrusted decoder runs in a fresh child process with stubbed network sockets, a transient scratch dir, and wall-clock timeouts to bound crash radius.",
+      title: "Bounded model execution",
+      desc: "Untrusted model runtimes execute in a worker with resource limits and restrictions on sockets, subprocesses, and file writes.",
       icon: Shield,
       image: "/images/isolated.jpg",
       imageAlt: "Organic shield representing isolated execution",
-      stat: "0 RCE Vectors",
-      detail: "CVE-2025-32434 & libpng memory bounds enforced",
+      stat: "Worker isolation",
+      detail: "Resource limits and restricted operations",
     },
     {
-      title: "Kernel Peer Credentials (SO_PEERCRED)",
-      desc: "The signing daemon checks the caller's UID directly via kernel socket credentials. The web dashboard never holds private Ed25519 signing keys.",
+      title: "Trusted signing keys",
+      desc: "The CLI signs reports or inference ledgers with operator-supplied Ed25519 keys. Verification uses a supplied trust root.",
       icon: Lock,
       image: "/images/encrypted.jpg",
       imageAlt: "Glowing woven lock representing protected signing keys",
-      stat: "Privilege Separated",
-      detail: "Per-UID x Per-Record-Type allowlist",
+      stat: "Ed25519",
+      detail: "Operator-supplied signing keys and trust roots",
     },
     {
-      title: "Four-Eyes Authorization Protocol",
-      desc: "An analyst can propose lowering a quarantine finding with a mandatory word-counted justification. An independent approver must sign to confirm.",
+      title: "Evidence-led decisions",
+      desc: "The risk policy links recommended dispositions to findings and coverage. Reviewers can inspect the underlying evidence and limitations.",
       icon: UserCheck,
       image: "/images/permissions.jpg",
       imageAlt: "Woven access token representing independent authorization",
-      stat: "2-Person Rule",
-      detail: "Proposer self-approval strictly rejected",
+      stat: "Coverage aware",
+      detail: "Findings, evidence, and limitations together",
     },
     {
-      title: "Immutable Merkle Audit Trail",
-      desc: "Every scan record, analyst decision, and checkpoint is signed and committed to an append-only RFC 6962 tree with external anchoring.",
+      title: "Verifiable ledger history",
+      desc: "Signed inference records and Merkle checkpoints can be verified offline. An external anchor, when provided, helps reveal tail truncation.",
       icon: Eye,
       image: "/images/audit.jpg",
       imageAlt: "Glowing eye representing the inspectable audit trail",
-      stat: "RFC 6962 / 9162",
-      detail: "Sub-millisecond inclusion proofs",
+      stat: "RFC 6962",
+      detail: "Optional external anchor verification",
     },
   ];
 
@@ -52,15 +52,15 @@ export default function Security() {
         <div className="mb-20">
           <span className="inline-flex items-center gap-4 text-sm font-mono text-white/50 mb-8 uppercase tracking-wider">
             <span className="w-12 h-px bg-[#eca8d6]"></span>
-            Cryptographic Governance
+            Assurance boundaries
           </span>
           <h2 className="text-5xl md:text-7xl lg:text-[115px] font-display font-bold tracking-tight leading-[0.9] mb-8 text-white">
-            Provable,<br />
-            <span className="text-white/40">not asserted.</span>
+            Trust the<br />
+            <span className="text-white/40">evidence.</span>
           </h2>
           <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-2xl font-normal">
-            Assurance requires strict defense against hostile model suppliers and dataset contributors.
-            Privilege separation, kernel verification, and four-eyes review enforce absolute integrity.
+            VisionX shows what each check observed and where its conclusion stops. Signed records
+            and optional external anchors make changes to inference history detectable.
           </p>
         </div>
 
@@ -77,14 +77,14 @@ export default function Security() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/30 to-transparent pointer-events-none" />
             <div className="relative z-10">
               <span className="font-mono text-xs text-[#eca8d6] uppercase tracking-wider px-2.5 py-1 rounded bg-[#eca8d6]/10 border border-[#eca8d6]/20">
-                ACTIVE PROTECTION S1–S12
+                ASSESSMENT BOUNDARIES
               </span>
               <div className="mt-8 mb-6">
                 <span className="text-7xl lg:text-9xl font-display font-bold text-white leading-none block">
-                  0
+                  4
                 </span>
                 <span className="text-base lg:text-lg text-white/60 block mt-2">
-                  Unwitnessed Gaps Under External Anchors
+                  safeguards to inspect
                 </span>
               </div>
               <p className="text-sm lg:text-base text-white/60 leading-relaxed max-w-full lg:max-w-[58%] font-normal">
@@ -93,7 +93,7 @@ export default function Security() {
             </div>
 
             <div className="relative z-10 pt-8 mt-8 border-t border-white/10 flex flex-wrap gap-2">
-              {["S1: Content Digest", "S2: Torch Floor", "S3: Sandbox", "S4: ONNX WhiteList", "SO_PEERCRED", "Four-Eyes"].map((pill) => (
+              {["Bounded worker", "Signed reports", "Coverage states", "Merkle checkpoints", "External anchors"].map((pill) => (
                 <span
                   key={pill}
                   className="px-3 py-1 border border-white/10 rounded-full text-xs font-mono text-white/60 bg-white/[0.02]"
@@ -110,10 +110,12 @@ export default function Security() {
               const Icon = feat.icon;
               const isSelected = activeFeature === idx;
               return (
-                <div
+                <button
+                  type="button"
+                  aria-pressed={isSelected}
                   key={feat.title}
                   onClick={() => setActiveFeature(idx)}
-                  className={`p-6 border rounded-xl transition-all duration-300 cursor-pointer ${
+                  className={`w-full text-left p-6 border rounded-xl transition-all duration-300 cursor-pointer ${
                     isSelected
                       ? "border-[#eca8d6]/60 bg-white/[0.04] shadow-md shadow-black"
                       : "border-white/10 bg-black/40 hover:border-white/25"
@@ -130,7 +132,7 @@ export default function Security() {
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                         <h3 className="font-display font-semibold text-lg text-white">
                           {feat.title}
                         </h3>
@@ -143,7 +145,7 @@ export default function Security() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

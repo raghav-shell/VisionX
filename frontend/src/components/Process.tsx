@@ -11,25 +11,25 @@ export default function Process() {
     {
       number: "01",
       title: "Ingest",
-      subtitle: "raw training datasets",
+      subtitle: "the supplied assets",
       description:
-        "Stream training batches through sandboxed memory rings. Extract perceptual dHash fingerprints, detect train/val split leakage, and validate bounding box coordinate normalization in real time.",
+        "Load a dataset, model, or inference ledger locally. VisionX checks file limits and probes which analyses the supplied assets can support.",
       accent: "#eca8d6",
     },
     {
       number: "02",
-      title: "Audit",
-      subtitle: "weights & triggers",
+      title: "Assess",
+      subtitle: "with explicit coverage",
       description:
-        "Execute Neural Cleanse inverted trigger reconstruction across all target classes. Minimize L1 mask norm via optimization to uncover planted backdoor Trojans without requiring ground-truth poison labels.",
+        "Run the applicable data, model, provenance, and drift checks. Findings link to evidence; unavailable checks explain what inputs are missing.",
       accent: "#c597eb",
     },
     {
       number: "03",
-      title: "Seal",
-      subtitle: "immutable provenance",
+      title: "Report",
+      subtitle: "findings and limits",
       description:
-        "Package verified model checkpoints into zero-copy VisionX-SEAL containers with RFC 8785 canonical JSON manifests, detached Ed25519 signatures, and append-only RFC 6962 Merkle ledger receipts.",
+        "Export the results, coverage, and evidence. Optionally sign a report manifest or verify a supplied inference ledger against trusted keys and anchors.",
       accent: "#9bb2ff",
     },
   ];
@@ -91,8 +91,8 @@ export default function Process() {
               }`}
             >
               <span className="block text-white">Ingest.</span>
-              <span className="block text-white/35">Audit.</span>
-              <span className="block text-white/15">Seal.</span>
+              <span className="block text-white/35">Assess.</span>
+              <span className="block text-white/15">Report.</span>
             </h2>
           </div>
 

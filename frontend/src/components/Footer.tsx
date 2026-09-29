@@ -41,14 +41,11 @@ export default function Footer() {
                 <span className="text-2xl font-display font-bold text-white tracking-wider flex items-center">
                   Vision<span className="bg-gradient-to-r from-[#eca8d6] via-[#c597eb] to-[#a78bfa] bg-clip-text text-transparent font-extrabold">X</span>
                 </span>
-                <span className="text-xs text-[#eca8d6] font-mono tracking-widest mt-1">
-                  TM
-                </span>
               </Link>
 
               <p className="text-white/50 leading-relaxed mb-8 max-w-sm text-sm font-sans">
                 Air-gapped assurance across training datasets, model weights, and inference records.
-                Cryptographic tamper evidence, Trojan trigger inversion, and zero silent skips.
+                Findings link to evidence, while coverage states show what could not be assessed.
               </p>
 
               <div className="flex flex-wrap gap-6 text-sm text-white/50 font-sans">
@@ -56,7 +53,7 @@ export default function Footer() {
                   href="#console"
                   className="hover:text-white transition-colors flex items-center gap-1 group"
                 >
-                  <span>CLI Console</span>
+                  <span>CLI examples</span>
                   <ArrowUpRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#eca8d6]" />
                 </a>
                 <Link
@@ -70,7 +67,7 @@ export default function Footer() {
                   href="#infra"
                   className="hover:text-white transition-colors flex items-center gap-1 group"
                 >
-                  <span>Air-Gap Spec</span>
+                  <span>Offline design</span>
                   <ArrowUpRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#eca8d6]" />
                 </a>
               </div>
@@ -89,12 +86,12 @@ export default function Footer() {
                 </li>
                 <li>
                   <a href="#capabilities" className="hover:text-white transition-colors">
-                    Trojan Cleanse
+                    Model Assurance
                   </a>
                 </li>
                 <li>
                   <a href="#capabilities" className="hover:text-white transition-colors">
-                    VisionX-SEAL Wire
+                    Signed Inference Ledger
                   </a>
                 </li>
                 <li>
@@ -113,7 +110,7 @@ export default function Footer() {
               <ul className="space-y-4 text-sm text-white/50 font-sans">
                 <li>
                   <a href="#sdk" className="hover:text-white transition-colors">
-                    Native C99 Core
+                    Local workflow
                   </a>
                 </li>
                 <li>
@@ -123,12 +120,12 @@ export default function Footer() {
                 </li>
                 <li>
                   <a href="#sdk" className="hover:text-white transition-colors">
-                    Rust FFI Binding
+                    Standalone verifier
                   </a>
                 </li>
                 <li>
                   <a href="#infra" className="hover:text-white transition-colors">
-                    Socket Status
+                    Bounded execution
                   </a>
                 </li>
               </ul>
@@ -153,7 +150,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link href="/workspace" className="text-[#eca8d6] hover:underline">
-                    Launch Studio
+                    Explore demo
                   </Link>
                 </li>
               </ul>
@@ -177,7 +174,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <a href="#security" className="hover:text-white transition-colors">
-                    Four-Eyes Protocol
+                    Coverage and limits
                   </a>
                 </li>
                 <li>

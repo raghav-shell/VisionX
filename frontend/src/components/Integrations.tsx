@@ -8,57 +8,57 @@ export default function Integrations() {
       name: "PyTorch",
       mark: "PT",
       tag: "Model",
-      desc: "Weights-only safe checkpoint parser with torch >= 2.6.0 security floor (CVE-2025-32434).",
-      footer: "Verified model intake",
+      desc: "Load supported PyTorch model artifacts with bounded file and execution checks.",
+      footer: "Model intake",
     },
     {
       name: "ONNX Runtime",
       mark: "ONNX",
       tag: "Graph",
-      desc: "Intermediate activation extraction via graph surgery without executing untrusted custom ops.",
-      footer: "Operator allowlist",
+      desc: "Inspect ONNX graphs and run supported checks in a restricted model worker.",
+      footer: "Graph and model checks",
     },
     {
       name: "TorchScript",
       mark: "TS",
       tag: "Archive",
-      desc: "Probes state_dict and gradient backprop availability rather than assuming from extensions.",
+      desc: "Probe available model capabilities before planning behavior checks.",
       footer: "Capability probing",
     },
     {
       name: "COCO JSON",
       mark: "COCO",
       tag: "Dataset",
-      desc: "Recursive depth limit, item count cap, and decompression bomb pixel budgets enforced.",
+      desc: "Read COCO annotations and images with bounded parsing and validation.",
       footer: "Bounded data parser",
     },
     {
-      name: "YOLO v8 / v11",
+      name: "YOLO",
       mark: "YOLO",
       tag: "Dataset",
-      desc: "Preserves absolute pixel coordinate grids required for content-addressed evidence crops.",
+      desc: "Load YOLO labels and convert box coordinates for geometry checks.",
       footer: "Geometry checks",
     },
     {
       name: "Pascal VOC",
       mark: "VOC",
       tag: "Dataset",
-      desc: "Directory traversal (safe_join) verified XML parser with EXIF metadata extraction.",
+      desc: "Read Pascal VOC annotations and surface malformed or unsafe inputs.",
       footer: "Safe XML intake",
     },
     {
-      name: "Libsodium C",
-      mark: "NaCl",
-      tag: "Crypto",
-      desc: "Zero-allocation C provenance core executing pure Ed25519 and RFC 6962 Merkle trees.",
-      footer: "Signed provenance",
+      name: "SafeTensors",
+      mark: "ST",
+      tag: "Model",
+      desc: "Parse tensor data with bounds checks; execution needs a known architecture.",
+      footer: "Bounded model parser",
     },
     {
-      name: "Rust & C++",
-      mark: "C++",
-      tag: "Bindings",
-      desc: "Native FFI bindings enabling microsecond-latency seal verification on edge cameras.",
-      footer: "Native interface",
+      name: "ImageFolder",
+      mark: "IMG",
+      tag: "Dataset",
+      desc: "Assess image directories without requiring a separate annotation format.",
+      footer: "Local image intake",
     },
   ];
 
@@ -72,12 +72,12 @@ export default function Integrations() {
           <span className="w-12 h-px bg-[#eca8d6]"></span>
         </span>
         <h2 className="text-5xl md:text-7xl lg:text-[115px] font-display font-bold tracking-tight leading-[0.9] text-white">
-          Secure<br />
-          <span className="text-white/40">every format.</span>
+          Bring your<br />
+          <span className="text-white/40">vision assets.</span>
         </h2>
         <p className="mt-8 text-lg lg:text-xl text-white/60 leading-relaxed max-w-xl mx-auto font-normal">
-          Untrusted models and datasets are parsed safely with memory bounds, pixel budgets, and strict
-          operator domain whitelists.
+          Start with the model or dataset formats you already use. VisionX probes supported
+          capabilities and states which checks can run on each asset.
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export default function Integrations() {
             </div>
           </div>
           <span className="text-xs font-mono text-white/40 uppercase tracking-widest">
-            100% Deterministic Reproducibility
+            Offline verification with trusted keys
           </span>
         </div>
       </div>

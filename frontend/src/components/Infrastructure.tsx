@@ -34,7 +34,7 @@ export default function Infrastructure() {
         <div className="mb-20">
           <span className="inline-flex items-center gap-4 text-sm font-mono text-white/50 mb-8 uppercase tracking-wider">
             <span className="w-12 h-px bg-[#eca8d6]"></span>
-            Enclave Architecture
+            Local assessment
           </span>
           <div className="grid lg:grid-cols-[auto_1fr] gap-8 lg:gap-16 items-center">
             {/* World Network Graphic with Parallax & Slow Rotation */}
@@ -58,9 +58,8 @@ export default function Infrastructure() {
                 <span className="text-white/40">default.</span>
               </h2>
               <p className="mt-8 text-lg lg:text-xl text-white/65 leading-relaxed max-w-xl font-normal">
-                Audits execute in zero-network environments. Enforced at both the Linux kernel level
-                (<code className="font-mono text-sm px-1.5 py-0.5 rounded bg-white/10 text-white">unshare -rn</code>) and
-                via programmatic in-process socket guards that intercept DNS and connect calls.
+                The scanner is designed for an offline workstation. Untrusted model execution runs
+                in a bounded worker; the assessment does not need an external service or telemetry.
               </p>
             </div>
           </div>
@@ -98,14 +97,14 @@ export default function Infrastructure() {
                 { x: "36%", y: "18%", delay: "0.3s", label: "Hash Verifier" },
                 { x: "60%", y: "18%", delay: "0.6s", label: "Trigger Synthesizer" },
                 { x: "84%", y: "18%", delay: "0.9s", label: "Weight Check" },
-                { x: "12%", y: "50%", delay: "0.4s", label: "S3 Sandbox" },
-                { x: "36%", y: "50%", delay: "0.7s", label: "Peer Cred Auth" },
+                { x: "12%", y: "50%", delay: "0.4s", label: "Bounded Model Worker" },
+                { x: "36%", y: "50%", delay: "0.7s", label: "Capability Probe" },
                 { x: "60%", y: "50%", delay: "1.0s", label: "Drift Monitor" },
                 { x: "84%", y: "50%", delay: "1.3s", label: "Capability Plan" },
-                { x: "12%", y: "82%", delay: "0.8s", label: "Ed25519 Signer" },
+                { x: "12%", y: "82%", delay: "0.8s", label: "Ed25519 Ledger" },
                 { x: "36%", y: "82%", delay: "1.1s", label: "Merkle Tree RFC 6962" },
-                { x: "60%", y: "82%", delay: "1.4s", label: "visionx-ledgerd Daemon" },
-                { x: "84%", y: "82%", delay: "1.7s", label: "Four-Eyes MultiSig" },
+                { x: "60%", y: "82%", delay: "1.4s", label: "Independent Verifier" },
+                { x: "84%", y: "82%", delay: "1.7s", label: "Evidence Report" },
               ].map((node, i) => (
                 <div
                   key={i}
@@ -129,11 +128,11 @@ export default function Infrastructure() {
                   0
                 </span>
                 <span className="text-xl lg:text-2xl text-white/50 font-display">
-                  external sockets
+                  required cloud services
                 </span>
               </div>
               <p className="text-sm lg:text-base text-white/60 max-w-md font-normal">
-                Strict egress isolation. Zero external telemetry or outbound connections during audits.
+                Assess artifacts and verify records on the local machine. No hosted account is required.
               </p>
             </div>
           </div>
@@ -142,25 +141,25 @@ export default function Infrastructure() {
           <div className="flex flex-col gap-6">
             <div className="p-8 border border-white/15 bg-[#09090b] rounded-xl flex-1 flex flex-col justify-center hover:border-white/30 transition-all duration-300 group">
               <span className="text-5xl lg:text-6xl font-display font-bold text-white tracking-tight group-hover:text-[#eca8d6] transition-colors">
-                100%
+                Bounded
               </span>
               <span className="text-sm font-mono text-white/50 mt-2 uppercase tracking-wider">
-                Deterministic C99
+                Model worker
               </span>
               <p className="text-xs text-white/40 mt-3 leading-relaxed">
-                Zero garbage collection spikes. Fixed memory arena allocators for real-time edge compliance.
+                Resource limits and restricted execution help contain untrusted model files.
               </p>
             </div>
 
             <div className="p-8 border border-white/15 bg-[#09090b] rounded-xl flex-1 flex flex-col justify-center hover:border-white/30 transition-all duration-300 group">
               <span className="text-5xl lg:text-6xl font-display font-bold text-white tracking-tight group-hover:text-[#c597eb] transition-colors">
-                &lt;200µs
+                Explicit
               </span>
               <span className="text-sm font-mono text-white/50 mt-2 uppercase tracking-wider">
-                Local IPC Latency
+                Coverage states
               </span>
               <p className="text-xs text-white/40 mt-3 leading-relaxed">
-                Kernel-level UNIX domain socket communication authenticated via <code className="text-[#eca8d6]">SO_PEERCRED</code>.
+                Checks without the required inputs are reported as unavailable or partially assessed.
               </p>
             </div>
           </div>
@@ -169,10 +168,10 @@ export default function Infrastructure() {
         {/* Bottom Nodes Status Row */}
         <div className="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { region: "Local Host Daemon", status: "Active (UNIX)", nodes: "visionx-ledgerd", ping: "0.1ms" },
-            { region: "S3 Sandboxed Worker", status: "Hardened", nodes: "seccomp-bpf", ping: "Active" },
-            { region: "Four-Eyes Signer A", status: "Key Loaded", nodes: "Ed25519 Detached", ping: "Ready" },
-            { region: "Four-Eyes Signer B", status: "Dual Approver", nodes: "Quorum Required", ping: "Ready" },
+            { region: "Local scanner", status: "Workflow", nodes: "Dataset · model · ledger", ping: "CLI" },
+            { region: "Bounded worker", status: "Isolation", nodes: "Model execution limits", ping: "Local" },
+            { region: "Signed records", status: "Provenance", nodes: "Ed25519 · Merkle", ping: "Verify" },
+            { region: "Coverage report", status: "Evidence", nodes: "Findings and limits", ping: "Export" },
           ].map((item, i) => (
             <div
               key={i}
@@ -180,7 +179,7 @@ export default function Infrastructure() {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#eca8d6] animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#eca8d6]"></span>
                   <span className="text-xs font-mono text-white/40 uppercase tracking-wider">
                     {item.status}
                   </span>

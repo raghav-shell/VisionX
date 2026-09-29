@@ -256,3 +256,6 @@ video::-webkit-media-controls-volume-slider {
   pointer-events: none !important;
   -webkit-appearance: none !important;
 }
+section[id] {
+  scroll-margin-top: 6rem;
+}

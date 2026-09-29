@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ArrowRight, Terminal } from "lucide-react";
 
 export default function Hero() {
-  const words = ["verifies", "protects", "audits", "seals"];
+  const words = ["audit", "verify", "trace", "inspect"];
   const [wordIndex, setWordIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -91,6 +91,7 @@ export default function Hero() {
         </video>
         {/* Dark Scrim Gradients matching source website — right side stays luminous & clear */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent pointer-events-none"></div>
+        <div className="absolute inset-0 bg-black/35 pointer-events-none md:hidden"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/75 pointer-events-none"></div>
       </div>
 
@@ -124,16 +125,16 @@ export default function Hero() {
           <div className="mb-6 lg:mb-8 animate-fade-slide-in">
             <span className="inline-flex items-center gap-3 text-xs md:text-sm font-mono text-white/60 tracking-wide">
               <span className="w-8 h-px bg-[#eca8d6]"></span>
-              Air-Gapped Computer-Vision Assurance · VisionX Core
+              Offline assurance for computer vision
             </span>
           </div>
 
           {/* Headline with Rainbow Pastel Glow Word */}
           <div className="mb-6 lg:mb-8">
             <h1 className="text-left text-[clamp(2.4rem,5.6vw,5.6rem)] font-display font-semibold leading-[0.92] tracking-tight text-white">
-              <span className="block">Computer-vision integrity,</span>
+              <span className="block">Computer vision</span>
               <span className="block">
-                assurance that{" "}
+                you can{" "}
                 <span className="relative inline-block">
                   {currentWord.split("").map((letter, i) => (
                     <span
@@ -157,8 +158,8 @@ export default function Hero() {
 
           {/* Description */}
           <p className="text-base md:text-lg text-white/65 leading-relaxed max-w-xl mb-8 font-normal">
-            Independent, offline audit across training data, model checkpoints, and inference
-            provenance. Sealed with RFC 8785 Ed25519 Merkle ledgers.
+            For teams building computer vision: find suspicious training data, model behavior,
+            and input drift. See what ran, inspect the evidence, and verify inference records offline.
           </p>
 
           {/* Action CTAs */}
@@ -167,7 +168,7 @@ export default function Hero() {
               href="/workspace"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-black px-6 py-3 text-sm font-semibold hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-white/10"
             >
-              <span>Get Started</span>
+              <span>Explore demo workspace</span>
               <ArrowRight className="w-4 h-4" />
             </a>
             <a
@@ -175,26 +176,26 @@ export default function Hero() {
               className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-white px-5 py-3 text-sm font-medium transition-all backdrop-blur-md"
             >
               <Terminal className="w-4 h-4 text-[#eca8d6]" />
-              <span>Interactive CLI</span>
+              <span>See sample CLI output</span>
             </a>
           </div>
         </div>
       </div>
 
-      {/* Bottom Live Metrics Bar matching source layout */}
+      {/* Product pillars */}
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12 pb-10 lg:pb-14">
         <div className="flex items-start gap-10 lg:gap-20">
           <div className="flex flex-col gap-1.5">
-            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">100%</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">air-gapped &amp; offline</span>
+            <span className="text-2xl lg:text-3xl font-display text-white tracking-tight">Offline</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">run assessments locally</span>
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">RFC 8785</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">Ed25519 Merkle ledgers</span>
+            <span className="text-2xl lg:text-3xl font-display text-white tracking-tight">Evidence</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">inspect every finding</span>
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">&lt;12ms</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">adversarial scan latency</span>
+            <span className="text-2xl lg:text-3xl font-display text-white tracking-tight">Coverage</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">see what could not run</span>
           </div>
         </div>
       </div>
