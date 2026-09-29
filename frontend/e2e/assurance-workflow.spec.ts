@@ -2,10 +2,11 @@ import { expect, test } from "@playwright/test";
 
 async function login(page: import("@playwright/test").Page, username: string, password: string) {
   await page.goto("/workspace");
+  await page.getByRole("button", { name: /sign in to server/i }).click();
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: /sign in locally/i }).click();
-  await expect(page.getByText("Mission control")).toBeVisible();
+  await page.getByRole("button", { name: /^sign in$/i }).click();
+  await expect(page.getByText(new RegExp(`Connected · ${username}`))).toBeVisible();
 }
 
 test("analyst can upload, run, inspect, request and audit a governed scan", async ({ page, context }) => {

@@ -9,7 +9,7 @@ export default defineConfig({
     {
       // GitHub Actions installs Python with setup-python; it does not create
       // the repository-local .venv used by the Makefile development workflow.
-      command: "python e2e_server.py",
+      command: "python3 e2e_server.py",
       cwd: "../tests/e2e",
       url: "http://127.0.0.1:8000/api/system/info",
       reuseExistingServer: !process.env.CI,

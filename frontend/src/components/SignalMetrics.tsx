@@ -50,7 +50,12 @@ function SignalWave({ color, phase }: { color: string; phase: number }) {
             r={index % 5 === 0 ? 2.5 : 2.2}
             fill={color}
             className="signal-wave-dot"
-            style={{ animationDelay: `${index * 35}ms`, opacity: 0.38 + envelope * 0.24 }}
+            // Keep SVG style values as strings so React 19 serializes the
+            // server and client attributes identically during hydration.
+            style={{
+              animationDelay: `${index * 35}ms`,
+              opacity: (0.38 + envelope * 0.24).toFixed(6),
+            }}
           />
         );
       })}
