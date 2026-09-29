@@ -51,4 +51,8 @@ npm run start -- -p 3001
 - `src/components/DeveloperSDK.tsx`: Multi-language code samples (CLI, C99 header, Rust FFI, standalone verifier).
 - `src/components/InteractiveConsole.tsx`: Interactive macOS terminal preview simulating VisionX scans and cryptographic approvals.
 - `src/components/Footer.tsx`: VisionX platform metadata and architecture links.
-- `src/components/workspace/`: Verification cockpit studio tabs (Overview, Dataset, Trojan, Drift, SEAL wire, Ledger).
+- `src/components/workspace/`: Assurance review workspace. Navigate findings, coverage, detector outcomes, evidence, assets, provenance, and activity. The built-in examples are illustrative. Use **Open report** to inspect a CLI-generated `report.json` locally, or sign in when the dashboard is served by the same-origin VisionSentinel API to review server scans and queue an assessment with registered assets. The frontend never performs cryptographic verification itself.
+
+### Reviewing a real assessment
+
+Run `visionsentinel scan --dataset ./data --model ./model.onnx --profile baseline --out ./reports` from the repository root, then open `reports/<scan-id>/report.json` in the workspace. The file is read locally with the browser File API. When the backend serves the dashboard on the same origin, authenticated users can inspect its scans; analysts can submit new scans using registered asset IDs. Verify report bundles and ledger signatures with the CLI and a trust root before relying on them for a decision.

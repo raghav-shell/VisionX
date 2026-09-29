@@ -1,8 +1,8 @@
 import WorkspaceStudio from "@/components/workspace/WorkspaceStudio";
 
 export const metadata = {
-  title: "VisionX Studio — Air-Gapped Verification Cockpit",
-  description: "Linear & Wiz inspired air-gapped vision assurance workspace for dataset integrity, Trojan clean, and cryptographic sealing.",
+  title: "VisionX Workspace — Assurance Review",
+  description: "Offline workspace for reviewing VisionSentinel findings, coverage, detector execution, evidence, and scan reports.",
 };
 
 export default function WorkspacePage() {

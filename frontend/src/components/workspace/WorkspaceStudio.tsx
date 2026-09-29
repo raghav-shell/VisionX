@@ -1,1270 +1,300 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import Link from "next/link";
-import { 
-  ShieldCheck, 
-  ShieldAlert, 
-  CheckCircle2, 
-  AlertTriangle, 
-  ArrowLeft, 
-  RefreshCw, 
-  Lock, 
-  Key, 
-  Download, 
-  FileCode2, 
-  Layers, 
-  Database, 
-  Cpu, 
-  Binary, 
-  Eye, 
-  ArrowUpRight, 
-  Sparkles,
-  ChevronRight,
-  Info,
-  Check,
-  Search,
-  Terminal,
-  Activity,
-  FileCheck,
-  Maximize2,
-  Minimize2,
-  Copy,
-  Sliders,
-  Play,
-  RotateCcw,
-  SlidersHorizontal,
-  Flame,
-  Fingerprint,
-  Radio,
-  Share2,
-  ExternalLink,
-  ChevronDown,
-  Clock,
-  HardDrive,
-  Network
+import {
+  Activity, ArrowLeft, ArrowRight, Check, CheckCircle2,
+  ChevronDown, ChevronRight, CircleAlert, CircleDashed, Clipboard, Clock3,
+  Database, FileJson2, FileSearch2, FileText, Fingerprint, FolderOpen,
+  GitBranch, Layers3, LockKeyhole, Menu, PanelRightClose, PanelRightOpen,
+  Plus, Search, Shield, ShieldAlert, SlidersHorizontal, Terminal, X,
 } from "lucide-react";
 import VisionXLogo from "../VisionXLogo";
+import { exampleScans, parseReport } from "./workspace-data";
+import type { CoverageRecord, CoverageState, Disposition, FindingRecord, WorkspaceScan } from "./workspace-data";
+import { currentSession, discoverApi, loadServerAssets, loadServerScans, login, logout, submitServerScan } from "./workspace-api";
+import type { ApiAsset, ApiSession } from "./workspace-api";
+import "./workspace.css";
 
-// ------------------- Types -------------------
-type ViewTab = "canvas" | "capabilities" | "drift" | "wire" | "terminal" | "governance";
-type ScanId = "scan-8842-bd" | "scan-7721-clean" | "scan-9104-drift" | "scan-6602-edge";
+type View = "overview" | "findings" | "coverage" | "detectors" | "evidence" | "assets" | "provenance" | "activity";
+type Inspector = { kind: "scan" } | { kind: "finding"; id: string } | { kind: "coverage"; id: string } | { kind: "execution"; id: string } | { kind: "asset"; id: string };
 
-interface ScanRecord {
-  id: ScanId;
-  name: string;
-  model: string;
-  modelSize: string;
-  dataset: string;
-  samples: number;
-  disposition: "QUARANTINE" | "REVIEW" | "ACCEPT";
-  sealed: boolean;
-  sealId: string;
-  timestamp: string;
-  findingsCount: number;
-  anomalyIndex: number;
-  driftP99: string;
-  contributor: string;
+const navigation: { id: View; label: string; icon: typeof Layers3 }[] = [
+  { id: "overview", label: "Overview", icon: Layers3 },
+  { id: "findings", label: "Findings", icon: ShieldAlert },
+  { id: "coverage", label: "Coverage", icon: CircleDashed },
+  { id: "detectors", label: "Detectors", icon: Activity },
+  { id: "evidence", label: "Evidence", icon: FileSearch2 },
+  { id: "assets", label: "Assets", icon: Database },
+  { id: "provenance", label: "Provenance", icon: GitBranch },
+  { id: "activity", label: "Activity", icon: Clock3 },
+];
+
+const tone: Record<string, string> = {
+  QUARANTINE: "rose", REVIEW: "amber", ACCEPT: "mint", HIGH: "rose", CRITICAL: "rose", MEDIUM: "amber", LOW: "blue",
+  ASSESSED: "mint", PARTIALLY_ASSESSED: "amber", NOT_ASSESSED: "muted", FAILED_TO_EXECUTE: "rose", UNSUPPORTED: "muted",
+  COMPLETED: "mint", COMPLETED_DEGRADED: "amber", ABSTAINED: "muted", NOT_RUN: "muted", ERROR: "rose", READY: "mint", DEGRADED: "amber", UNAVAILABLE: "muted",
+};
+
+function label(value: string) { return value.replaceAll("_", " ").toLowerCase(); }
+function date(value?: string | null) {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
+function short(value?: string | null, length = 16) { return value ? `${value.slice(0, length)}…` : "—"; }
+function disposition(scan: WorkspaceScan): Disposition | null { return scan.summary?.overall_disposition ?? null; }
+function Badge({ value, children }: { value: string; children?: ReactNode }) {
+  return <span className={`vx-badge vx-badge--${tone[value] ?? "muted"}`}>{children ?? label(value)}</span>;
+}
+function Empty({ title, text, icon: Icon = FileSearch2 }: { title: string; text: string; icon?: typeof FileSearch2 }) {
+  return <div className="vx-empty"><div className="vx-empty-icon"><Icon size={20} /></div><h3>{title}</h3><p>{text}</p></div>;
+}
+function SectionTitle({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: ReactNode }) {
+  return <div className="vx-section-title"><div><span>{eyebrow}</span><h2>{title}</h2></div>{action}</div>;
+}
+function RowArrow() { return <ChevronRight className="vx-row-arrow" size={16} aria-hidden="true" />; }
 
 export default function WorkspaceStudio() {
-  // Active Scan State (similar to original frontend scan queue)
-  const [selectedScan, setSelectedScan] = useState<ScanId>("scan-8842-bd");
-  const [activeTab, setActiveTab] = useState<ViewTab>("canvas");
-  const [isAuditing, setIsAuditing] = useState(false);
-  const [auditStep, setAuditStep] = useState(4); // 0..4
-  
-  // Claude / Codex Artifact Canvas Controls
-  const [imageMode, setImageMode] = useState<"sample" | "trigger" | "heatmap">("trigger");
-  const [thresholdL1, setThresholdL1] = useState(18.4);
-  const [commandQuery, setCommandQuery] = useState("visionx scan --dataset demo_coco --model bd_patch_08.onnx --profile deep");
-  const [copiedHash, setCopiedHash] = useState(false);
-  
-  // Four-Eyes Governance Signoff Modal
-  const [isSigned, setIsSigned] = useState(false);
-  const [signModalOpen, setSignModalOpen] = useState(false);
-  const [approverPin, setApproverPin] = useState("");
-  const [signing, setSigning] = useState(false);
-  
-  // Right Inspector Panel Collapsed
+  const [imported, setImported] = useState<WorkspaceScan[]>([]);
+  const [serverScans, setServerScans] = useState<WorkspaceScan[]>([]);
+  const [apiState, setApiState] = useState<"checking" | "unavailable" | "signed-out" | "connected">("checking");
+  const [session, setSession] = useState<ApiSession | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const scans = useMemo(() => [...serverScans, ...imported, ...exampleScans], [serverScans, imported]);
+  const [selectedId, setSelectedId] = useState(exampleScans[0].scan_id);
+  const [view, setView] = useState<View>("overview");
+  const [inspector, setInspector] = useState<Inspector | null>({ kind: "scan" });
   const [inspectorOpen, setInspectorOpen] = useState(true);
-  
-  // Command Palette (Emergent style)
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [inspectorOverlay, setInspectorOverlay] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [newScanOpen, setNewScanOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [findingFilter, setFindingFilter] = useState("ALL");
+  const [coverageFilter, setCoverageFilter] = useState("ALL");
+  const [notice, setNotice] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const scan = scans.find(item => item.scan_id === selectedId) ?? scans[0];
 
-  // Scans Registry (preserving previous frontend multi-scan functionality)
-  const scans: ScanRecord[] = [
-    {
-      id: "scan-8842-bd",
-      name: "ViT-B16-Patch-Trigger",
-      model: "vit_b16_trojan.onnx",
-      modelSize: "344 MB",
-      dataset: "imagenet_suspect_val",
-      samples: 24500,
-      disposition: "QUARANTINE",
-      sealed: false,
-      sealId: "QUARANTINED",
-      timestamp: "12 mins ago",
-      findingsCount: 1,
-      anomalyIndex: 4.92,
-      driftP99: "0.014",
-      contributor: "guilty_dev (CI: 0.54)"
-    },
-    {
-      id: "scan-7721-clean",
-      name: "ResNet50-Thermal-Recon",
-      model: "resnet50_defense.pt",
-      modelSize: "98.4 MB",
-      dataset: "flir_thermal_v1",
-      samples: 14820,
-      disposition: "ACCEPT",
-      sealed: true,
-      sealId: "#1842",
-      timestamp: "1 hr ago",
-      findingsCount: 0,
-      anomalyIndex: 0.42,
-      driftP99: "0.008",
-      contributor: "core_ops"
-    },
-    {
-      id: "scan-9104-drift",
-      name: "YOLOv8-Target-Detection",
-      model: "yolov8m_recon.onnx",
-      modelSize: "52 MB",
-      dataset: "aerial_recon_v3",
-      samples: 18900,
-      disposition: "REVIEW",
-      sealed: true,
-      sealId: "#1841",
-      timestamp: "3 hrs ago",
-      findingsCount: 2,
-      anomalyIndex: 1.15,
-      driftP99: "0.284",
-      contributor: "edge_deploy"
-    },
-    {
-      id: "scan-6602-edge",
-      name: "EfficientNet-Edge-Inference",
-      model: "effnet_b0_quant.tflite",
-      modelSize: "16.2 MB",
-      dataset: "drone_payload_test",
-      samples: 8400,
-      disposition: "ACCEPT",
-      sealed: true,
-      sealId: "#1840",
-      timestamp: "Yesterday",
-      findingsCount: 0,
-      anomalyIndex: 0.18,
-      driftP99: "0.005",
-      contributor: "edge_deploy"
-    }
-  ];
-
-  const currentScan = scans.find(s => s.id === selectedScan) || scans[0];
-
-  // Capability Matrix from previous frontend
-  const capabilities = [
-    { name: "model.fingerprint", desc: "Weight digest divergence & layer topology", status: "OK", latency: "1.2ms", req: "ONNX / PyTorch graph" },
-    { name: "model.neural_cleanse", desc: "Gradient-based trigger perturbation synthesis", status: currentScan.anomalyIndex > 2.0 ? "DETECTED" : "OK", latency: "8.4ms", req: "Torch backprop gradients" },
-    { name: "model.weight_digest", desc: "Cryptographic SHA-256 layer hashing", status: "OK", latency: "0.4ms", req: "File system read" },
-    { name: "data.near_duplicate", desc: "High-dimensional embedding cosine index", status: "OK", latency: "3.1ms", req: "Vector index" },
-    { name: "data.trigger_artifact", desc: "Frequency domain DCT residue analysis", status: "OK", latency: "2.8ms", req: "Raw pixel access" },
-    { name: "data.split_leakage", desc: "Training/Validation mutual information leakage", status: "OK", latency: "4.2ms", req: "Dataset split tags" },
-    { name: "model.strip", desc: "Entropy-driven suspect trigger stripping", status: "UNAVAILABLE", latency: "--", req: "Requires SUSPECT_INPUTS" },
-    { name: "contributor_risk", desc: "Beta-Binomial LOO posterior credibility", status: "OK", latency: "1.9ms", req: "Git commit provenance" },
-    { name: "drift.psi_laplacian", desc: "Laplacian focus & blur shift detection", status: currentScan.id === "scan-9104-drift" ? "SHIFT" : "OK", latency: "5.1ms", req: "Incoming vs Reference" },
-    { name: "drift.psi_jpeg", desc: "Compression artifact distribution shift", status: "OK", latency: "2.3ms", req: "Incoming vs Reference" },
-    { name: "ledger.merkle_proof", desc: "RFC 6962 append-only hash inclusion verification", status: "OK", latency: "0.6ms", req: "Hardware enclave key" },
-    { name: "four_eyes.governance", desc: "Dual cryptographic approver quorum", status: isSigned ? "QUORUM MET" : "PENDING", latency: "0.1ms", req: "2/3 Approver Keys" },
-  ];
-
-  // Keyboard shortcut listener (Cmd+K and Cmd+Enter)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCommandPaletteOpen(prev => !prev);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        triggerAudit();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+  const refreshServer = useCallback(async () => {
+    const next = await loadServerScans();
+    setServerScans(next);
+    return next;
   }, []);
 
-  const triggerAudit = () => {
-    setIsAuditing(true);
-    setAuditStep(0);
-    const steps = [1, 2, 3, 4];
-    steps.forEach((step, idx) => {
-      setTimeout(() => {
-        setAuditStep(step);
-        if (step === 4) {
-          setIsAuditing(false);
-        }
-      }, (idx + 1) * 350);
-    });
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!await discoverApi()) { if (!cancelled) setApiState("unavailable"); return; }
+      try {
+        const active = await currentSession();
+        if (cancelled) return;
+        if (!active) { setApiState("signed-out"); return; }
+        setSession(active);
+        setApiState("connected");
+        const next = await refreshServer();
+        if (!cancelled && next.length) setSelectedId(next[0].scan_id);
+      } catch { if (!cancelled) setApiState("signed-out"); }
+    })();
+    return () => { cancelled = true; };
+  }, [refreshServer]);
+
+  useEffect(() => {
+    if (apiState !== "connected") return;
+    const interval = window.setInterval(() => { void refreshServer().catch(() => {}); }, 10000);
+    return () => window.clearInterval(interval);
+  }, [apiState, refreshServer]);
+
+  const signIn = async (username: string, password: string) => {
+    const active = await login(username, password);
+    setSession(active);
+    setApiState("connected");
+    setLoginOpen(false);
+    const next = await refreshServer();
+    if (next.length) selectScan(next[0].scan_id);
+    setNotice(`Connected as ${active.user.display_name || active.user.username}.`);
+  };
+  const signOut = async () => {
+    if (!session) return;
+    try { await logout(session.csrf); setSession(null); setServerScans([]); setApiState("signed-out"); selectScan(exampleScans[0].scan_id); setNotice("Signed out of the local server."); }
+    catch (error) { setNotice(error instanceof Error ? error.message : "Could not sign out."); }
+  };
+  const queueServerScan = async (body: { name: string; profile: string; dataset?: string; model?: string }) => {
+    if (!session) throw new Error("Sign in to the local server first.");
+    const id = await submitServerScan(body, session.csrf);
+    setNewScanOpen(false);
+    const next = await refreshServer();
+    if (next.some(item => item.scan_id === id)) selectScan(id);
+    setNotice(`Assessment ${id} queued on the local server.`);
   };
 
-  const handleCopyHash = () => {
-    navigator.clipboard?.writeText("3c91a4b87f2e1a4990c8812f8410294b009e4f1a238947ab");
-    setCopiedHash(true);
-    setTimeout(() => setCopiedHash(false), 2000);
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setPaletteOpen(current => !current); }
+      if (event.key === "Escape") { setPaletteOpen(false); setNewScanOpen(false); setMobileOpen(false); }
+    };
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
+
+  useEffect(() => { mainRef.current?.scrollTo({ top: 0, behavior: "instant" }); }, [view, selectedId]);
+  useEffect(() => { if (!notice) return; const timeout = window.setTimeout(() => setNotice(""), 4000); return () => window.clearTimeout(timeout); }, [notice]);
+
+  const selectScan = (id: string) => { setSelectedId(id); setView("overview"); setInspector({ kind: "scan" }); setFindingFilter("ALL"); setCoverageFilter("ALL"); setMobileOpen(false); setPaletteOpen(false); setInspectorOverlay(false); };
+  const selectView = (next: View) => { setView(next); setMobileOpen(false); setPaletteOpen(false); setInspectorOverlay(false); if (next === "overview") setInspector({ kind: "scan" }); };
+  const openInspector = (target: Inspector) => { setInspector(target); setInspectorOpen(true); setInspectorOverlay(true); };
+  const copy = async (value: string, message = "Copied to clipboard") => { try { await navigator.clipboard.writeText(value); setNotice(message); } catch { setNotice("Clipboard unavailable in this browser."); } };
+  const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) { setNotice("Report is too large. Maximum size is 15 MB."); return; }
+    try {
+      const result = parseReport(await file.text());
+      setImported(current => [result, ...current.filter(item => item.scan_id !== result.scan_id)]);
+      selectScan(result.scan_id);
+      setNotice(`Opened ${result.name} locally. No file was uploaded.`);
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not read report.json."); }
   };
 
-  const handleSign = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSigning(true);
-    setTimeout(() => {
-      setSigning(false);
-      setIsSigned(true);
-      setSignModalOpen(false);
-    }, 700);
-  };
+  const filteredFindings = scan.findings.filter(finding => findingFilter === "ALL" || finding.recommended_disposition === findingFilter);
+  const filteredCoverage = scan.coverage.rows.filter(row => coverageFilter === "ALL" || row.state === coverageFilter);
+  const evidence = scan.findings.flatMap(finding => finding.evidence.map(item => ({ ...item, finding })));
+  const attentionCount = scan.findings.filter(item => item.recommended_disposition !== "ACCEPT").length;
+  const coveragePercent = scan.coverage.total ? Math.round(scan.coverage.assessed / scan.coverage.total * 100) : 0;
 
-  return (
-    <div className="min-h-screen bg-[#070709] text-white font-sans selection:bg-[#eca8d6] selection:text-black flex flex-col h-screen overflow-hidden">
-      {/* ----------------- TOP BAR: Command, Presets, Enclave Pill (Codex + Emergent) ----------------- */}
-      <header className="h-14 border-b border-white/[0.08] bg-[#0c0c10]/90 backdrop-blur-xl px-4 flex items-center justify-between shrink-0 z-30 select-none">
-        {/* Left: Brand & Breadcrumb */}
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 group mr-2">
-            <VisionXLogo size={23} showText textClassName="text-[17px]" />
-            <span className="font-mono text-[9px] uppercase tracking-wider text-[#eca8d6] bg-[#eca8d6]/10 border border-[#eca8d6]/25 px-1.5 py-0.2 rounded">
-              STUDIO
-            </span>
-          </Link>
-
-          <span className="h-4 w-px bg-white/10 hidden md:block" />
-
-          {/* Breadcrumb & Project Selector */}
-          <div className="hidden md:flex items-center gap-2 text-xs font-mono text-white/50">
-            <span>Air-Gap Cockpit</span>
-            <span className="text-white/20">/</span>
-            <span className="text-white font-medium">{currentScan.name}</span>
-            <span className="text-white/20">/</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              currentScan.disposition === "QUARANTINE" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" :
-              currentScan.disposition === "REVIEW" ? "bg-amber-400/20 text-amber-300 border border-amber-400/30" :
-              "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-            }`}>
-              {currentScan.disposition}
-            </span>
-          </div>
+  return <div className="vx-workspace">
+    <input ref={fileRef} type="file" accept=".json,application/json" className="sr-only" onChange={importFile} aria-label="Open VisionSentinel report JSON" />
+    <div className="vx-shell">
+      {mobileOpen && <button className="vx-mobile-shade" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+      <aside className={`vx-sidebar ${mobileOpen ? "vx-sidebar--open" : ""}`}>
+        <div className="vx-sidebar-brand"><Link href="/" aria-label="VisionX home"><VisionXLogo size={28} showText textClassName="text-[19px]" /></Link><span>WORKSPACE</span></div>
+        <button className="vx-workspace-picker" onClick={() => selectView("overview")}><span className="vx-picker-mark"><Shield size={15} /></span><span><strong>Vision assurance</strong><small>Local review workspace</small></span><ChevronDown size={14} /></button>
+        <button className="vx-search-trigger" onClick={() => setPaletteOpen(true)}><Search size={15} /><span>Search workspace</span><kbd>⌘ K</kbd></button>
+        <div className="vx-sidebar-scroll">
+          <p className="vx-nav-caption">WORKSPACE</p>
+          <nav aria-label="Workspace navigation">{navigation.map(item => <button key={item.id} className={`vx-nav-link ${view === item.id ? "vx-nav-link--active" : ""}`} onClick={() => selectView(item.id)}><item.icon size={16} strokeWidth={1.8} /><span>{item.label}</span>{item.id === "findings" && scan.findings.length > 0 && <em>{scan.findings.length}</em>}</button>)}</nav>
+          <div className="vx-sidebar-divider" />
+          <div className="vx-nav-heading"><p className="vx-nav-caption">ASSESSMENTS</p><button title="Open report.json" aria-label="Open report JSON" onClick={() => fileRef.current?.click()}><Plus size={15} /></button></div>
+          <div className="vx-scan-list">{scans.map(item => <button key={`${item.source}-${item.scan_id}`} onClick={() => selectScan(item.scan_id)} className={`vx-scan-link ${item.scan_id === scan.scan_id ? "vx-scan-link--active" : ""}`}><span className={`vx-scan-dot vx-scan-dot--${tone[disposition(item) ?? ""] ?? "muted"}`} /><span className="vx-scan-link-text"><strong>{item.name}</strong><small>{item.source === "example" ? "Example" : item.source === "server" ? "Server scan" : "Local report"} · {item.profile}</small></span></button>)}</div>
         </div>
+        <div className="vx-sidebar-bottom"><div className="vx-local-indicator"><LockKeyhole size={14} /><span>{apiState === "connected" ? `Connected · ${session?.user.username}` : apiState === "signed-out" ? "Server available" : "Offline review"}</span><span className="vx-local-light" /></div>{apiState === "connected" && <button className="vx-back-link vx-signout" onClick={() => void signOut()}>Sign out of local server</button>}<Link href="/" className="vx-back-link"><ArrowLeft size={14} /> Back to site</Link></div>
+      </aside>
 
-        {/* Center: Command Palette Trigger (Emergent Style) */}
-        <div className="hidden lg:flex items-center">
-          <button
-            onClick={() => setCommandPaletteOpen(true)}
-            className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-mono text-white/50 hover:text-white transition-all w-80 justify-between group"
-          >
-            <div className="flex items-center gap-2">
-              <Search className="w-3.5 h-3.5 text-white/40 group-hover:text-[#eca8d6]" />
-              <span>Search capabilities, scans, hashes...</span>
+      <div className="vx-body">
+        <header className="vx-topbar"><div className="vx-topbar-left"><button className="vx-mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><span className="vx-topbar-crumb">Vision assurance</span><ChevronRight size={14} /><strong>{navigation.find(item => item.id === view)?.label}</strong><span className="vx-topbar-separator" /><span className="vx-topbar-scan">{scan.name}</span></div><div className="vx-topbar-actions"><button className="vx-topbar-local vx-connection-button" onClick={() => { if (apiState === "signed-out") setLoginOpen(true); else if (apiState === "connected") void refreshServer().then(() => setNotice("Server scans refreshed.")).catch(() => setNotice("Could not refresh server scans.")); }}><span /> {apiState === "connected" ? "Server connected" : apiState === "signed-out" ? "Sign in to server" : "Local only"}</button><button className="vx-icon-button" title={inspectorOpen ? "Hide details" : "Show details"} aria-label={inspectorOpen ? "Hide details" : "Show details"} onClick={() => setInspectorOpen(current => !current)}>{inspectorOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}</button><button className="vx-button vx-button--quiet vx-import-top" onClick={() => fileRef.current?.click()}><FolderOpen size={15} /> Open report</button><button className="vx-button vx-button--primary" onClick={() => setNewScanOpen(true)}><Plus size={16} /> New assessment</button></div></header>
+        <div className="vx-content-row">
+          <div className="vx-main-scroll" ref={mainRef}>
+            <div className="vx-page">
+              <div className="vx-page-heading"><div><div className="vx-overline"><span className="vx-overline-line" /> {view === "overview" ? "ASSESSMENT OVERVIEW" : `ASSESSMENT / ${view.toUpperCase()}`}</div><h1>{view === "overview" ? scan.name : navigation.find(item => item.id === view)?.label}</h1><p>{view === "overview" ? "Investigate what the engine observed, what ran, and what remains unknown." : descriptions[view]}</p></div><div className="vx-heading-actions"><Badge value={disposition(scan) ?? "UNKNOWN"}>{disposition(scan) ? label(disposition(scan)!) : label(scan.status)}</Badge><button className="vx-icon-button" title="Assessment details" aria-label="Assessment details" onClick={() => openInspector({ kind: "scan" })}><SlidersHorizontal size={17} /></button></div></div>
+              {scan.source === "example" && <div className="vx-demo-note"><CircleAlert size={16} /><span><strong>Illustrative assessment.</strong> These records demonstrate the review workflow. Open a CLI-generated report.json or sign in to a local server to inspect real results.</span><button onClick={() => fileRef.current?.click()}>Open report <ArrowRight size={14} /></button></div>}
+              {scan.source === "server" && !scan.coverage.rows.length && <div className="vx-demo-note"><Activity size={16} /><span><strong>{label(scan.status)}.</strong> The local server has not published a detailed result for this assessment yet. The workspace refreshes server scans automatically.</span><button onClick={() => void refreshServer().catch(() => setNotice("Could not refresh server scans."))}>Refresh <ArrowRight size={14} /></button></div>}
+              {view === "overview" && <>
+                <div className="vx-metrics"><Metric label="Findings needing attention" value={String(attentionCount).padStart(2, "0")} note={`${scan.findings.length} total findings`} icon={<ShieldAlert size={18} />} accent="rose" /><Metric label="Fully assessed classes" value={`${scan.coverage.assessed}/${scan.coverage.total}`} note={`${coveragePercent}% of listed classes`} icon={<CircleDashed size={18} />} accent="mint" /><Metric label="Detector execution" value={`${scan.summary?.detectors_completed ?? scan.executions.filter(item => item.state === "COMPLETED").length}`} note={`${scan.executions.length} planned checks`} icon={<Activity size={18} />} accent="blue" /><Metric label="Evidence records" value={String(evidence.length).padStart(2, "0")} note="Linked to findings" icon={<Fingerprint size={18} />} accent="pink" /></div>
+                <div className="vx-overview-grid"><section className="vx-panel vx-priority-panel"><SectionTitle eyebrow="TRIAGE QUEUE" title="Needs your attention" action={<button className="vx-text-action" onClick={() => selectView("findings")}>All findings <ArrowRight size={14} /></button>} />{scan.findings.length ? <div className="vx-list">{scan.findings.slice(0, 4).map(finding => <button className="vx-finding-row" key={finding.id} onClick={() => openInspector({ kind: "finding", id: finding.id })}><span className={`vx-priority-stripe vx-priority-stripe--${tone[finding.recommended_disposition]}`} /><span className="vx-finding-main"><span className="vx-finding-meta">{finding.id} <span>·</span> {finding.detector_id}</span><strong>{finding.title}</strong><small>{finding.reason}</small></span><Badge value={finding.recommended_disposition} /><RowArrow /></button>)}</div> : <Empty title="No findings in this report" text="The engine did not emit findings for this assessment. Review coverage before drawing conclusions." />}</section><section className="vx-panel vx-coverage-panel"><SectionTitle eyebrow="ASSURANCE SCOPE" title="Coverage, not a score" action={<button className="vx-text-action" onClick={() => selectView("coverage")}>View matrix <ArrowRight size={14} /></button>} /><p className="vx-panel-description">Coverage states show which attack classes were assessed and which still need access or evidence.</p><CoverageBar scan={scan} /><div className="vx-coverage-legend">{(["ASSESSED", "PARTIALLY_ASSESSED", "NOT_ASSESSED", "FAILED_TO_EXECUTE", "UNSUPPORTED"] as CoverageState[]).map(state => <div key={state}><span className={`vx-legend-dot vx-legend-dot--${tone[state]}`} /><span>{label(state)}</span><strong>{coverageCount(scan, state)}</strong></div>)}</div></section></div>
+                <div className="vx-overview-grid vx-overview-grid--lower"><section className="vx-panel"><SectionTitle eyebrow="EXECUTION PLAN" title="Detector outcomes" action={<button className="vx-text-action" onClick={() => selectView("detectors")}>All checks <ArrowRight size={14} /></button>} /><div className="vx-compact-list">{scan.executions.slice(0, 5).map(item => <button key={item.detector_id} className="vx-compact-row" onClick={() => openInspector({ kind: "execution", id: item.detector_id })}><span className={`vx-state-symbol vx-state-symbol--${tone[item.state] ?? "muted"}`}>{item.state === "COMPLETED" ? <Check size={13} /> : item.state === "ERROR" ? <X size={13} /> : <CircleDashed size={13} />}</span><span><strong>{item.title}</strong><small>{item.detector_id}</small></span><Badge value={item.state} /></button>)}</div></section><section className="vx-panel"><SectionTitle eyebrow="NEXT STEP" title="Keep the decision grounded" /><div className="vx-next-step"><div className="vx-next-icon"><GitBranch size={20} /></div><h3>Review gaps before disposition</h3><p>{scan.coverage.total - scan.coverage.assessed} attack classes are not fully assessed. Inspect their reasons and the additional evidence needed before making a decision.</p><button className="vx-button vx-button--outline" onClick={() => selectView("coverage")}>Inspect coverage gaps <ArrowRight size={15} /></button></div></section></div>
+              </>}
+
+              {view === "findings" && <section className="vx-panel vx-table-panel"><div className="vx-table-toolbar"><div><h2>Findings <span>{scan.findings.length}</span></h2><p>Evidence-first observations and policy dispositions</p></div><div className="vx-segmented">{["ALL", "QUARANTINE", "REVIEW", "ACCEPT"].map(item => <button key={item} className={findingFilter === item ? "active" : ""} onClick={() => setFindingFilter(item)}>{item === "ALL" ? "All" : label(item)}</button>)}</div></div>{filteredFindings.length ? <div className="vx-table-wrap"><table className="vx-table"><thead><tr><th>Finding</th><th>Detector</th><th>Severity</th><th>Disposition</th><th>Evidence</th><th /></tr></thead><tbody>{filteredFindings.map(item => <tr key={item.id} onClick={() => openInspector({ kind: "finding", id: item.id })}><td><div className="vx-table-primary">{item.title}</div><div className="vx-table-secondary">{item.id} · {item.attack_class}</div></td><td className="vx-mono">{item.detector_id}</td><td><Badge value={item.severity} /></td><td><Badge value={item.recommended_disposition} /></td><td>{item.evidence.length} record{item.evidence.length === 1 ? "" : "s"}</td><td><RowArrow /></td></tr>)}</tbody></table></div> : <Empty title="No findings match this view" text="Choose another disposition to see the remaining findings." />}</section>}
+
+              {view === "coverage" && <><div className="vx-coverage-intro vx-panel"><div><span className="vx-eyebrow">ASSESSMENT BOUNDARY</span><h2>{scan.coverage.assessed} of {scan.coverage.total} classes fully assessed</h2><p>Unassessed and unsupported classes remain visible. A missing check is never represented as a pass.</p></div><CoverageBar scan={scan} /></div><section className="vx-panel vx-table-panel"><div className="vx-table-toolbar"><div><h2>Coverage matrix</h2><p>Computed from the plan and completed executions</p></div><select value={coverageFilter} onChange={event => setCoverageFilter(event.target.value)} aria-label="Filter coverage state" className="vx-select"><option value="ALL">All states</option>{(["ASSESSED", "PARTIALLY_ASSESSED", "NOT_ASSESSED", "FAILED_TO_EXECUTE", "UNSUPPORTED"] as CoverageState[]).map(item => <option key={item} value={item}>{label(item)}</option>)}</select></div>{filteredCoverage.length ? <div className="vx-table-wrap"><table className="vx-table"><thead><tr><th>Attack class</th><th>Layer</th><th>Assessment state</th><th>Detectors</th><th /></tr></thead><tbody>{filteredCoverage.map(item => <tr key={item.attack_class} onClick={() => openInspector({ kind: "coverage", id: item.attack_class })}><td><div className="vx-table-primary">{item.title}</div><div className="vx-table-secondary vx-mono">{item.attack_class}</div></td><td>{label(item.layer)}</td><td><Badge value={item.state} /></td><td className="vx-mono">{item.detectors.length ? item.detectors.join(", ") : "—"}</td><td><RowArrow /></td></tr>)}</tbody></table></div> : <Empty title="No classes match" text="Try another coverage state." />}</section></>}
+
+              {view === "detectors" && <section className="vx-panel vx-table-panel"><div className="vx-table-toolbar"><div><h2>Detector execution <span>{scan.executions.length}</span></h2><p>Planned availability stays separate from the final execution state.</p></div></div>{scan.executions.length ? <div className="vx-table-wrap"><table className="vx-table"><thead><tr><th>Detector</th><th>Layer</th><th>Planned</th><th>Final state</th><th>Findings</th><th /></tr></thead><tbody>{scan.executions.map(item => <tr key={item.detector_id} onClick={() => openInspector({ kind: "execution", id: item.detector_id })}><td><div className="vx-table-primary">{item.title}</div><div className="vx-table-secondary vx-mono">{item.detector_id}</div></td><td>{label(item.layer)}</td><td><Badge value={item.planned} /></td><td><Badge value={item.state} /></td><td>{item.findings ?? 0}</td><td><RowArrow /></td></tr>)}</tbody></table></div> : <Empty title="No execution records" text="This report does not include a detector plan." />}</section>}
+
+              {view === "evidence" && <><div className="vx-evidence-note"><LockKeyhole size={16} /><span>Evidence summaries are included in report.json. Large content-addressed blobs remain in the local evidence store and are not embedded here.</span></div>{evidence.length ? <div className="vx-evidence-grid">{evidence.map(item => <button key={`${item.finding.id}-${item.id}`} className="vx-evidence-card" onClick={() => openInspector({ kind: "finding", id: item.finding.id })}><span className="vx-evidence-glyph"><FileJson2 size={19} /></span><span className="vx-eyebrow">{label(item.kind)} · {item.finding.id}</span><strong>{item.title}</strong><p>{item.summary}</p><span className="vx-evidence-link">View linked finding <ArrowRight size={14} /></span></button>)}</div> : <Empty title="No evidence records" text="Findings in this assessment have no embedded evidence summaries." />}</>}
+
+              {view === "assets" && <section className="vx-panel vx-table-panel"><div className="vx-table-toolbar"><div><h2>Assessment assets <span>{scan.assets.length}</span></h2><p>Inputs and references supplied to the engine</p></div></div>{scan.assets.length ? <div className="vx-table-wrap"><table className="vx-table"><thead><tr><th>Asset</th><th>Role</th><th>Format</th><th>Digest</th><th /></tr></thead><tbody>{scan.assets.map(item => <tr key={item.asset_id} onClick={() => openInspector({ kind: "asset", id: item.asset_id })}><td><div className="vx-table-primary">{item.name}</div><div className="vx-table-secondary vx-mono">{item.asset_id}</div></td><td>{label(item.role)}</td><td>{item.format ?? "—"}</td><td className="vx-mono">{short(item.digest, 20)}</td><td><RowArrow /></td></tr>)}</tbody></table></div> : <Empty title="No assets recorded" text="This scan result contains no asset descriptors." />}</section>}
+
+              {view === "provenance" && <><div className="vx-provenance-intro vx-panel"><span className="vx-provenance-mark"><GitBranch size={23} /></span><div><span className="vx-eyebrow">CHAIN OF CUSTODY</span><h2>Evidence has a history</h2><p>Ledger checks bind inference records to inputs, model identity, and a trust root. This view reflects the imported scan result; independent signature verification remains a CLI task.</p></div></div><div className="vx-overview-grid"><section className="vx-panel"><SectionTitle eyebrow="PROVENANCE COVERAGE" title="What was assessed" />{scan.coverage.rows.filter(row => row.layer === "PROVENANCE").length ? <div className="vx-compact-list">{scan.coverage.rows.filter(row => row.layer === "PROVENANCE").map(row => <button key={row.attack_class} className="vx-compact-row" onClick={() => openInspector({ kind: "coverage", id: row.attack_class })}><span className={`vx-state-symbol vx-state-symbol--${tone[row.state] ?? "muted"}`}><GitBranch size={13} /></span><span><strong>{row.title}</strong><small>{row.attack_class}</small></span><Badge value={row.state} /></button>)}</div> : <Empty title="No provenance classes" text="This report has no provenance coverage rows." />}</section><section className="vx-panel"><SectionTitle eyebrow="TRUST INPUTS" title="Supplied assets" />{scan.assets.filter(asset => ["INFERENCE_LEDGER", "TRUST_ROOT"].includes(asset.role)).length ? <div className="vx-compact-list">{scan.assets.filter(asset => ["INFERENCE_LEDGER", "TRUST_ROOT"].includes(asset.role)).map(asset => <button className="vx-compact-row" key={asset.asset_id} onClick={() => openInspector({ kind: "asset", id: asset.asset_id })}><span className="vx-state-symbol"><FileJson2 size={13} /></span><span><strong>{asset.name}</strong><small>{label(asset.role)}</small></span><RowArrow /></button>)}</div> : <Empty title="No ledger or trust root supplied" text="Add these inputs to a CLI scan to assess record integrity and binding." />}</section></div><section className="vx-panel"><SectionTitle eyebrow="DETECTOR EXECUTION" title="Ledger checks" />{scan.executions.filter(item => item.layer === "PROVENANCE").length ? <div className="vx-compact-list">{scan.executions.filter(item => item.layer === "PROVENANCE").map(item => <button className="vx-compact-row" key={item.detector_id} onClick={() => openInspector({ kind: "execution", id: item.detector_id })}><span className={`vx-state-symbol vx-state-symbol--${tone[item.state] ?? "muted"}`}><GitBranch size={13} /></span><span><strong>{item.title}</strong><small>{item.reasons?.join(" ") || item.detector_id}</small></span><Badge value={item.state} /></button>)}</div> : <Empty title="No provenance execution records" text="This assessment did not plan a provenance detector." />}</section></>}
+
+              {view === "activity" && <section className="vx-panel vx-activity-panel"><SectionTitle eyebrow="EXECUTION TRACE" title="Assessment activity" /><p className="vx-panel-description">Events recorded by the engine for this scan. Times are relative to scan start.</p>{scan.events.length ? <div className="vx-timeline">{scan.events.map(event => <div className="vx-timeline-item" key={`${event.seq}-${event.t_ms}`}><span className={`vx-timeline-point vx-timeline-point--${event.level}`} /><span className="vx-mono vx-timeline-time">+{(event.t_ms / 1000).toFixed(2)}s</span><div><strong>{event.message}</strong>{event.detector_id && <small>{event.detector_id}</small>}</div></div>)}</div> : <Empty title="No events recorded" text="The imported scan result does not include an event trace." />}</section>}
+              <div className="vx-page-foot"><span>VisionX · offline assurance review</span><span>{scan.source === "example" ? "Illustrative data" : scan.source === "server" ? "Local server result" : "Local report · never uploaded"}</span></div>
             </div>
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-[10px] text-white/60 font-mono">⌘K</kbd>
-          </button>
+          </div>
+          {inspectorOpen && <>{inspectorOverlay && <button className="vx-inspector-shade" aria-label="Close details" onClick={() => setInspectorOverlay(false)} />}<aside className={`vx-inspector ${inspectorOverlay ? "vx-inspector--overlay" : ""}`}><InspectorPanel key={`${scan.scan_id}-${inspector?.kind}-${inspector && "id" in inspector ? inspector.id : ""}`} scan={scan} inspector={inspector} copy={copy} onClose={() => { setInspectorOpen(false); setInspectorOverlay(false); }} onView={selectView} /></aside></>}
         </div>
-
-        {/* Right: Enclave Badge, Action Buttons, Exit */}
-        <div className="flex items-center gap-3">
-          {/* Socket Sandbox Capsule */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-mono text-emerald-400">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-            </span>
-            <span>Zero Egress Enclave</span>
-          </div>
-
-          {/* Run Scan Button (Codex Style) */}
-          <button
-            onClick={triggerAudit}
-            disabled={isAuditing}
-            className="px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-white/90 text-xs font-mono font-semibold flex items-center gap-2 shadow-lg shadow-white/10 active:scale-95 transition-all"
-            title="Press ⌘+Enter to trigger"
-          >
-            <Play className={`w-3.5 h-3.5 fill-black ${isAuditing ? "animate-spin" : ""}`} />
-            <span>{isAuditing ? "Auditing..." : "Run Audit (⌘↵)"}</span>
-          </button>
-
-          <Link
-            href="/"
-            className="p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/60 hover:text-white transition-all"
-            title="Exit to Landing Page"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </div>
-      </header>
-
-      {/* ----------------- WORKSPACE BODY: Multi-Pane Shell ----------------- */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* ================= PANE 1: Left Navigation Rail (Emergent / Claude Style) ================= */}
-        <aside className="w-64 border-r border-white/[0.08] bg-[#09090d]/95 flex flex-col shrink-0 select-none overflow-y-auto">
-          {/* Queue of Indexed Scans (from previous frontend) */}
-          <div className="p-3 border-b border-white/[0.08]">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-white/40">Audit Targets</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-white/60">{scans.length} active</span>
-            </div>
-            <div className="space-y-1">
-              {scans.map((s) => {
-                const isSelected = s.id === selectedScan;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setSelectedScan(s.id);
-                      setIsSigned(s.sealed);
-                    }}
-                    className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group ${
-                      isSelected
-                        ? "bg-white/[0.08] border border-white/[0.15] shadow-sm"
-                        : "hover:bg-white/[0.03] border border-transparent"
-                    }`}
-                  >
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          s.disposition === "QUARANTINE" ? "bg-rose-500" :
-                          s.disposition === "REVIEW" ? "bg-amber-400" : "bg-emerald-400"
-                        }`} />
-                        <span className={`text-xs font-mono font-medium truncate ${isSelected ? "text-white" : "text-white/70"}`}>
-                          {s.name}
-                        </span>
-                      </div>
-                      <div className="text-[10px] font-mono text-white/40 truncate mt-0.5">
-                        {s.model} · {s.modelSize}
-                      </div>
-                    </div>
-                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                      s.disposition === "QUARANTINE" ? "text-rose-400 bg-rose-500/10" :
-                      s.disposition === "REVIEW" ? "text-amber-300 bg-amber-400/10" : "text-emerald-400 bg-emerald-500/10"
-                    }`}>
-                      {s.disposition}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Module Nav Links (Previous Frontend Capabilities & Modules) */}
-          <div className="flex-1 p-3 space-y-1">
-            <div className="text-[11px] font-mono uppercase tracking-wider text-white/40 mb-2 px-1">
-              Inspection Modules
-            </div>
-
-            <button
-              onClick={() => setActiveTab("canvas")}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all ${
-                activeTab === "canvas" ? "bg-[#eca8d6]/15 text-[#eca8d6] border border-[#eca8d6]/30 font-medium" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Flame className="w-3.5 h-3.5" />
-                <span>Trojan & Findings</span>
-              </div>
-              {currentScan.findingsCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
-                  {currentScan.findingsCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("capabilities")}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all ${
-                activeTab === "capabilities" ? "bg-[#eca8d6]/15 text-[#eca8d6] border border-[#eca8d6]/30 font-medium" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Layers className="w-3.5 h-3.5" />
-                <span>Capability Matrix</span>
-              </div>
-              <span className="text-[10px] text-white/40">12 checks</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("drift")}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all ${
-                activeTab === "drift" ? "bg-[#eca8d6]/15 text-[#eca8d6] border border-[#eca8d6]/30 font-medium" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Activity className="w-3.5 h-3.5" />
-                <span>Statistical Drift</span>
-              </div>
-              <span className="text-[10px] text-white/40">PSI & FDR</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("wire")}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all ${
-                activeTab === "wire" ? "bg-[#eca8d6]/15 text-[#eca8d6] border border-[#eca8d6]/30 font-medium" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Binary className="w-3.5 h-3.5" />
-                <span>VisionX-SEAL Wire</span>
-              </div>
-              <span className="text-[10px] text-white/40">RFC 8785</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("terminal")}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all ${
-                activeTab === "terminal" ? "bg-[#eca8d6]/15 text-[#eca8d6] border border-[#eca8d6]/30 font-medium" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Terminal className="w-3.5 h-3.5" />
-                <span>Execution Trace & CLI</span>
-              </div>
-              <span className="text-[10px] text-white/40">Streaming</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("governance")}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all ${
-                activeTab === "governance" ? "bg-[#eca8d6]/15 text-[#eca8d6] border border-[#eca8d6]/30 font-medium" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <FileCheck className="w-3.5 h-3.5" />
-                <span>Merkle & Four-Eyes</span>
-              </div>
-              <span className="text-[10px] text-[#eca8d6]">{isSigned ? "Signed" : "Quorum"}</span>
-            </button>
-          </div>
-
-          {/* Hardware Enclave Footprint */}
-          <div className="p-3 border-t border-white/[0.08] bg-black/40">
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5 font-mono text-[11px]">
-              <div className="flex items-center justify-between text-white/40">
-                <span>Hardware Unit:</span>
-                <span className="text-white font-medium">enclave-hw-01</span>
-              </div>
-              <div className="flex items-center justify-between text-white/40">
-                <span>Socket Egress:</span>
-                <span className="text-emerald-400">0 packets (Blocked)</span>
-              </div>
-              <div className="flex items-center justify-between text-white/40">
-                <span>RFC 6962 Tree:</span>
-                <span className="text-white">Height 413</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* ================= PANE 2: Center Main Stage (Codex Canvas + Claude Artifacts) ================= */}
-        <main className="flex-1 flex flex-col min-w-0 bg-[#070709] overflow-hidden">
-          {/* Main Stage Sub-Header: Mode Tabs & Actions */}
-          <div className="h-11 border-b border-white/[0.08] px-4 flex items-center justify-between bg-[#0a0a0e] select-none shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-white/40 uppercase tracking-wider mr-2">Inspector:</span>
-              <div className="flex items-center gap-1">
-                {(["canvas", "capabilities", "drift", "wire", "terminal", "governance"] as ViewTab[]).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono transition-all capitalize ${
-                      activeTab === tab 
-                        ? "bg-white/[0.1] text-white font-medium border border-white/[0.15]" 
-                        : "text-white/50 hover:text-white hover:bg-white/[0.03]"
-                    }`}
-                  >
-                    {tab === "canvas" ? "Visual Triage" : tab === "wire" ? "C Struct Wire" : tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <button
-                onClick={handleCopyHash}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/60 hover:text-white transition-all"
-                title="Copy RFC 8785 SHA-256 Digest"
-              >
-                {copiedHash ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedHash ? "Copied Digest" : "Copy Digest"}</span>
-              </button>
-
-              <button
-                onClick={() => setInspectorOpen(prev => !prev)}
-                className={`p-1.5 rounded-lg border transition-all ${
-                  inspectorOpen ? "bg-[#eca8d6]/15 border-[#eca8d6]/30 text-[#eca8d6]" : "bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white"
-                }`}
-                title="Toggle Context Inspector"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Main Stage Content Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* ---------------- TAB 1: Visual Artifact Triage (Claude Artifacts Style) ---------------- */}
-            {activeTab === "canvas" && (
-              <div className="space-y-6 max-w-5xl mx-auto">
-                {/* Scan Status Banner */}
-                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                  currentScan.disposition === "QUARANTINE" 
-                    ? "bg-rose-500/10 border-rose-500/30" 
-                    : currentScan.disposition === "REVIEW"
-                    ? "bg-amber-400/10 border-amber-400/30"
-                    : "bg-emerald-500/10 border-emerald-500/30"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      currentScan.disposition === "QUARANTINE" ? "bg-rose-500/20 text-rose-400" :
-                      currentScan.disposition === "REVIEW" ? "bg-amber-400/20 text-amber-300" : "bg-emerald-500/20 text-emerald-400"
-                    }`}>
-                      {currentScan.disposition === "QUARANTINE" ? <AlertTriangle className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="font-display font-bold text-white text-base">
-                          {currentScan.disposition === "QUARANTINE" ? "Critical Trojan Backdoor Detected" : 
-                           currentScan.disposition === "REVIEW" ? "Distribution Drift Flagged for Review" : "Integrity Verification Passed"}
-                        </h2>
-                        <span className="font-mono text-xs text-white/60">Rule D3 / D4 Activated</span>
-                      </div>
-                      <p className="text-xs text-white/60 mt-0.5 font-mono">
-                        {currentScan.disposition === "QUARANTINE" 
-                          ? "Neural Cleanse synthesized minimal 6x6 perturbation mask. Automatic quarantine triggered."
-                          : "Deterministic verification matched all reference baselines with 0 unauthorized deviations."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {currentScan.disposition === "QUARANTINE" && (
-                      <button
-                        onClick={() => setSignModalOpen(true)}
-                        className="px-3.5 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-mono text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-rose-500/20 transition-all"
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Override with Quorum</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Interactive Neural Cleanse & Inversion Studio (Claude Style) */}
-                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.08] backdrop-blur-xl space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
-                    <div>
-                      <div className="flex items-center gap-2 text-xs font-mono text-[#eca8d6]">
-                        <Flame className="w-3.5 h-3.5" />
-                        <span>Neural Cleanse Inversion Visualizer</span>
-                      </div>
-                      <h3 className="text-xl font-display font-bold text-white mt-1">
-                        Synthesized Trigger Perturbation
-                      </h3>
-                      <p className="text-xs text-white/50">
-                        Inverting minimal $L_1$ norm mask that flips classification across all validation batches.
-                      </p>
-                    </div>
-
-                    {/* View Mode Pill Selector */}
-                    <div className="flex items-center gap-1 p-1 rounded-xl bg-black/50 border border-white/[0.08] font-mono text-xs">
-                      <button
-                        onClick={() => setImageMode("sample")}
-                        className={`px-3 py-1 rounded-lg transition-all ${imageMode === "sample" ? "bg-white text-black font-semibold" : "text-white/60 hover:text-white"}`}
-                      >
-                        Suspect Input
-                      </button>
-                      <button
-                        onClick={() => setImageMode("trigger")}
-                        className={`px-3 py-1 rounded-lg transition-all ${imageMode === "trigger" ? "bg-[#eca8d6] text-black font-semibold" : "text-white/60 hover:text-white"}`}
-                      >
-                        6x6 Trigger Mask
-                      </button>
-                      <button
-                        onClick={() => setImageMode("heatmap")}
-                        className={`px-3 py-1 rounded-lg transition-all ${imageMode === "heatmap" ? "bg-purple-400 text-black font-semibold" : "text-white/60 hover:text-white"}`}
-                      >
-                        Saliency Heatmap
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Visual Inversion Canvas */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                    {/* Visualizer Frame */}
-                    <div className="md:col-span-7 relative aspect-[4/3] rounded-2xl bg-black/80 border border-white/[0.1] overflow-hidden flex items-center justify-center group shadow-2xl">
-                      {/* Grid Lines Overlay */}
-                      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:1.5rem_1.5rem] pointer-events-none" />
-
-                      {/* Dynamic Canvas Simulation */}
-                      {imageMode === "sample" && (
-                        <div className="relative w-full h-full flex flex-col items-center justify-center p-8 text-center space-y-3">
-                          <div className="w-48 h-48 rounded-xl border border-white/20 bg-gradient-to-tr from-slate-900 to-slate-800 relative overflow-hidden flex items-center justify-center">
-                            <span className="font-mono text-xs text-white/40">Raw Tensor [3, 224, 224]</span>
-                            {/* Injected Patch Indicator */}
-                            <div className="absolute bottom-4 right-4 w-8 h-8 rounded border border-rose-500 bg-rose-500/30 animate-pulse flex items-center justify-center">
-                              <span className="text-[8px] font-mono text-rose-300">PATCH</span>
-                            </div>
-                          </div>
-                          <span className="text-xs font-mono text-white/60">Sample #1,204 · Class 0 (Target)</span>
-                        </div>
-                      )}
-
-                      {imageMode === "trigger" && (
-                        <div className="relative w-full h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-                          <div className="w-52 h-52 rounded-2xl border-2 border-[#eca8d6]/50 bg-black/90 p-4 relative shadow-[0_0_40px_rgba(236,168,214,0.25)] flex flex-col items-center justify-center">
-                            {/* 6x6 Synthesized Pixel Grid */}
-                            <div className="grid grid-cols-6 gap-1 p-2 rounded-lg bg-white/[0.04] border border-white/[0.08]">
-                              {Array.from({ length: 36 }).map((_, i) => (
-                                <div 
-                                  key={i} 
-                                  className="w-5 h-5 rounded-sm transition-all"
-                                  style={{
-                                    backgroundColor: (i % 2 === 0 || i % 5 === 0) 
-                                      ? "rgb(236, 168, 214)" 
-                                      : (i % 3 === 0) 
-                                      ? "rgb(197, 151, 235)" 
-                                      : "rgb(255, 255, 255)"
-                                  }}
-                                />
-                              ))}
-                            </div>
-                            <span className="text-[10px] font-mono text-[#eca8d6] mt-2 font-bold">
-                              Reconstructed 6x6 Universal Trojan Trigger
-                            </span>
-                          </div>
-                          <div className="inline-flex items-center gap-2 text-xs font-mono text-rose-400 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
-                            <span>L1 Perturbation Norm = {thresholdL1.toFixed(1)}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {imageMode === "heatmap" && (
-                        <div className="relative w-full h-full flex flex-col items-center justify-center p-8 text-center space-y-3">
-                          <div className="w-48 h-48 rounded-xl border border-purple-500/40 bg-black relative overflow-hidden flex items-center justify-center">
-                            {/* Saliency radial glow */}
-                            <div className="absolute bottom-4 right-4 w-28 h-28 rounded-full bg-gradient-to-r from-rose-500 via-purple-500 to-amber-400 blur-xl opacity-80" />
-                            <span className="relative z-10 font-mono text-xs text-white/80 font-bold">Integrated Gradients</span>
-                          </div>
-                          <span className="text-xs font-mono text-purple-300">Peak Gradient Saliency at bottom-right coordinates (208, 208)</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Stats & Threshold Controls */}
-                    <div className="md:col-span-5 space-y-4">
-                      <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.06] space-y-2">
-                        <div className="flex items-center justify-between text-xs font-mono text-white/50">
-                          <span>Anomaly Index:</span>
-                          <span className="text-rose-400 font-bold font-mono text-sm">{currentScan.anomalyIndex}</span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-amber-400 to-rose-500 rounded-full"
-                            style={{ width: `${Math.min(100, (currentScan.anomalyIndex / 5.0) * 100)}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] font-mono text-white/40">
-                          <span>Threshold &gt; 2.0 (Trojan Flagged)</span>
-                          <span className="text-rose-400 font-semibold">+146% over baseline</span>
-                        </div>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.06] space-y-3 font-mono text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/50">Target Victim Class:</span>
-                          <span className="text-white font-bold">Class 0 ("SpeedLimit30")</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/50">Attack Success Rate:</span>
-                          <span className="text-rose-400 font-bold">99.4% (Confidence 0.98)</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/50">Contributor Attribution:</span>
-                          <span className="text-[#eca8d6] font-bold">{currentScan.contributor}</span>
-                        </div>
-                      </div>
-
-                      {/* Interactive Threshold Slider */}
-                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
-                        <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-white/60">Perturbation Filter (L1):</span>
-                          <span className="text-[#eca8d6] font-bold font-mono">{thresholdL1.toFixed(1)} px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="5"
-                          max="40"
-                          step="0.5"
-                          value={thresholdL1}
-                          onChange={(e) => setThresholdL1(parseFloat(e.target.value))}
-                          className="w-full accent-[#eca8d6] bg-white/10 rounded-lg cursor-pointer h-1.5"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contributor Risk & Beta-Binomial Attribution */}
-                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.08] backdrop-blur-xl space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-mono text-[#eca8d6]">
-                      <Fingerprint className="w-3.5 h-3.5" />
-                      <span>Leave-One-Out (LOO) Contributor Attribution</span>
-                    </div>
-                    <span className="text-xs font-mono text-white/40">Beta-Binomial Posterior</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
-                    <div className="p-4 rounded-2xl bg-black/40 border border-rose-500/20 space-y-1">
-                      <div className="text-[10px] text-white/40 uppercase">Top Suspect Identity</div>
-                      <div className="text-rose-400 font-bold text-sm">dev_contributor_04</div>
-                      <div className="text-[11px] text-white/60">Posterior CI [0.38, 0.72]</div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.06] space-y-1">
-                      <div className="text-[10px] text-white/40 uppercase">Cohort Rate Baseline</div>
-                      <div className="text-white font-bold text-sm">0.04 (Nominal)</div>
-                      <div className="text-[11px] text-white/60">Excludes cohort rate</div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.06] space-y-1">
-                      <div className="text-[10px] text-white/40 uppercase">Trigger Inversion Rule</div>
-                      <div className="text-emerald-400 font-bold text-sm">Rule D4 Triggered</div>
-                      <div className="text-[11px] text-white/60">Disposition: QUARANTINE</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ---------------- TAB 2: Capability Negotiation Matrix ---------------- */}
-            {activeTab === "capabilities" && (
-              <div className="space-y-6 max-w-5xl mx-auto">
-                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
-                  <div>
-                    <h2 className="text-xl font-display font-bold text-white">Capability Negotiation Matrix</h2>
-                    <p className="text-xs text-white/50 font-mono mt-1">
-                      Evaluated deterministically at minute zero. No silent bypasses or unhandled missing dependencies.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/60">
-                      11 OK · 1 UNAVAILABLE
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {capabilities.map((c, i) => (
-                    <div key={i} className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-all space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-white flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${
-                            c.status === "OK" || c.status === "QUORUM MET" ? "bg-emerald-400" :
-                            c.status === "DETECTED" || c.status === "SHIFT" ? "bg-rose-500" : "bg-white/30"
-                          }`} />
-                          {c.name}
-                        </span>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                          c.status === "OK" ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" :
-                          c.status === "DETECTED" || c.status === "SHIFT" ? "text-rose-400 bg-rose-500/10 border border-rose-500/20" :
-                          "text-white/40 bg-white/[0.04] border border-white/[0.08]"
-                        }`}>
-                          {c.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-white/50 leading-relaxed font-sans">{c.desc}</p>
-                      <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono text-white/40">
-                        <span>Req: {c.req}</span>
-                        <span>{c.latency}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ---------------- TAB 3: Statistical Drift Engine ---------------- */}
-            {activeTab === "drift" && (
-              <div className="space-y-6 max-w-5xl mx-auto">
-                <div className="pb-4 border-b border-white/[0.08]">
-                  <h2 className="text-xl font-display font-bold text-white">Multi-Axis Population Stability Index (PSI)</h2>
-                  <p className="text-xs text-white/50 font-mono mt-1">
-                    Benjamini-Hochberg FDR corrected permutation hypothesis tests across incoming vs reference sets.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { axis: "Brightness Distribution", psi: 0.012, pval: "p = 0.842", status: "Nominal", color: "text-emerald-400" },
-                    { axis: "RMS Contrast", psi: 0.018, pval: "p = 0.691", status: "Nominal", color: "text-emerald-400" },
-                    { axis: "Laplacian Focus (Blur)", psi: 0.284, pval: "p = 0.0003", status: "SHIFT DETECTED", color: "text-rose-400" },
-                    { axis: "JPEG Quantization Quality", psi: 0.312, pval: "p = 0.0001", status: "SHIFT DETECTED", color: "text-rose-400" }
-                  ].map((d, i) => (
-                    <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-3 font-mono">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-white font-medium">{d.axis}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/[0.04] ${d.color}`}>
-                          {d.status}
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold text-white tracking-tight">
-                        PSI = {d.psi}
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${d.psi > 0.2 ? "bg-rose-500" : "bg-emerald-400"}`}
-                          style={{ width: `${Math.min(100, (d.psi / 0.4) * 100)}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-white/40">
-                        <span>FDR Significance: {d.pval}</span>
-                        <span>Threshold &gt; 0.20</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ---------------- TAB 4: VisionX-SEAL Wire Struct & Container ---------------- */}
-            {activeTab === "wire" && (
-              <div className="space-y-6 max-w-5xl mx-auto">
-                <div className="pb-4 border-b border-white/[0.08] flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-display font-bold text-white">VisionX-SEAL Container Wire Specification</h2>
-                    <p className="text-xs text-white/50 font-mono mt-1">
-                      Zero-copy binary format: 8-byte magic header, 64-byte Ed25519 detached signature, canonical JSON manifest.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => alert("Downloading signed VisionX-SEAL container #1842 (.vx)")}
-                    className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-xs font-mono text-white flex items-center gap-1.5 transition-all"
-                  >
-                    <Download className="w-3.5 h-3.5 text-[#eca8d6]" />
-                    <span>Download .vx Container</span>
-                  </button>
-                </div>
-
-                {/* Struct Layout Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 font-mono text-xs">
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1">
-                    <span className="text-[10px] text-white/40 uppercase">Magic Bytes (8B)</span>
-                    <div className="text-blue-400 font-bold text-sm">VISION-X</div>
-                    <div className="text-[10px] text-white/40">0x56 49 53 49...</div>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1">
-                    <span className="text-[10px] text-white/40 uppercase">Version (1B)</span>
-                    <div className="text-white font-bold text-sm">0x01</div>
-                    <div className="text-[10px] text-white/40">Wire Protocol v1</div>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1">
-                    <span className="text-[10px] text-white/40 uppercase">Flags (1B)</span>
-                    <div className="text-white font-bold text-sm">0x03</div>
-                    <div className="text-[10px] text-white/40">ENCLAVE_SIGNED</div>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1">
-                    <span className="text-[10px] text-white/40 uppercase">Payload Size (4B)</span>
-                    <div className="text-white font-bold text-sm">344,064 KB</div>
-                    <div className="text-[10px] text-white/40">Zero-copy mmap</div>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1">
-                    <span className="text-[10px] text-white/40 uppercase">Signature (64B)</span>
-                    <div className="text-emerald-400 font-bold text-sm">Ed25519 OK</div>
-                    <div className="text-[10px] text-white/40">Pure signature</div>
-                  </div>
-                </div>
-
-                {/* Canonical Manifest Hex / JSON Inspector */}
-                <div className="p-5 rounded-2xl bg-black border border-white/[0.08] font-mono text-xs space-y-2">
-                  <div className="flex items-center justify-between text-white/40 text-[11px] pb-2 border-b border-white/[0.06]">
-                    <span>RFC 8785 Canonical JSON Manifest (fsynced)</span>
-                    <span>SHA256: 3c91a4b8...e94f</span>
-                  </div>
-                  <pre className="text-white/80 overflow-x-auto p-2 leading-relaxed">
-{`{
-  "container_format": "VISION-X/1.0",
-  "disposition": "${currentScan.disposition}",
-  "enclave_device_id": "enclave-hw-01",
-  "merkle_checkpoint_seq": 412,
-  "model_sha256": "8f3b1290a1bc7e...4419",
-  "provenance": {
-    "author": "${currentScan.contributor}",
-    "git_head": "a4f8910b2c34",
-    "timestamp_utc": "2026-09-29T06:14:22Z"
-  },
-  "signature_ed25519": "7a8f1109bcde3340...9921c9",
-  "zero_socket_egress": true
-}`}
-                  </pre>
-                </div>
-              </div>
-            )}
-
-            {/* ---------------- TAB 5: Interactive Terminal & Execution Trace (Codex + Emergent) ---------------- */}
-            {activeTab === "terminal" && (
-              <div className="space-y-4 max-w-5xl mx-auto">
-                <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-                  <div className="flex items-center gap-2 font-mono text-xs text-white/60">
-                    <Terminal className="w-3.5 h-3.5 text-[#eca8d6]" />
-                    <span>Live Audit Execution Log</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={triggerAudit}
-                      className="px-3 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-xs font-mono text-white flex items-center gap-1.5 transition-all"
-                    >
-                      <RotateCcw className="w-3 h-3 text-[#eca8d6]" />
-                      <span>Re-run Trace</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Terminal Window */}
-                <div className="rounded-2xl bg-[#030305] border border-white/[0.1] font-mono text-xs overflow-hidden shadow-2xl">
-                  {/* Titlebar */}
-                  <div className="px-4 py-2.5 bg-black/60 border-b border-white/[0.06] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                      <span className="text-[11px] text-white/40 ml-2">visionx-enclave-terminal · zsh</span>
-                    </div>
-                    <span className="text-[10px] text-emerald-400">Sandbox Armed</span>
-                  </div>
-
-                  {/* Terminal Log Stream */}
-                  <div className="p-4 space-y-2 text-white/80 leading-relaxed overflow-x-auto min-h-[360px]">
-                    <div className="text-white/40">$ {commandQuery}</div>
-                    
-                    <div className="text-blue-400 font-bold">
-                      [PLAN] Capability Negotiation — 12 checks resolved at minute zero:
-                    </div>
-                    <div className="text-white/60 pl-3">
-                      ✓ model.fingerprint              OK           all required capabilities present<br />
-                      ✓ model.neural_cleanse           OK           torch backprop gradients available<br />
-                      ✓ model.weight_digest            OK           file access granted<br />
-                      ✓ data.near_duplicate            OK           embedding index active<br />
-                      ✓ data.trigger_artifact          OK           frequency residue mode<br />
-                      ⚠ model.strip                    UNAVAILABLE  requires SUSPECT_INPUTS — none provided
-                    </div>
-
-                    <div className="text-purple-400 font-bold mt-2">
-                      [AUDIT] Running resolved checks...
-                    </div>
-                    <div className="text-white/60 pl-3">
-                      ✓ model.fingerprint: Divergence 0.0012 &lt;= 0.01 (BENIGN re-export match)<br />
-                      ✓ data.near_duplicate: 0 flood clusters detected<br />
-                      {currentScan.anomalyIndex > 2.0 ? (
-                        <span className="text-rose-400 font-semibold">
-                          ⚠ model.neural_cleanse: Anomaly index {currentScan.anomalyIndex} &gt; 2.0 (Target Class: 0)<br />
-                          &nbsp;&nbsp;Evidence: Minimal 6x6 perturbation mask synthesized (L1={thresholdL1.toFixed(1)})<br />
-                          &nbsp;&nbsp;Contributor '{currentScan.contributor}': Posterior CI [0.38, 0.72] excludes cohort rate (0.04)
-                        </span>
-                      ) : (
-                        <span className="text-emerald-400 font-semibold">
-                          ✓ model.neural_cleanse: Anomaly index {currentScan.anomalyIndex} &lt;= 2.0 (No trigger mask detected)
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="text-amber-400 font-bold mt-2">
-                      [RISK] Cascading Disposition Rules applied:
-                    </div>
-                    <div className="text-white/60 pl-3">
-                      Finding f7a82910b: Disposition -&gt; {currentScan.disposition} (Rule D3: Calibrated conf 0.94 &gt;= 0.90)<br />
-                      Final Scan Verdict: <span className={currentScan.disposition === "QUARANTINE" ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>{currentScan.disposition}</span>
-                    </div>
-
-                    <div className="text-emerald-400 font-bold mt-2">
-                      [SEAL] Report committed to append-only RFC 6962 audit ledger:
-                    </div>
-                    <div className="text-white/60 pl-3">
-                      report_sha256: 3c91a4b8...e94f (RFC 8785 canonical bytes)<br />
-                      sealed_seq: 412 (Ed25519 signature: 7a8f...21c9)<br />
-                      Merkle Root: e3b0c442...991b (Tree Size: 413 leaves)
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ---------------- TAB 6: Merkle Ledger & Four-Eyes Governance ---------------- */}
-            {activeTab === "governance" && (
-              <div className="space-y-6 max-w-5xl mx-auto">
-                <div className="pb-4 border-b border-white/[0.08] flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-display font-bold text-white">Merkle Tree Ledger & Quorum Signoff</h2>
-                    <p className="text-xs text-white/50 font-mono mt-1">
-                      Cryptographic dual-key approval required to release assets from QUARANTINE or authorize production deployment.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSignModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#eca8d6] to-[#c597eb] text-black font-mono text-xs font-bold shadow-lg shadow-[#eca8d6]/20 transition-all flex items-center gap-1.5"
-                  >
-                    <Key className="w-3.5 h-3.5" />
-                    <span>{isSigned ? "Add Cosignature" : "Authorize with Enclave Key"}</span>
-                  </button>
-                </div>
-
-                {/* Quorum Approver Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-3 font-mono text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white font-bold">Approver 1 (SecOps Lead)</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
-                        SIGNED
-                      </span>
-                    </div>
-                    <div className="text-white/60 text-[11px]">
-                      Key: ed25519:secops_hw_key_44a<br />
-                      Signature: 8fbc1209...41aa<br />
-                      Timestamp: 2026-09-29 06:14:22 UTC
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-3 font-mono text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white font-bold">Approver 2 (Compliance Officer)</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                        isSigned ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-400/20 text-amber-300"
-                      }`}>
-                        {isSigned ? "SIGNED (QUORUM MET)" : "PENDING SIGNOFF"}
-                      </span>
-                    </div>
-                    <div className="text-white/60 text-[11px]">
-                      Key: ed25519:compliance_root_01<br />
-                      {isSigned ? "Signature: e319ff21...bc88" : "Requires physical security token PIN"}<br />
-                      Status: {isSigned ? "Quorum Validated (2/2)" : "Awaiting signature"}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Merkle Inclusion Path */}
-                <div className="p-6 rounded-2xl bg-black border border-white/[0.08] font-mono text-xs space-y-3">
-                  <div className="text-xs font-bold text-[#eca8d6] flex items-center gap-2">
-                    <FileCheck className="w-4 h-4" />
-                    <span>RFC 6962 Cryptographic Inclusion Audit</span>
-                  </div>
-                  <div className="text-white/70 space-y-1 text-[11px]">
-                    <div>Genesis Hash: 0000000000000000000000000000000000000000000000000000000000000000</div>
-                    <div>Merkle Leaf #412: 3c91a4b8...e94f (RFC 8785 C14N bytes)</div>
-                    <div>Witness Cosignature: enclave_anchor_01 (State: VALID)</div>
-                    <div className="text-emerald-400 font-bold">Merkle Proof: Validated to root e3b0c442...991b (Tree Size: 413)</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
-
-        {/* ================= PANE 3: Right Inspector & Context Panel (Codex / Claude Style) ================= */}
-        {inspectorOpen && (
-          <aside className="w-80 border-l border-white/[0.08] bg-[#09090d] flex flex-col shrink-0 select-none overflow-y-auto font-mono text-xs">
-            {/* Inspector Header */}
-            <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
-              <span className="font-bold text-white uppercase tracking-wider text-[11px]">Context Inspector</span>
-              <button
-                onClick={() => setInspectorOpen(false)}
-                className="text-white/40 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-4 space-y-5 flex-1">
-              {/* Active Target Summary */}
-              <div className="space-y-2">
-                <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Active Target</span>
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5 text-[11px]">
-                  <div className="flex justify-between">
-                    <span className="text-white/40">Scan ID:</span>
-                    <span className="text-white font-medium">{currentScan.id}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/40">Model Size:</span>
-                    <span className="text-white">{currentScan.modelSize}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/40">Dataset:</span>
-                    <span className="text-white">{currentScan.dataset}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/40">Samples:</span>
-                    <span className="text-white">{currentScan.samples.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cascading Disposition Rules */}
-              <div className="space-y-2">
-                <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Rule Engine (D1–D6)</span>
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-[11px]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">Rule D1 (Critical Trojan):</span>
-                    <span className={currentScan.anomalyIndex > 2.0 ? "text-rose-400 font-bold" : "text-white/40"}>
-                      {currentScan.anomalyIndex > 2.0 ? "TRIGGERED" : "PASS"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">Rule D3 (Conf &gt;= 0.90):</span>
-                    <span className={currentScan.anomalyIndex > 2.0 ? "text-rose-400 font-bold" : "text-white/40"}>
-                      {currentScan.anomalyIndex > 2.0 ? "TRIGGERED" : "PASS"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">Rule D4 (Contributor):</span>
-                    <span className={currentScan.anomalyIndex > 2.0 ? "text-rose-400 font-bold" : "text-white/40"}>
-                      {currentScan.anomalyIndex > 2.0 ? "TRIGGERED" : "PASS"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">Rule D6 (Drift Review):</span>
-                    <span className={currentScan.id === "scan-9104-drift" ? "text-amber-300 font-bold" : "text-white/40"}>
-                      {currentScan.id === "scan-9104-drift" ? "TRIGGERED" : "PASS"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Four-Eyes Quorum Status */}
-              <div className="space-y-2">
-                <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Governance Quorum</span>
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-[11px]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/60">Approver Quorum:</span>
-                    <span className={isSigned ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
-                      {isSigned ? "2 / 2 (Met)" : "1 / 2 (Required)"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/60">Hardware Key:</span>
-                    <span className="text-white font-mono">0x7a8f...21c9</span>
-                  </div>
-                  <button
-                    onClick={() => setSignModalOpen(true)}
-                    className="w-full mt-2 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] text-white text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <Key className="w-3 h-3 text-[#eca8d6]" />
-                    <span>{isSigned ? "Re-sign Quorum" : "Sign with Security Key"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Export Container */}
-              <div className="space-y-2 pt-2 border-t border-white/[0.06]">
-                <button
-                  onClick={() => alert("Container VisionX-SEAL exported to local artifacts.")}
-                  className="w-full py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-white/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-white/5"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Export Signed .vx</span>
-                </button>
-              </div>
-            </div>
-          </aside>
-        )}
       </div>
-
-      {/* ----------------- MODAL 1: Four-Eyes Cryptographic Signoff ----------------- */}
-      {signModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0c0c10] border border-white/[0.12] shadow-2xl space-y-5 animate-fade-slide-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#eca8d6]/10 border border-[#eca8d6]/30 flex items-center justify-center text-[#eca8d6]">
-                  <Key className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-display font-bold text-white text-base">Four-Eyes Quorum Signoff</h3>
-                  <p className="text-[11px] text-white/50 font-mono">Dual-key hardware authorization</p>
-                </div>
-              </div>
-              <button onClick={() => setSignModalOpen(false)} className="text-white/40 hover:text-white">✕</button>
-            </div>
-
-            <p className="text-xs text-white/60 leading-relaxed font-sans">
-              Enter the secondary authorized approver token PIN to cryptographically cosign this disposition change and write it into the immutable Merkle ledger.
-            </p>
-
-            <form onSubmit={handleSign} className="space-y-4">
-              <div className="space-y-1.5 font-mono">
-                <label className="text-[11px] text-white/60 uppercase">Enclave Security PIN</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={approverPin}
-                  onChange={(e) => setApproverPin(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 focus:border-[#eca8d6] focus:outline-none text-white text-sm"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSignModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-mono text-white/60 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={signing}
-                  className="px-4 py-2 rounded-xl bg-[#eca8d6] hover:bg-[#eca8d6]/90 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>{signing ? "Validating Key..." : "Authorize Signoff"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ----------------- MODAL 2: Command Palette (Emergent Style) ----------------- */}
-      {commandPaletteOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-start justify-center pt-24 p-4">
-          <div className="w-full max-w-xl rounded-2xl bg-[#0c0c12] border border-white/[0.15] shadow-2xl overflow-hidden font-mono text-xs">
-            <div className="p-3 border-b border-white/[0.08] flex items-center gap-3">
-              <Search className="w-4 h-4 text-[#eca8d6]" />
-              <input
-                type="text"
-                placeholder="Type command or jump to module..."
-                className="w-full bg-transparent text-white placeholder-white/30 focus:outline-none"
-                autoFocus
-                onKeyDown={(e) => { if (e.key === "Escape") setCommandPaletteOpen(false); }}
-              />
-              <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-[10px] text-white/40">ESC</kbd>
-            </div>
-            <div className="p-2 max-h-72 overflow-y-auto space-y-1">
-              {[
-                { label: "Trigger Neural Cleanse Inversion", action: () => { setActiveTab("canvas"); triggerAudit(); setCommandPaletteOpen(false); } },
-                { label: "Inspect Capability Matrix (12 checks)", action: () => { setActiveTab("capabilities"); setCommandPaletteOpen(false); } },
-                { label: "View Statistical Drift Histograms", action: () => { setActiveTab("drift"); setCommandPaletteOpen(false); } },
-                { label: "Inspect VisionX-SEAL Binary Wire", action: () => { setActiveTab("wire"); setCommandPaletteOpen(false); } },
-                { label: "Launch Four-Eyes Quorum Signoff", action: () => { setSignModalOpen(true); setCommandPaletteOpen(false); } },
-                { label: "Switch to Clean Target (ResNet50)", action: () => { setSelectedScan("scan-7721-clean"); setCommandPaletteOpen(false); } },
-                { label: "Switch to Trojan Target (ViT-B16)", action: () => { setSelectedScan("scan-8842-bd"); setCommandPaletteOpen(false); } },
-              ].map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={item.action}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/[0.08] text-white/80 hover:text-white flex items-center justify-between transition-all"
-                >
-                  <span>{item.label}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-white/30" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
-  );
+
+    {notice && <div className="vx-toast" role="status"><CheckCircle2 size={17} />{notice}<button aria-label="Dismiss" onClick={() => setNotice("")}><X size={14} /></button></div>}
+    {paletteOpen && <div className="vx-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setPaletteOpen(false); }}><div className="vx-palette" role="dialog" aria-modal="true" aria-label="Search workspace"><div className="vx-palette-search"><Search size={19} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Search views and assessments..." /><kbd>ESC</kbd></div><div className="vx-palette-results"><span className="vx-eyebrow">VIEWS</span>{navigation.filter(item => item.label.toLowerCase().includes(query.toLowerCase())).map(item => <button key={item.id} onClick={() => { selectView(item.id); setQuery(""); }}><item.icon size={17} />{item.label}<ArrowRight size={14} /></button>)}<span className="vx-eyebrow">ASSESSMENTS</span>{scans.filter(item => `${item.name} ${item.scan_id}`.toLowerCase().includes(query.toLowerCase())).map(item => <button key={item.scan_id} onClick={() => { selectScan(item.scan_id); setQuery(""); }}><FileText size={17} />{item.name}<ArrowRight size={14} /></button>)}<button onClick={() => { setPaletteOpen(false); fileRef.current?.click(); }}><FolderOpen size={17} />Open report.json<ArrowRight size={14} /></button></div></div></div>}
+    {newScanOpen && <NewAssessment onClose={() => setNewScanOpen(false)} copy={copy} session={session} onQueue={queueServerScan} />}
+    {loginOpen && <ServerLogin onClose={() => setLoginOpen(false)} onLogin={signIn} />}
+  </div>;
+}
+
+const descriptions: Record<View, string> = {
+  overview: "Investigate what the engine observed, what ran, and what remains unknown.",
+  findings: "Triage observations, inspect supporting evidence, and understand recommended dispositions.",
+  coverage: "See the exact boundaries of this assessment, including unavailable and unsupported checks.",
+  detectors: "Review the plan, execution outcomes, and reasons for checks that could not run.",
+  evidence: "Follow the evidence attached to each finding.",
+  assets: "Inspect the model, datasets, references, and other inputs used for this assessment.",
+  provenance: "Review ledger coverage, trust inputs, and cryptographic detector outcomes.",
+  activity: "Trace how the assessment progressed from probing to report generation.",
+};
+
+function Metric({ label: title, value, note, icon, accent }: { label: string; value: string; note: string; icon: ReactNode; accent: string }) { return <div className="vx-metric"><div className="vx-metric-top"><span>{title}</span><span className={`vx-metric-icon vx-metric-icon--${accent}`}>{icon}</span></div><strong>{value}</strong><small>{note}</small></div>; }
+function coverageCount(scan: WorkspaceScan, state: CoverageState) { return scan.coverage.rows.filter(row => row.state === state).length; }
+function CoverageBar({ scan }: { scan: WorkspaceScan }) { const states: CoverageState[] = ["ASSESSED", "PARTIALLY_ASSESSED", "NOT_ASSESSED", "FAILED_TO_EXECUTE", "UNSUPPORTED"]; return <div className="vx-coverage-bar" role="img" aria-label={`${scan.coverage.assessed} of ${scan.coverage.total} classes fully assessed`}>{states.map(state => { const count = coverageCount(scan, state); return count > 0 ? <span key={state} className={`vx-coverage-segment vx-coverage-segment--${tone[state]}`} style={{ flex: count }} title={`${count} ${label(state)}`} /> : null; })}</div>; }
+
+function InspectorPanel({ scan, inspector, copy, onClose, onView }: { scan: WorkspaceScan; inspector: Inspector | null; copy: (value: string, message?: string) => void; onClose: () => void; onView: (view: View) => void }) {
+  const finding = inspector?.kind === "finding" ? scan.findings.find(item => item.id === inspector.id) : null;
+  const coverage = inspector?.kind === "coverage" ? scan.coverage.rows.find(item => item.attack_class === inspector.id) : null;
+  const execution = inspector?.kind === "execution" ? scan.executions.find(item => item.detector_id === inspector.id) : null;
+  const asset = inspector?.kind === "asset" ? scan.assets.find(item => item.asset_id === inspector.id) : null;
+  const heading = finding ? "Finding detail" : coverage ? "Coverage detail" : execution ? "Detector detail" : asset ? "Asset detail" : "Assessment context";
+  return <><div className="vx-inspector-head"><span>INSPECTOR</span><button title="Close details" aria-label="Close details" onClick={onClose}><X size={17} /></button></div><div className="vx-inspector-scroll"><div className="vx-inspector-hero"><span className="vx-eyebrow">{heading}</span><h2>{finding?.title ?? coverage?.title ?? execution?.title ?? asset?.name ?? scan.name}</h2>{finding && <Badge value={finding.recommended_disposition} />}{coverage && <Badge value={coverage.state} />}{execution && <Badge value={execution.state} />}{!finding && !coverage && !execution && <Badge value={disposition(scan) ?? scan.status} />}</div>
+    {finding && <><InspectorSection title="Observation"><p>{finding.reason}</p></InspectorSection><InspectorSection title="Classification"><Definition label="Finding ID" value={finding.id} /><Definition label="Severity" value={label(finding.severity)} /><Definition label="Confidence" value={`${Math.round(finding.confidence * 100)}%`} /><Definition label="Detector" value={finding.detector_id} /><Definition label="Attack class" value={finding.attack_class} /><Definition label="Affected samples" value={finding.affected_count?.toLocaleString() ?? "—"} /></InspectorSection><InspectorSection title={`Evidence · ${finding.evidence.length}`}>{finding.evidence.length ? finding.evidence.map(item => <div className="vx-inspector-evidence" key={item.id}><span className="vx-eyebrow">{label(item.kind)}</span><strong>{item.title}</strong><p>{item.summary}</p>{item.data && <pre>{JSON.stringify(item.data, null, 2)}</pre>}{item.blob && <small>Blob: {short(item.blob.digest, 28)} · {item.blob.media_type}</small>}</div>) : <p>No evidence records in this report.</p>}</InspectorSection>{finding.limitations?.length ? <InspectorSection title="Limitations">{finding.limitations.map(item => <p key={item} className="vx-inspector-bullet">{item}</p>)}</InspectorSection> : null}{finding.access_assumptions?.length ? <InspectorSection title="Required access"><p>{finding.access_assumptions.join(" · ")}</p></InspectorSection> : null}</>}
+    {coverage && <><InspectorSection title="Why this state"><p>{coverage.reason}</p></InspectorSection><InspectorSection title="Assessment"><Definition label="Attack class" value={coverage.attack_class} /><Definition label="Layer" value={label(coverage.layer)} /><Definition label="Detectors" value={coverage.detectors.join(", ") || "None"} /></InspectorSection>{coverage.required_access?.length ? <InspectorSection title="Required access"><p>{coverage.required_access.join(" · ")}</p></InspectorSection> : null}{coverage.recommended_evidence?.length ? <InspectorSection title="Additional evidence">{coverage.recommended_evidence.map(item => <p key={item} className="vx-inspector-bullet">{item}</p>)}</InspectorSection> : null}</>}
+    {execution && <><InspectorSection title="Execution state"><Definition label="Detector ID" value={execution.detector_id} /><Definition label="Layer" value={label(execution.layer)} /><Definition label="Planned" value={label(execution.planned)} /><Definition label="Final" value={label(execution.state)} /><Definition label="Mode" value={execution.mode ?? "—"} /><Definition label="Runtime" value={execution.runtime_ms != null ? `${execution.runtime_ms.toLocaleString()} ms` : "—"} /><Definition label="Samples" value={execution.samples_processed?.toLocaleString() ?? "—"} /><Definition label="Findings" value={String(execution.findings ?? 0)} /></InspectorSection>{execution.reasons?.length ? <InspectorSection title="Reasons">{execution.reasons.map(item => <p key={item} className="vx-inspector-bullet">{item}</p>)}</InspectorSection> : null}</>}
+    {asset && <><InspectorSection title="Asset properties"><Definition label="Asset ID" value={asset.asset_id} /><Definition label="Role" value={label(asset.role)} /><Definition label="Format" value={asset.format ?? "—"} />{asset.details && Object.entries(asset.details).map(([key, value]) => <Definition key={key} label={label(key)} value={typeof value === "object" ? JSON.stringify(value) : String(value)} />)}</InspectorSection>{asset.digest && <InspectorSection title="Content digest"><div className="vx-digest">{asset.digest}</div><button className="vx-copy-action" onClick={() => copy(asset.digest!, "Asset digest copied")}><Clipboard size={14} /> Copy digest</button></InspectorSection>}</>}
+    {!finding && !coverage && !execution && !asset && <><InspectorSection title="Report details"><Definition label="Scan ID" value={scan.scan_id} /><Definition label="Profile" value={scan.profile} /><Definition label="Budget" value={label(scan.budget)} /><Definition label="Status" value={label(scan.status)} /><Definition label="Created" value={date(scan.created_at)} /><Definition label="Completed" value={date(scan.completed_at)} /><Definition label="Source" value={scan.source === "example" ? "Illustrative example" : scan.source === "server" ? "Authenticated local server" : "Locally opened report.json"} /></InspectorSection><InspectorSection title="Assessment boundary"><p>{scan.coverage.assessed} of {scan.coverage.total} listed attack classes fully assessed. {scan.coverage.partial} partially assessed; {scan.coverage.not_assessed} not assessed.</p><button className="vx-copy-action" onClick={() => onView("coverage")}>View coverage matrix <ArrowRight size={14} /></button></InspectorSection>{scan.report_digest && <InspectorSection title="Report digest"><div className="vx-digest">{scan.report_digest}</div><button className="vx-copy-action" onClick={() => copy(scan.report_digest!, "Report digest copied")}><Clipboard size={14} /> Copy digest</button></InspectorSection>}</>}
+    <div className="vx-inspector-disclaimer"><Shield size={15} /><span>{scan.source === "example" ? "Example values are illustrative and are not verified scan output." : "Cryptographic verification requires the CLI verifier and trust root."}</span></div>
+  </div></>;
+}
+function InspectorSection({ title, children }: { title: string; children: ReactNode }) { return <section className="vx-inspector-section"><h3>{title}</h3>{children}</section>; }
+function Definition({ label: title, value }: { label: string; value: string }) { return <div className="vx-definition"><span>{title}</span><strong>{value}</strong></div>; }
+
+function NewAssessment({ onClose, copy, session, onQueue }: { onClose: () => void; copy: (value: string, message?: string) => void; session: ApiSession | null; onQueue: (body: { name: string; profile: string; dataset?: string; model?: string }) => Promise<void> }) {
+  const canRun = session && ["ANALYST", "APPROVER", "ADMIN"].includes(session.user.role);
+  const [mode, setMode] = useState<"server" | "cli">(canRun ? "server" : "cli");
+  const [profile, setProfile] = useState("baseline");
+  const [dataset, setDataset] = useState("./data/dataset");
+  const [model, setModel] = useState("./models/candidate.onnx");
+  const [name, setName] = useState("New assessment");
+  const [assets, setAssets] = useState<ApiAsset[]>([]);
+  const [datasetId, setDatasetId] = useState("");
+  const [modelId, setModelId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => { if (canRun) void loadServerAssets().then(setAssets).catch(() => setError("Could not load registered assets from the local server.")); }, [canRun]);
+  const shellArg = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+  const command = `visionsentinel scan --dataset ${shellArg(dataset.trim() || "./data/dataset")} --model ${shellArg(model.trim() || "./models/candidate.onnx")} --profile ${profile} --out ./reports`;
+  const queue = async () => {
+    if (!datasetId && !modelId) { setError("Choose at least one registered asset."); return; }
+    setError(""); setSubmitting(true);
+    try { await onQueue({ name: name.trim() || "assessment", profile, ...(datasetId ? { dataset: datasetId } : {}), ...(modelId ? { model: modelId } : {}) }); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not queue assessment."); }
+    finally { setSubmitting(false); }
+  };
+  return <div className="vx-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><div className="vx-new-modal" role="dialog" aria-modal="true" aria-label="New assessment"><div className="vx-new-modal-head"><div className="vx-new-modal-icon"><Terminal size={20} /></div><button aria-label="Close" onClick={onClose}><X size={18} /></button></div><span className="vx-eyebrow">ASSESSMENT WORKFLOW</span><h2>Start a new assessment</h2><p>{canRun ? "Queue a scan using registered assets on the local server, or copy a command to run in your terminal." : "Run VisionSentinel locally, then open the resulting report.json here. Sign in with an analyst account to queue scans through the local server."}</p>{canRun && <div className="vx-mode-switch"><button className={mode === "server" ? "active" : ""} onClick={() => setMode("server")}>Local server</button><button className={mode === "cli" ? "active" : ""} onClick={() => setMode("cli")}>Terminal command</button></div>}
+    {mode === "server" && canRun ? <><label>Assessment name<input value={name} onChange={event => setName(event.target.value)} maxLength={120} /></label><label>Dataset asset<select value={datasetId} onChange={event => setDatasetId(event.target.value)}><option value="">None</option>{assets.filter(item => item.kind === "dataset").map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Model asset<select value={modelId} onChange={event => setModelId(event.target.value)}><option value="">None</option>{assets.filter(item => item.kind === "model").map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Assessment profile<select value={profile} onChange={event => setProfile(event.target.value)}><option value="baseline">Baseline</option><option value="strict">Strict</option><option value="blackbox">Black box</option></select></label><div className="vx-new-modal-actions"><button className="vx-button vx-button--quiet" onClick={onClose}>Cancel</button><button className="vx-button vx-button--primary" disabled={submitting || (!datasetId && !modelId)} onClick={() => void queue()}><Plus size={15} /> {submitting ? "Queuing…" : "Queue assessment"}</button></div><div className="vx-new-note"><LockKeyhole size={15} /> Assets and scan results stay on the local server.</div></> : <><label>Dataset path<input value={dataset} onChange={event => setDataset(event.target.value)} spellCheck={false} /></label><label>Model path<input value={model} onChange={event => setModel(event.target.value)} spellCheck={false} /></label><label>Assessment profile<select value={profile} onChange={event => setProfile(event.target.value)}><option value="baseline">Baseline</option><option value="strict">Strict</option><option value="blackbox">Black box</option></select></label><div className="vx-command-preview"><span>TERMINAL COMMAND</span><code>{command}</code></div><div className="vx-new-modal-actions"><button className="vx-button vx-button--quiet" onClick={onClose}>Cancel</button><button className="vx-button vx-button--primary" onClick={() => copy(command, "Command copied. Run it in your local terminal.")}><Clipboard size={15} /> Copy command</button></div><div className="vx-new-note"><CircleAlert size={15} /> The browser only prepares this command. Run it in your local terminal.</div></>}{error && <p className="vx-form-error" role="alert">{error}</p>}</div></div>;
+}
+
+function ServerLogin({ onClose, onLogin }: { onClose: () => void; onLogin: (username: string, password: string) => Promise<void> }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async () => {
+    setBusy(true); setError("");
+    try { await onLogin(username.trim(), password); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Sign in failed."); }
+    finally { setBusy(false); }
+  };
+  return <div className="vx-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><form className="vx-new-modal" role="dialog" aria-modal="true" aria-label="Sign in to local server" onSubmit={event => { event.preventDefault(); void submit(); }}><div className="vx-new-modal-head"><div className="vx-new-modal-icon"><LockKeyhole size={20} /></div><button type="button" aria-label="Close" onClick={onClose}><X size={18} /></button></div><span className="vx-eyebrow">LOCAL SERVER</span><h2>Sign in to VisionSentinel</h2><p>Use an account on the same-origin local API to review server scans and, with analyst access, queue assessments.</p><label>Username<input autoFocus autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required /></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required /></label>{error && <p className="vx-form-error" role="alert">{error}</p>}<div className="vx-new-modal-actions"><button type="button" className="vx-button vx-button--quiet" onClick={onClose}>Cancel</button><button type="submit" disabled={busy} className="vx-button vx-button--primary">{busy ? "Signing in…" : "Sign in"}</button></div></form></div>;
 }
