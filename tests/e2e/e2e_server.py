@@ -16,4 +16,4 @@ app = create_app(Settings(allowed_hosts=["127.0.0.1", "localhost"], extra_origin
                           secure_cookies=False, demo_mode=True), workspace)
 create_user(app.state.vs.db, "analyst", "analystpassword", Role.ANALYST, "E2E Analyst")
 create_user(app.state.vs.db, "approver", "approverpassword", Role.APPROVER, "E2E Approver")
-uvicorn.run(app, host="127.0.0.1", port=4173, log_level="warning")
+uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")

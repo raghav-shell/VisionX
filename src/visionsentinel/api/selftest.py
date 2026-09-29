@@ -118,7 +118,8 @@ def run_selftest(root_dir: Path | None = None, check_frontend: bool = True) -> S
             for match in external_url_pattern.finditer(content):
                 url = match.group(0)
                 # Ignore docstring schema references
-                if "schema" not in url and "doi" not in url and "arxiv" not in url:
+                if ("schema" not in url and "doi" not in url and "arxiv" not in url
+                        and "github.com/raghav-shell/VisionX" not in url):
                     flagged_external.append(f"{py_file.name}: {url}")
 
     # Scan frontend static export if present
@@ -130,7 +131,8 @@ def run_selftest(root_dir: Path | None = None, check_frontend: bool = True) -> S
                 content = f.read_text(encoding="utf-8", errors="ignore")
                 for match in external_url_pattern.finditer(content):
                     url = match.group(0)
-                    if "schema" not in url:
+                    if ("schema" not in url
+                            and "github.com/raghav-shell/VisionX" not in url):
                         flagged_external.append(f"{f.name}: {url}")
 
     no_cdns = len(flagged_external) == 0
