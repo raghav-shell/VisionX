@@ -8,6 +8,8 @@ import Security from "@/components/Security";
 import Integrations from "@/components/Integrations";
 import DeveloperSDK from "@/components/DeveloperSDK";
 import InteractiveConsole from "@/components/InteractiveConsole";
+import Validation from "@/components/Validation";
+import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 
@@ -35,11 +37,11 @@ export default function Home() {
       </ScrollReveal>
 
       <ScrollReveal direction="up">
-        <Security />
+        <Integrations />
       </ScrollReveal>
 
       <ScrollReveal direction="up">
-        <Integrations />
+        <Security />
       </ScrollReveal>
 
       <ScrollReveal direction="up">
@@ -49,6 +51,12 @@ export default function Home() {
       <ScrollReveal direction="up">
         <InteractiveConsole />
       </ScrollReveal>
+
+      <ScrollReveal direction="up">
+        <Validation />
+      </ScrollReveal>
+
+      <CTASection />
 
       <Footer />
     </main>

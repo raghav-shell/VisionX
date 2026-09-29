@@ -15,7 +15,7 @@ export default function Footer() {
       {/* Bioluminescent Panoramic Landscape Artwork matching source */}
       <div className="relative w-full h-[360px] md:h-[480px] lg:h-[560px] overflow-hidden">
         <img
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Upscaled%20Image%20%2810%29-UnDKstODkIENp5xqTYUEpt0Sm8tNOw.png"
+          src="/images/upscaled-10.png"
           alt="Bioluminescent floral landscape"
           className="w-full h-full object-cover object-center select-none pointer-events-none"
         />
@@ -137,7 +137,7 @@ export default function Footer() {
             {/* Column 3: Team & Hackathon */}
             <div>
               <h3 className="text-sm font-medium text-white mb-6 font-display">
-                Company
+                Project
               </h3>
               <ul className="space-y-4 text-sm text-white/50 font-sans">
                 <li>
@@ -147,12 +147,9 @@ export default function Footer() {
                   <span className="text-white/50">SIH PS 26228</span>
                 </li>
                 <li>
-                  <span className="inline-flex items-center gap-1.5 text-white/70">
-                    Compliance
-                    <span className="text-[10px] px-2 py-0.5 bg-white text-black font-semibold rounded-full font-mono">
-                      Air-Gap
-                    </span>
-                  </span>
+                  <a href="https://github.com/raghav-shell/VisionX" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                    View Source
+                  </a>
                 </li>
                 <li>
                   <Link href="/workspace" className="text-[#eca8d6] hover:underline">
@@ -162,10 +159,10 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Column 4: Standards / Legal */}
+            {/* Column 4: Standards & validation */}
             <div>
               <h3 className="text-sm font-medium text-white mb-6 font-display">
-                Legal
+                Trust &amp; Evidence
               </h3>
               <ul className="space-y-4 text-sm text-white/50 font-sans">
                 <li>
@@ -184,8 +181,8 @@ export default function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a href="#security" className="hover:text-white transition-colors">
-                    EAL4+ Sandbox
+                  <a href="#validation" className="hover:text-white transition-colors">
+                    Validation Tests
                   </a>
                 </li>
               </ul>
@@ -196,13 +193,13 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="py-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-white/40">
-            © 2026 VisionX. Defense-Grade Computer-Vision Assurance Platform.
+            © 2026 VisionX. Smart India Hackathon computer-vision assurance project.
           </p>
 
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-sm text-white/40 font-mono">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>All nodes operational</span>
+              <span>Demo workspace available</span>
             </div>
 
             <button

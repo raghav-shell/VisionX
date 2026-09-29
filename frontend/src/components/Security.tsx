@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Shield, Lock, Eye, FileCheck2, UserCheck, CheckCircle } from "lucide-react";
+import { Shield, Lock, Eye, UserCheck } from "lucide-react";
 
 export default function Security() {
   const [activeFeature, setActiveFeature] = useState(0);
@@ -11,6 +11,8 @@ export default function Security() {
       title: "Isolated Execution (S3 Sandbox)",
       desc: "Each untrusted decoder runs in a fresh child process with stubbed network sockets, a transient scratch dir, and wall-clock timeouts to bound crash radius.",
       icon: Shield,
+      image: "/images/isolated.jpg",
+      imageAlt: "Organic shield representing isolated execution",
       stat: "0 RCE Vectors",
       detail: "CVE-2025-32434 & libpng memory bounds enforced",
     },
@@ -18,6 +20,8 @@ export default function Security() {
       title: "Kernel Peer Credentials (SO_PEERCRED)",
       desc: "The signing daemon checks the caller's UID directly via kernel socket credentials. The web dashboard never holds private Ed25519 signing keys.",
       icon: Lock,
+      image: "/images/encrypted.jpg",
+      imageAlt: "Glowing woven lock representing protected signing keys",
       stat: "Privilege Separated",
       detail: "Per-UID x Per-Record-Type allowlist",
     },
@@ -25,6 +29,8 @@ export default function Security() {
       title: "Four-Eyes Authorization Protocol",
       desc: "An analyst can propose lowering a quarantine finding with a mandatory word-counted justification. An independent approver must sign to confirm.",
       icon: UserCheck,
+      image: "/images/permissions.jpg",
+      imageAlt: "Woven access token representing independent authorization",
       stat: "2-Person Rule",
       detail: "Proposer self-approval strictly rejected",
     },
@@ -32,6 +38,8 @@ export default function Security() {
       title: "Immutable Merkle Audit Trail",
       desc: "Every scan record, analyst decision, and checkpoint is signed and committed to an append-only RFC 6962 tree with external anchoring.",
       icon: Eye,
+      image: "/images/audit.jpg",
+      imageAlt: "Glowing eye representing the inspectable audit trail",
       stat: "RFC 6962 / 9162",
       detail: "Sub-millisecond inclusion proofs",
     },
@@ -60,6 +68,13 @@ export default function Security() {
         <div className="grid lg:grid-cols-12 gap-8 items-stretch">
           {/* Left Hero Card */}
           <div className="lg:col-span-6 relative p-8 lg:p-14 border border-white/15 bg-gradient-to-br from-[#0c0c10] via-black to-[#08080a] rounded-xl flex flex-col justify-between overflow-hidden">
+            <img
+              key={securityFeatures[activeFeature].image}
+              src={securityFeatures[activeFeature].image}
+              alt={securityFeatures[activeFeature].imageAlt}
+              className="absolute right-[-8%] bottom-[14%] w-[78%] h-[50%] lg:top-[17%] lg:bottom-auto lg:w-[64%] lg:h-[68%] object-contain opacity-45 lg:opacity-100 pointer-events-none select-none animate-fade-slide-in"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/30 to-transparent pointer-events-none" />
             <div className="relative z-10">
               <span className="font-mono text-xs text-[#eca8d6] uppercase tracking-wider px-2.5 py-1 rounded bg-[#eca8d6]/10 border border-[#eca8d6]/20">
                 ACTIVE PROTECTION S1–S12
@@ -72,7 +87,7 @@ export default function Security() {
                   Unwitnessed Gaps Under External Anchors
                 </span>
               </div>
-              <p className="text-sm lg:text-base text-white/50 leading-relaxed max-w-md font-normal">
+              <p className="text-sm lg:text-base text-white/60 leading-relaxed max-w-full lg:max-w-[58%] font-normal">
                 {securityFeatures[activeFeature].desc}
               </p>
             </div>

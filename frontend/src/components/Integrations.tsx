@@ -1,57 +1,64 @@
 "use client";
 
 import React from "react";
-import { Cpu, FileCode2, Layers, Binary, Lock, Box, CheckCircle2 } from "lucide-react";
 
 export default function Integrations() {
   const formats = [
     {
       name: "PyTorch",
+      mark: "PT",
       tag: "Model",
       desc: "Weights-only safe checkpoint parser with torch >= 2.6.0 security floor (CVE-2025-32434).",
-      icon: Cpu,
+      footer: "Verified model intake",
     },
     {
       name: "ONNX Runtime",
+      mark: "ONNX",
       tag: "Graph",
       desc: "Intermediate activation extraction via graph surgery without executing untrusted custom ops.",
-      icon: Binary,
+      footer: "Operator allowlist",
     },
     {
       name: "TorchScript",
+      mark: "TS",
       tag: "Archive",
       desc: "Probes state_dict and gradient backprop availability rather than assuming from extensions.",
-      icon: Layers,
+      footer: "Capability probing",
     },
     {
       name: "COCO JSON",
+      mark: "COCO",
       tag: "Dataset",
       desc: "Recursive depth limit, item count cap, and decompression bomb pixel budgets enforced.",
-      icon: FileCode2,
+      footer: "Bounded data parser",
     },
     {
       name: "YOLO v8 / v11",
+      mark: "YOLO",
       tag: "Dataset",
       desc: "Preserves absolute pixel coordinate grids required for content-addressed evidence crops.",
-      icon: Box,
+      footer: "Geometry checks",
     },
     {
       name: "Pascal VOC",
+      mark: "VOC",
       tag: "Dataset",
       desc: "Directory traversal (safe_join) verified XML parser with EXIF metadata extraction.",
-      icon: FileCode2,
+      footer: "Safe XML intake",
     },
     {
       name: "Libsodium C",
+      mark: "NaCl",
       tag: "Crypto",
       desc: "Zero-allocation C provenance core executing pure Ed25519 and RFC 6962 Merkle trees.",
-      icon: Lock,
+      footer: "Signed provenance",
     },
     {
       name: "Rust & C++",
+      mark: "C++",
       tag: "Bindings",
       desc: "Native FFI bindings enabling microsecond-latency seal verification on edge cameras.",
-      icon: CheckCircle2,
+      footer: "Native interface",
     },
   ];
 
@@ -61,7 +68,7 @@ export default function Integrations() {
       <div className="relative z-10 text-center max-w-[1400px] mx-auto px-6 lg:px-12 mb-12">
         <span className="inline-flex items-center gap-4 text-sm font-mono text-white/50 mb-6 uppercase tracking-wider justify-center">
           <span className="w-12 h-px bg-[#eca8d6]"></span>
-          Ecosystem & Pipeline Formats
+          Supported Inputs & Toolchain
           <span className="w-12 h-px bg-[#eca8d6]"></span>
         </span>
         <h2 className="text-5xl md:text-7xl lg:text-[115px] font-display font-bold tracking-tight leading-[0.9] text-white">
@@ -77,7 +84,7 @@ export default function Integrations() {
       {/* Connection Glow Center Graphic */}
       <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] -mt-8 mb-8 pointer-events-none opacity-80">
         <img
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/connection-KeJwWPQvn6l0a7C48tCARYtNEdC92H.png"
+          src="/images/connection.png"
           alt="Neural format connection network"
           className="w-full h-auto object-cover max-h-[300px]"
         />
@@ -87,7 +94,6 @@ export default function Integrations() {
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-24">
           {formats.map((fmt) => {
-            const Icon = fmt.icon;
             return (
               <div
                 key={fmt.name}
@@ -95,8 +101,10 @@ export default function Integrations() {
               >
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/70 group-hover:text-[#eca8d6] group-hover:border-[#eca8d6]/30 transition-colors">
-                      <Icon className="w-5 h-5" />
+                    <div aria-hidden="true" className="w-16 h-16 border border-white/20 bg-white/[0.03] flex items-center justify-center text-white group-hover:text-[#eca8d6] group-hover:border-[#eca8d6]/50 transition-colors">
+                      <span className={`font-display font-bold tracking-tight ${fmt.mark.length > 3 ? "text-xs" : "text-lg"}`}>
+                        {fmt.mark}
+                      </span>
                     </div>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white/60 uppercase">
                       {fmt.tag}
@@ -111,7 +119,7 @@ export default function Integrations() {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-white/40 uppercase">Safe Loader S1-S8</span>
+                  <span className="text-[11px] font-mono text-white/40 uppercase">{fmt.footer}</span>
                   <div className="w-2 h-2 rounded-full bg-[#eca8d6] opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
 

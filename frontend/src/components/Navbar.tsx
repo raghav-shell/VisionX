@@ -70,7 +70,7 @@ export default function Navbar() {
 
           {/* Desktop Navigation Links */}
           <div
-            className={`hidden md:flex items-center transition-all duration-500 ${
+            className={`hidden xl:flex items-center transition-all duration-500 ${
               scrolled ? "gap-8" : "gap-10"
             }`}
           >
@@ -86,7 +86,7 @@ export default function Navbar() {
           </div>
 
           {/* Right Action Buttons */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden xl:flex items-center gap-4">
             <Link
               href="/workspace"
               className="text-xs font-mono text-white/70 hover:text-white transition-colors px-3 py-1.5"
@@ -106,7 +106,7 @@ export default function Navbar() {
           {/* Mobile Hamburger Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-white/80 hover:text-white"
+            className="xl:hidden p-2 text-white/80 hover:text-white"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -115,7 +115,7 @@ export default function Navbar() {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/10 px-6 py-6 space-y-4 bg-black/95 rounded-b-2xl">
+          <div className="xl:hidden border-t border-white/10 px-6 py-6 space-y-4 bg-black/95 rounded-b-2xl">
             {navLinks.map((link) => (
               <a
                 key={link.name}

@@ -84,10 +84,6 @@ export default function Hero() {
           }}
         >
           <source src="/bg-hero.mp4" type="video/mp4" />
-          <source
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bg-hero-0BnFGdr81Ifnj3WbBZoNt1KE4D5DMT.mp4"
-            type="video/mp4"
-          />
         </video>
         {/* Dark Scrim Gradients matching source website — right side stays luminous & clear */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent pointer-events-none"></div>
@@ -131,8 +127,8 @@ export default function Hero() {
           {/* Headline with Rainbow Pastel Glow Word */}
           <div className="mb-6 lg:mb-8">
             <h1 className="text-left text-[clamp(2.4rem,5.6vw,5.6rem)] font-display font-semibold leading-[0.92] tracking-tight text-white">
-              <span className="block whitespace-nowrap">Computer-vision integrity,</span>
-              <span className="block whitespace-nowrap">
+              <span className="block">Computer-vision integrity,</span>
+              <span className="block">
                 assurance that{" "}
                 <span className="relative inline-block">
                   {currentWord.split("").map((letter, i) => (

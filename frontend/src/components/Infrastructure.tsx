@@ -45,7 +45,7 @@ export default function Infrastructure() {
               }}
             >
               <img
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/world-3i68QNWJwmO7W19ztZWbevAwJQHzYL.png"
+                src="/images/world.png"
                 alt="Cryptographic network sphere"
                 className="w-full h-full object-contain object-center drop-shadow-[0_0_40px_rgba(236,168,214,0.22)] animate-float-slow"
               />

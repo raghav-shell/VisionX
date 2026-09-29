@@ -112,7 +112,7 @@ export default function Process() {
 
             {/* Tree Image with Living Organic Breathing Float */}
             <img
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/tree-uAia6REvB137CQyHFCf0za3O6h2zKO.png"
+              src="/images/tree.png"
               alt="Ethereal bonsai tree"
               aria-hidden="true"
               className="absolute bottom-0 left-0 w-full h-full object-contain object-bottom select-none pointer-events-none animate-tree-float"

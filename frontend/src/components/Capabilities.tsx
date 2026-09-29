@@ -161,7 +161,7 @@ export default function Capabilities() {
             {/* Right Art Frame */}
             <div className="hidden lg:block relative w-[40%] shrink-0 overflow-hidden border-l border-white/10">
               <img
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Upscaled%20Image%20%2812%29-ng3RrNnsPMJ5CrtOjcPTmhHg01W11q.png"
+                src="/images/upscaled-12.png"
                 alt="Cybernetic vision architecture"
                 className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 style={{ transform: "scaleX(-1)" }}

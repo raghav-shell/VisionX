@@ -100,8 +100,8 @@ No edits, deletions, replays, or non-canonical encodings found.`,
             Live Scanner Preview
           </h2>
           <p className="text-sm lg:text-base text-white/60">
-            Select an operational scenario to view real VisionX terminal execution, capability plans,
-            and cryptographic ledger events.
+            Select a scenario to inspect sample terminal output, capability plans, and
+            cryptographic ledger events.
           </p>
         </div>
 

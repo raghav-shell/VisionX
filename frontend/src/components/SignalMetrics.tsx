@@ -131,7 +131,7 @@ export default function SignalMetrics() {
           }}
         >
           <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/real-time-graph-INFmn3u0MlUwvNPynoIhwxtPaPjxM5.png"
+            src="/images/real-time-graph.png"
             alt="Real-time multi-dimensional drift visual"
             className="w-full h-auto object-cover select-none pointer-events-none"
           />
