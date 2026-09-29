@@ -149,7 +149,7 @@ export default function Integrations() {
             </div>
           </div>
           <span className="text-xs font-mono text-white/40 uppercase tracking-widest">
-            Offline verification with trusted keys
+            100% demo reproducibility target
           </span>
         </div>
       </div>

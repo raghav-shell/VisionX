@@ -134,23 +134,26 @@ export default function Capabilities() {
                   Detect near-duplicate samples, label conflicts, and suspicious image artifacts.
                   Link findings to contributors and review the underlying evidence before acting.
                 </p>
+                <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-white/40">
+                  Illustrative demo figures · not measured benchmarks
+                </p>
                 <div className="flex flex-wrap gap-8 items-baseline pt-4 border-t border-white/10">
                   <div>
-                    <span className="text-3xl lg:text-5xl font-display font-bold text-white">Duplicates</span>
+                    <span className="text-4xl lg:text-6xl font-display font-bold text-white">99.8%</span>
                     <span className="block text-xs text-white/50 font-mono mt-1 uppercase">
-                      Find repeated or leaked samples
+                      Example poison recall
                     </span>
                   </div>
                   <div>
-                    <span className="text-3xl lg:text-5xl font-display font-bold text-[#eca8d6]">Labels</span>
+                    <span className="text-4xl lg:text-6xl font-display font-bold text-[#eca8d6]">0.00</span>
                     <span className="block text-xs text-white/50 font-mono mt-1 uppercase">
-                      Surface conflicting annotations
+                      Example clean false alarms
                     </span>
                   </div>
                   <div>
-                    <span className="text-3xl lg:text-5xl font-display font-bold text-white/90">Sources</span>
+                    <span className="text-4xl lg:text-6xl font-display font-bold text-white/90">5 Tiers</span>
                     <span className="block text-xs text-white/50 font-mono mt-1 uppercase">
-                      Review contributor-level risk
+                      Example contributor hierarchy
                     </span>
                   </div>
                 </div>
@@ -187,11 +190,11 @@ export default function Capabilities() {
               </p>
             </div>
             <div className="pt-6 border-t border-white/10">
-              <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-display font-bold text-white">Capability-aware</span>
-                <span className="text-xs font-mono text-[#eca8d6]">Model checks</span>
+              <div className="flex flex-wrap justify-between items-baseline gap-2">
+                <span className="text-3xl font-display font-bold text-white">4.92 vs 2.13</span>
+                <span className="text-xs font-mono text-[#eca8d6]">Demo signal</span>
               </div>
-              <span className="text-xs text-white/40 block mt-1">No silent skips when a check cannot run</span>
+              <span className="text-xs text-white/40 block mt-1">Illustrative anomaly index comparison</span>
             </div>
           </div>
 
@@ -213,11 +216,11 @@ export default function Capabilities() {
               </p>
             </div>
             <div className="pt-6 border-t border-white/10">
-              <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-display font-bold text-white">Ed25519</span>
-                <span className="text-xs font-mono text-[#eca8d6]">Signed records</span>
+              <div className="flex flex-wrap justify-between items-baseline gap-2">
+                <span className="text-3xl font-display font-bold text-white">&lt;0.2ms</span>
+                <span className="text-xs font-mono text-[#eca8d6]">Demo timing</span>
               </div>
-              <span className="text-xs text-white/40 block mt-1">Independent offline verifier</span>
+              <span className="text-xs text-white/40 block mt-1">Illustrative proof latency; not a benchmark</span>
             </div>
           </div>
 
@@ -239,11 +242,11 @@ export default function Capabilities() {
               </p>
             </div>
             <div className="pt-6 border-t border-white/10">
-              <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-display font-bold text-white">Baseline</span>
-                <span className="text-xs font-mono text-[#eca8d6]">Compared locally</span>
+              <div className="flex flex-wrap justify-between items-baseline gap-2">
+                <span className="text-3xl font-display font-bold text-white">2000 Iter</span>
+                <span className="text-xs font-mono text-[#eca8d6]">Demo setting</span>
               </div>
-              <span className="text-xs text-white/40 block mt-1">Reference vs incoming data</span>
+              <span className="text-xs text-white/40 block mt-1">Illustrative permutation count</span>
             </div>
           </div>
         </div>

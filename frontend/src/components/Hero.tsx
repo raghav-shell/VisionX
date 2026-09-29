@@ -182,22 +182,25 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Product facts */}
+      {/* Illustrative demo figures */}
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12 pb-10 lg:pb-14">
         <div className="grid grid-cols-3 items-start gap-3 sm:flex sm:gap-8 lg:gap-20">
           <div className="min-w-0 flex flex-col gap-1.5">
-            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">4</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">assessment areas</span>
+            <span className="text-[19px] sm:text-3xl lg:text-4xl font-display text-white tracking-tight">100%</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">offline demo workflow</span>
           </div>
           <div className="min-w-0 flex flex-col gap-1.5">
-            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">5</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">coverage states</span>
+            <span className="text-[19px] sm:text-3xl lg:text-4xl font-display text-white tracking-tight">RFC 8785</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">canonical JSON standard</span>
           </div>
           <div className="min-w-0 flex flex-col gap-1.5">
-            <span className="text-3xl lg:text-4xl font-display text-white tracking-tight">0</span>
-            <span className="text-xs text-white/50 leading-tight font-sans">required cloud services</span>
+            <span className="text-[19px] sm:text-3xl lg:text-4xl font-display text-white tracking-tight">&lt;12ms</span>
+            <span className="text-xs text-white/50 leading-tight font-sans">example scan latency</span>
           </div>
         </div>
+        <p className="mt-4 font-mono text-[11px] leading-relaxed text-white/55">
+          Demo figures are illustrative; timings are not measured benchmarks.
+        </p>
       </div>
     </section>
   );

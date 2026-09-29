@@ -41,17 +41,17 @@ export default function Navbar() {
     >
       <nav
         aria-label="Main navigation"
-        className={`pointer-events-auto mx-auto overflow-hidden border shadow-[0_18px_60px_rgba(0,0,0,0.35)] transition-all duration-500 ease-out ${
-          scrolled
-            ? "max-w-[1120px] rounded-[18px] border-white/[0.17] bg-[#09090b]/95 backdrop-blur-2xl"
-            : `max-w-[1240px] rounded-[22px] border-white/[0.13] backdrop-blur-xl ${
-                mobileMenuOpen ? "bg-[#09090b]/95" : "bg-black/80"
-              }`
+        className={`pointer-events-auto mx-auto overflow-hidden border shadow-[0_12px_36px_rgba(0,0,0,0.2)] transition-all duration-500 ease-out ${
+          mobileMenuOpen
+            ? "max-w-[1240px] rounded-[18px] border-white/[0.15] bg-[#09090b]/95 backdrop-blur-xl"
+            : scrolled
+              ? "max-w-[1120px] rounded-[16px] border-white/[0.13] bg-black/60 backdrop-blur-lg"
+              : "max-w-[1240px] rounded-[20px] border-white/[0.1] bg-black/45 backdrop-blur-md"
         }`}
       >
         <div
           className={`grid grid-cols-[1fr_auto] items-center px-5 transition-all duration-500 ease-out sm:px-7 lg:grid-cols-[1fr_auto_1fr] lg:px-8 ${
-            scrolled ? "h-[54px] lg:h-[58px]" : "h-[64px] lg:h-[68px]"
+            scrolled ? "h-[50px] lg:h-[52px]" : "h-[58px] lg:h-[60px]"
           }`}
         >
           <Link
@@ -61,9 +61,9 @@ export default function Navbar() {
             onClick={() => setMobileMenuOpen(false)}
           >
             <VisionXLogo
-              size={scrolled ? 28 : 32}
+              size={scrolled ? 26 : 29}
               showText
-              textClassName={`transition-all duration-500 ${scrolled ? "text-[20px]" : "text-[22px]"}`}
+              textClassName={`transition-all duration-500 ${scrolled ? "text-[19px]" : "text-[21px]"}`}
             />
           </Link>
 
@@ -91,7 +91,7 @@ export default function Navbar() {
             <Link
               href="/workspace"
               className={`inline-flex items-center justify-center rounded-full bg-[#f5f3f4] px-5 text-[13px] font-semibold text-[#111014] shadow-[0_4px_20px_rgba(255,255,255,0.12)] transition-all duration-500 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E5B5D7] ${
-                scrolled ? "h-8" : "h-9"
+                scrolled ? "h-[30px]" : "h-8"
               }`}
             >
               Open demo

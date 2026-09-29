@@ -31,8 +31,8 @@ export default function Security() {
       icon: UserCheck,
       image: "/images/permissions.jpg",
       imageAlt: "Woven access token representing independent authorization",
-      stat: "Coverage aware",
-      detail: "Findings, evidence, and limitations together",
+      stat: "2-person demo",
+      detail: "Illustrative review flow; not enforced by the scanner",
     },
     {
       title: "Verifiable ledger history",
@@ -77,16 +77,19 @@ export default function Security() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/30 to-transparent pointer-events-none" />
             <div className="relative z-10">
               <span className="font-mono text-xs text-[#eca8d6] uppercase tracking-wider px-2.5 py-1 rounded bg-[#eca8d6]/10 border border-[#eca8d6]/20">
-                ASSESSMENT BOUNDARIES
+                ILLUSTRATIVE ANCHORED LEDGER
               </span>
               <div className="mt-8 mb-6">
                 <span className="text-7xl lg:text-9xl font-display font-bold text-white leading-none block">
-                  4
+                  0
                 </span>
                 <span className="text-base lg:text-lg text-white/60 block mt-2">
-                  safeguards to inspect
+                  example unwitnessed gaps
                 </span>
               </div>
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-white/45">
+                Static demo value · not a live security metric
+              </p>
               <p className="text-sm lg:text-base text-white/60 leading-relaxed max-w-full lg:max-w-[58%] font-normal">
                 {securityFeatures[activeFeature].desc}
               </p>

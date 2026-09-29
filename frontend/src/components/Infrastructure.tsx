@@ -141,25 +141,25 @@ export default function Infrastructure() {
           <div className="flex flex-col gap-6">
             <div className="p-8 border border-white/15 bg-[#09090b] rounded-xl flex-1 flex flex-col justify-center hover:border-white/30 transition-all duration-300 group">
               <span className="text-5xl lg:text-6xl font-display font-bold text-white tracking-tight group-hover:text-[#eca8d6] transition-colors">
-                Bounded
+                100%
               </span>
               <span className="text-sm font-mono text-white/50 mt-2 uppercase tracking-wider">
-                Model worker
+                Local demo path
               </span>
               <p className="text-xs text-white/40 mt-3 leading-relaxed">
-                Resource limits and restricted execution help contain untrusted model files.
+                Illustrative workflow figure. Model workers use resource limits and restricted execution.
               </p>
             </div>
 
             <div className="p-8 border border-white/15 bg-[#09090b] rounded-xl flex-1 flex flex-col justify-center hover:border-white/30 transition-all duration-300 group">
               <span className="text-5xl lg:text-6xl font-display font-bold text-white tracking-tight group-hover:text-[#c597eb] transition-colors">
-                Explicit
+                &lt;200µs
               </span>
               <span className="text-sm font-mono text-white/50 mt-2 uppercase tracking-wider">
-                Coverage states
+                Example IPC timing
               </span>
               <p className="text-xs text-white/40 mt-3 leading-relaxed">
-                Checks without the required inputs are reported as unavailable or partially assessed.
+                Illustrative timing only; no local IPC benchmark is supplied with this demo.
               </p>
             </div>
           </div>
@@ -168,7 +168,7 @@ export default function Infrastructure() {
         {/* Bottom Nodes Status Row */}
         <div className="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { region: "Local scanner", status: "Workflow", nodes: "Dataset · model · ledger", ping: "CLI" },
+            { region: "Local scanner", status: "Workflow", nodes: "Dataset · model · ledger", ping: "0.1ms demo" },
             { region: "Bounded worker", status: "Isolation", nodes: "Model execution limits", ping: "Local" },
             { region: "Signed records", status: "Provenance", nodes: "Ed25519 · Merkle", ping: "Verify" },
             { region: "Coverage report", status: "Evidence", nodes: "Findings and limits", ping: "Export" },
