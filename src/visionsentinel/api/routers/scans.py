@@ -31,7 +31,7 @@ router = APIRouter(prefix="/api/scans", tags=["scans"])
 def is_terminal_scan_status(value: str | ScanStatus) -> bool:
     """Use the authoritative lifecycle enum when deciding whether a scan is done."""
     try:
-        return ScanStatus(value) in {ScanStatus.SEALED, ScanStatus.FAILED}
+        return ScanStatus(value).terminal
     except ValueError:
         return False
 

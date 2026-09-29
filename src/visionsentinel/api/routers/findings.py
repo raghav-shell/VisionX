@@ -113,7 +113,10 @@ def _governance_state_response(row: FindingState) -> dict[str, Any]:
 
 
 def _result_status_is_in_progress(scan: Scan) -> bool:
-    return scan.status not in {ScanStatus.SEALED.value, ScanStatus.FAILED.value}
+    try:
+        return not ScanStatus(scan.status).terminal
+    except ValueError:
+        return True
 
 
 def _load_result(state: AppState, scan: Scan):

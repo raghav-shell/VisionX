@@ -6,14 +6,16 @@ import json
 import logging
 import secrets
 import traceback
+import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
-from ..contracts import ScanResult, ScanStatus
+from ..contracts import JobStatus, ScanResult, ScanStatus
+from ..core.errors import RunnerUnavailableError
 from ..engine.request import ScanRequest
 from ..engine.scan import new_scan_id, run_scan
 from ..reporting import write_report
@@ -21,6 +23,48 @@ from ..storage import FindingState, Job, Scan, ScanEvent
 from .state import AppState
 
 log = logging.getLogger(__name__)
+
+INTERRUPTED_SCAN_REASON = "interrupted by previous process shutdown"
+INTERRUPTED_JOB_REASON = "interrupted by previous process shutdown"
+
+
+def recover_interrupted_work(state: AppState) -> dict[str, int]:
+    """Reconcile work that cannot have a surviving worker after a process restart."""
+    recovered_scans: list[tuple[str, str]] = []
+    recovered_jobs: list[tuple[str, str]] = []
+    active_scans = {status.value for status in ScanStatus if not status.terminal}
+    with state.db.session() as session:
+        scans = session.scalars(select(Scan).where(Scan.status.in_(active_scans))).all()
+        for scan in scans:
+            old = scan.status
+            scan.status = ScanStatus.FAILED.value
+            scan.completed_at = _now()
+            scan.error = INTERRUPTED_SCAN_REASON
+            last_seq = max((seq for (seq,) in session.query(ScanEvent.seq)
+                            .filter(ScanEvent.scan_id == scan.id).all()), default=0)
+            session.add(ScanEvent(scan_id=scan.id, seq=last_seq + 1, t_ms=0, level="error",
+                                  message=INTERRUPTED_SCAN_REASON))
+            recovered_scans.append((scan.id, old))
+
+        jobs = session.scalars(select(Job).where(Job.status == JobStatus.RUNNING.value)).all()
+        for job in jobs:
+            old = job.status
+            job.status = JobStatus.FAILED.value
+            job.completed_at = _now()
+            job.error = INTERRUPTED_JOB_REASON
+            steps = list(job.steps or [])
+            steps.append({"name": "recovery", "detail": INTERRUPTED_JOB_REASON, "status": "error",
+                          "at": _now().isoformat()})
+            job.steps = steps
+            recovered_jobs.append((job.id, old))
+
+    for scan_id, old in recovered_scans:
+        state.audit.record("system", "recover_scan", scan_id, old=old, new=ScanStatus.FAILED.value,
+                           justification=INTERRUPTED_SCAN_REASON)
+    for job_id, old in recovered_jobs:
+        state.audit.record("system", "recover_job", job_id, old=old, new=JobStatus.FAILED.value,
+                           justification=INTERRUPTED_JOB_REASON)
+    return {"scans": len(recovered_scans), "jobs": len(recovered_jobs)}
 
 
 def _now() -> datetime:
@@ -80,7 +124,13 @@ class JobContext:
 class JobRunner:
     def __init__(self, state: AppState) -> None:
         self.state = state
+        self._lifecycle_lock = threading.Lock()
+        self._accepting = True
         self.pool = ThreadPoolExecutor(max_workers=state.settings.scan_workers, thread_name_prefix="vs-job")
+
+    def _ensure_accepting(self) -> None:
+        if not self._accepting:
+            raise RunnerUnavailableError("background work is unavailable during application shutdown")
 
     # ------------------------------------------------------------------ scans
     def create_scan(self, request: ScanRequest, user: str | None) -> tuple[str, ScanRequest]:
@@ -94,8 +144,10 @@ class JobRunner:
         return scan_id, request
 
     def submit_scan(self, request: ScanRequest, user: str | None) -> str:
-        scan_id, request = self.create_scan(request, user)
-        self.pool.submit(self.execute_scan, scan_id, request)
+        with self._lifecycle_lock:
+            self._ensure_accepting()
+            scan_id, request = self.create_scan(request, user)
+            self.pool.submit(self.execute_scan, scan_id, request)
         return scan_id
 
     def execute_scan(self, scan_id: str, request: ScanRequest) -> ScanResult | None:
@@ -138,24 +190,29 @@ class JobRunner:
     # ------------------------------------------------------------------ generic jobs
     def submit_job(self, kind: str, subject: str, user: str | None, fn: Callable[[JobContext], dict[str, Any]]) -> str:
         job_id = f"JOB-{secrets.token_hex(4).upper()}"
-        with self.state.db.session() as s:
-            s.add(Job(id=job_id, kind=kind, subject=subject, status="RUNNING", started_by=user, steps=[]))
-        self.state.audit.record(user or "system", f"start_{kind}", subject, extra={"job_id": job_id})
-        self.pool.submit(self._run_job, job_id, fn)
+        with self._lifecycle_lock:
+            self._ensure_accepting()
+            with self.state.db.session() as s:
+                s.add(Job(id=job_id, kind=kind, subject=subject, status=JobStatus.RUNNING.value,
+                          started_by=user, steps=[]))
+            self.state.audit.record(user or "system", f"start_{kind}", subject, extra={"job_id": job_id})
+            self.pool.submit(self._run_job, job_id, fn)
         return job_id
 
     def _run_job(self, job_id: str, fn: Callable[[JobContext], dict[str, Any]]) -> None:
         ctx = JobContext(self.state, job_id)
         try:
             result = fn(ctx)
-            status, error = "COMPLETED", None
+            status, error = JobStatus.COMPLETED.value, None
         except Exception as exc:  # noqa: BLE001 - job failure is recorded and shown
             log.exception("job %s failed", job_id)
-            result, status, error = None, "FAILED", f"{type(exc).__name__}: {exc}"[:2000]
+            result, status, error = None, JobStatus.FAILED.value, f"{type(exc).__name__}: {exc}"[:2000]
             ctx.step("failed", error or "", status="error")
         with self.state.db.session() as s:
             job = s.get(Job, job_id)
             job.status, job.result, job.error, job.completed_at = status, result, error, _now()
 
     def shutdown(self) -> None:
-        self.pool.shutdown(wait=False, cancel_futures=True)
+        with self._lifecycle_lock:
+            self._accepting = False
+        self.pool.shutdown(wait=True, cancel_futures=True)

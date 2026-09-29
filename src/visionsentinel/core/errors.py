@@ -78,3 +78,7 @@ class DuplicatePendingDecisionError(DecisionConflictError):
 
 class SandboxError(VisionSentinelError):
     """The sandboxed model worker failed, was killed, or returned a malformed response."""
+
+
+class RunnerUnavailableError(VisionSentinelError):
+    """Background work cannot be accepted because application shutdown has started."""

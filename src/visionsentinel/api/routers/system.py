@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 
 from ... import __version__
-from ...contracts import ATTACK_CLASSES, CAPABILITY_INFO, Role
+from ...contracts import ATTACK_CLASSES, CAPABILITY_INFO, Role, ScanStatus
 from ...core.profiles import list_profiles, load_profile
 from ...engine.registry import default_registry
 from ...provenance.trust import load_trust_root
@@ -76,7 +76,8 @@ def system_status(state: AppState = Depends(get_state)) -> dict:
         audit = {"intact": rep.intact, "counts": rep.counts, "anchors": len(rep.anchors)}
     with state.db.session() as s:
         latest = s.scalars(select(Scan).order_by(Scan.created_at.desc()).limit(1)).first()
-        running = s.query(Scan).filter(Scan.status.in_(["PENDING", "PROBING", "PLANNED", "RUNNING"])).count()
+        active_statuses = [scan_status.value for scan_status in ScanStatus if not scan_status.terminal]
+        running = s.query(Scan).filter(Scan.status.in_(active_statuses)).count()
     return {
         "version": __version__, "demo_mode": state.settings.demo_mode, "default_profile": state.settings.default_profile,
         "audit_ledger": audit, "running_scans": running,

@@ -223,3 +223,15 @@ class ScanStatus(StrEnum):
     RUNNING = "RUNNING"
     SEALED = "SEALED"
     FAILED = "FAILED"
+
+    @property
+    def terminal(self) -> bool:
+        return self in {ScanStatus.SEALED, ScanStatus.FAILED}
+
+
+class JobStatus(StrEnum):
+    """Persisted lifecycle states for local background jobs."""
+
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"

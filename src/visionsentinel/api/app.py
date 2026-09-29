@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request, status
@@ -10,10 +11,10 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .. import __version__
-from ..core.errors import EvidenceIntegrityError, UnsafeInputError, VisionSentinelError
+from ..core.errors import EvidenceIntegrityError, RunnerUnavailableError, UnsafeInputError, VisionSentinelError
 from ..core.workspace import Workspace
 from .routers import assets, attacklab, auth, drift, evidence, findings, governance, provenance, scans, system
-from .runner import JobRunner
+from .runner import JobRunner, recover_interrupted_work
 from .security import BodyLimit, SecurityHeaders
 from .settings import Settings
 from .state import AppState
@@ -29,8 +30,17 @@ def create_app(
     settings = settings or Settings.from_env()
     ws = workspace or Workspace.default()
     app_state = AppState.create(settings, ws)
+    recover_interrupted_work(app_state)
     runner = JobRunner(app_state)
     app_state.runner = runner
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        try:
+            yield
+        finally:
+            runner.shutdown()
+            app_state.db.dispose()
 
     app = FastAPI(
         title="VisionX",
@@ -39,6 +49,7 @@ def create_app(
         docs_url="/api/docs",
         redoc_url=None,
         openapi_url="/api/openapi.json",
+        lifespan=lifespan,
     )
     app.state.vs = app_state
 
@@ -83,6 +94,10 @@ def create_app(
             status_code=status.HTTP_409_CONFLICT,
             content={"error": f"evidence integrity check failed: {exc}"},
         )
+
+    @app.exception_handler(RunnerUnavailableError)
+    async def runner_unavailable_handler(request: Request, exc: RunnerUnavailableError):
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"error": str(exc)})
 
     # Static Dashboard fallback if configured
     dash_dir = settings.dashboard_dir
