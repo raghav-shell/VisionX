@@ -13,13 +13,15 @@ Rules (each one is tested as an invariant):
 from __future__ import annotations
 
 import secrets
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from ..contracts import Disposition, Role
-from ..core.errors import AuthorizationError, GovernanceError
+from ..contracts import Disposition, Role, Severity
+from ..core.errors import (AuthorizationError, DecisionAlreadyResolvedError, DecisionNotFoundError,
+                           DuplicatePendingDecisionError, GovernanceError, ProtectedFindingError)
 from ..provenance.canonical import entry_hash
 from ..provenance.ledger import LedgerWriter
 from ..storage import AuditEvent, Database, Decision, FindingState, User
@@ -32,6 +34,10 @@ CRYPTO_CLASSES = frozenset({"record_modification", "record_deletion", "record_re
                             "config_binding_violation"})
 MIN_JUSTIFICATION = 20
 MAX_TEXT = 2000
+DECISION_PENDING = "PENDING"
+DECISION_APPLIED = "APPLIED"
+DECISION_APPROVED = "APPROVED"
+DECISION_REJECTED = "REJECTED"
 
 
 def _now() -> datetime:
@@ -61,6 +67,9 @@ class GovernanceService:
     def __init__(self, db: Database, audit: AuditTrail) -> None:
         self.db = db
         self.audit = audit
+        # The application uses one service per process. Serialize governance transitions so
+        # concurrent requests cannot both validate the same pending decision before mutation.
+        self._transition_lock = threading.RLock()
 
     # ------------------------------------------------------------------ helpers
     def _finding(self, s, finding_id: str) -> FindingState:
@@ -112,68 +121,75 @@ class GovernanceService:
     # ------------------------------------------------------------------ decisions
     def request_decision(self, actor: User, finding_id: str, to: Disposition, reason_code: str,
                          justification: str) -> Decision:
-        require_role(actor, Role.ANALYST)
-        if reason_code not in REASON_CODES:
-            raise GovernanceError(f"reason code must be one of {', '.join(REASON_CODES)}")
-        justification = self._text(justification, "justification", MIN_JUSTIFICATION)
-        with self.db.session() as s:
-            f = self._finding(s, finding_id)
-            current = Disposition(f.disposition)
-            if to == current:
-                raise GovernanceError(f"finding is already {current.value}")
-            if (to == Disposition.ACCEPT and f.deterministic and f.attack_class in CRYPTO_CLASSES
-                    and f.severity in ("HIGH", "CRITICAL")):
-                raise GovernanceError("a deterministic cryptographic or binding failure cannot be accepted; the records "
-                                      "concerned remain untrusted regardless of approval")
-            if s.scalar(select(Decision).where(Decision.finding_id == finding_id, Decision.status == "PENDING")):
-                raise GovernanceError("a decision for this finding is already awaiting approval")
-            sensitive = to.rank < current.rank
-            d = Decision(id="D-" + secrets.token_hex(5).upper(), finding_id=finding_id, scan_id=f.scan_id,
-                         requested_by=actor.username, from_disposition=current.value, to_disposition=to.value,
-                         reason_code=reason_code, justification=justification, sensitive=sensitive,
-                         status="PENDING" if sensitive else "APPLIED")
-            s.add(d)
-            if sensitive:
-                f.status = "PENDING_DECISION"
-            else:
-                f.disposition = to.value
-                d.decided_by, d.decided_at = actor.username, _now()
-        self.audit.record(actor.username, "request_decision" if sensitive else "apply_escalation", finding_id,
-                          old=current.value, new=to.value, reason_code=reason_code, justification=justification,
-                          extra={"decision_id": d.id, "sensitive": sensitive})
-        return d
+        with self._transition_lock:
+            require_role(actor, Role.ANALYST)
+            if reason_code not in REASON_CODES:
+                raise GovernanceError(f"reason code must be one of {', '.join(REASON_CODES)}")
+            justification = self._text(justification, "justification", MIN_JUSTIFICATION)
+            with self.db.session() as s:
+                f = self._finding(s, finding_id)
+                current = Disposition(f.disposition)
+                if to == current:
+                    raise GovernanceError(f"finding is already {current.value}")
+                if (to == Disposition.ACCEPT and f.deterministic and f.attack_class in CRYPTO_CLASSES
+                        and f.severity in {severity.value for severity in (Severity.HIGH, Severity.CRITICAL)}):
+                    raise ProtectedFindingError("a deterministic cryptographic or binding failure cannot be accepted; the records "
+                                                "concerned remain untrusted regardless of approval")
+                if s.scalar(select(Decision).where(Decision.finding_id == finding_id,
+                                                   Decision.status == DECISION_PENDING)):
+                    raise DuplicatePendingDecisionError("a decision for this finding is already awaiting approval")
+                sensitive = to.rank < current.rank
+                d = Decision(id="D-" + secrets.token_hex(5).upper(), finding_id=finding_id, scan_id=f.scan_id,
+                             requested_by=actor.username, from_disposition=current.value, to_disposition=to.value,
+                             reason_code=reason_code, justification=justification, sensitive=sensitive,
+                             status=DECISION_PENDING if sensitive else DECISION_APPLIED)
+                s.add(d)
+                if sensitive:
+                    f.status = "PENDING_DECISION"
+                else:
+                    f.disposition = to.value
+                    d.decided_by, d.decided_at = actor.username, _now()
+            self.audit.record(actor.username, "request_decision" if sensitive else "apply_escalation", finding_id,
+                              old=current.value, new=to.value, reason_code=reason_code, justification=justification,
+                              extra={"decision_id": d.id, "sensitive": sensitive})
+            return d
 
     def _decide(self, actor: User, decision_id: str, approve: bool, note: str) -> Decision:
-        with self.db.session() as s:
-            d = s.get(Decision, decision_id)
-            if d is None:
-                raise GovernanceError(f"decision {decision_id} not found")
-            if d.status != "PENDING":
-                raise GovernanceError(f"decision {decision_id} is {d.status}, not PENDING")
-            requester = d.requested_by
-        if actor.username == requester:
-            self.audit.record(actor.username, "self_approval_refused", decision_id, old="PENDING", new="PENDING",
-                              justification="two-person rule: the requester cannot decide their own request")
-            raise AuthorizationError("two-person rule: you cannot approve or reject your own request")
-        try:
-            require_role(actor, Role.APPROVER)
-        except AuthorizationError:
-            self.audit.record(actor.username, "approval_refused_role", decision_id, old="PENDING", new="PENDING")
-            raise
-        with self.db.session() as s:
-            d = s.get(Decision, decision_id)
-            f = self._finding(s, d.finding_id)
-            d.status = "APPROVED" if approve else "REJECTED"
-            d.decided_by, d.decided_at, d.decision_note = actor.username, _now(), note[:MAX_TEXT] if note else None
-            old = f.disposition
-            if approve:
-                f.disposition = d.to_disposition
-            f.status = "DECIDED" if approve else ("ACKNOWLEDGED" if f.acknowledged_by else "OPEN")
-            new = f.disposition
-        self.audit.record(actor.username, "approve_decision" if approve else "reject_decision", d.finding_id, old=old,
-                          new=new, reason_code=d.reason_code, justification=note or None,
-                          extra={"decision_id": decision_id, "requested_by": requester})
-        return d
+        with self._transition_lock:
+            with self.db.session() as s:
+                d = s.get(Decision, decision_id)
+                if d is None:
+                    raise DecisionNotFoundError(f"decision {decision_id} not found")
+                requester = d.requested_by
+            if actor.username == requester:
+                self.audit.record(actor.username, "self_approval_refused", decision_id, old=DECISION_PENDING,
+                                  new=DECISION_PENDING,
+                                  justification="two-person rule: the requester cannot decide their own request")
+                raise AuthorizationError("two-person rule: you cannot approve or reject your own request")
+            try:
+                require_role(actor, Role.APPROVER)
+            except AuthorizationError:
+                self.audit.record(actor.username, "approval_refused_role", decision_id, old=DECISION_PENDING,
+                                  new=DECISION_PENDING)
+                raise
+            with self.db.session() as s:
+                d = s.get(Decision, decision_id)
+                if d is None:
+                    raise DecisionNotFoundError(f"decision {decision_id} not found")
+                if d.status != DECISION_PENDING:
+                    raise DecisionAlreadyResolvedError(f"decision {decision_id} is already resolved")
+                f = self._finding(s, d.finding_id)
+                d.status = DECISION_APPROVED if approve else DECISION_REJECTED
+                d.decided_by, d.decided_at, d.decision_note = actor.username, _now(), note[:MAX_TEXT] if note else None
+                old = f.disposition
+                if approve:
+                    f.disposition = d.to_disposition
+                f.status = "DECIDED" if approve else ("ACKNOWLEDGED" if f.acknowledged_by else "OPEN")
+                new = f.disposition
+            self.audit.record(actor.username, "approve_decision" if approve else "reject_decision", d.finding_id,
+                              old=old, new=new, reason_code=d.reason_code, justification=note or None,
+                              extra={"decision_id": decision_id, "requested_by": requester})
+            return d
 
     def approve(self, actor: User, decision_id: str, note: str = "") -> Decision:
         return self._decide(actor, decision_id, True, note)

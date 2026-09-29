@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import desc, func, select
 
 from ...contracts import Role
+from ...core.errors import AuthorizationError, DecisionConflictError, DecisionNotFoundError, GovernanceError
 from ...provenance.trust import load_trust_root
 from ...provenance.verifier import verify_ledger
-from ...storage import AuditEvent, Decision
+from ...storage import AuditEvent, Decision, FindingState
 from ..deps import Principal, get_state, mutation, require
 from ..state import AppState
 
@@ -18,12 +21,50 @@ router = APIRouter(prefix="/api/governance", tags=["governance"])
 
 class ApproveBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    justification: str = Field(min_length=1, max_length=1000)
+    justification: str = ""
 
 
 class RejectBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    justification: str = Field(min_length=1, max_length=1000)
+    justification: str = ""
+
+
+def serialize_decision(decision: Decision, finding_state: FindingState | None = None) -> dict[str, Any]:
+    """Canonical Decision representation using persisted fields plus derived finding state."""
+    return {
+        "id": decision.id,
+        "finding_id": decision.finding_id,
+        "scan_id": decision.scan_id,
+        "requested_by": decision.requested_by,
+        "requested_at": decision.requested_at.isoformat() if decision.requested_at else None,
+        "from_disposition": decision.from_disposition,
+        "to_disposition": decision.to_disposition,
+        "reason_code": decision.reason_code,
+        "justification": decision.justification,
+        "sensitive": decision.sensitive,
+        "status": decision.status,
+        "decided_by": decision.decided_by,
+        "decided_at": decision.decided_at.isoformat() if decision.decided_at else None,
+        "decision_note": decision.decision_note,
+        "current_disposition": finding_state.disposition if finding_state is not None else None,
+    }
+
+
+def _decision_http_error(exc: GovernanceError) -> HTTPException:
+    if isinstance(exc, AuthorizationError):
+        return HTTPException(status.HTTP_403_FORBIDDEN, str(exc))
+    if isinstance(exc, DecisionNotFoundError):
+        return HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
+    if isinstance(exc, DecisionConflictError):
+        return HTTPException(status.HTTP_409_CONFLICT, str(exc))
+    return HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+
+
+def _finding_states(s, finding_ids: list[str]) -> dict[str, FindingState]:
+    if not finding_ids:
+        return {}
+    rows = s.scalars(select(FindingState).where(FindingState.finding_id.in_(finding_ids))).all()
+    return {row.finding_id: row for row in rows}
 
 
 @router.get("/decisions", dependencies=[Depends(require(Role.VIEWER))])
@@ -40,35 +81,28 @@ def list_decisions(
         base = select(Decision).where(*filters)
         total = s.scalar(select(func.count()).select_from(base.subquery())) or 0
         rows = s.scalars(base.order_by(desc(Decision.requested_at), desc(Decision.id)).offset(offset).limit(limit)).all()
+        finding_states = _finding_states(s, [row.finding_id for row in rows])
         return {
             "total": total,
-            "decisions": [
-                {
-                    "id": r.id,
-                    "finding_id": r.finding_id,
-                    "scan_id": r.scan_id,
-                    "requested_by": r.requested_by,
-                    "decided_by": r.decided_by,
-                    "status": r.status,
-                    "from_disposition": r.from_disposition,
-                    "to_disposition": r.to_disposition,
-                    "reason_code": r.reason_code,
-                    "justification": r.justification,
-                    "sensitive": r.sensitive,
-                    "requested_at": r.requested_at.isoformat() if r.requested_at else None,
-                    "decided_at": r.decided_at.isoformat() if r.decided_at else None,
-                    "decision_note": r.decision_note,
-                }
-                for r in rows
-            ],
+            "decisions": [serialize_decision(r, finding_states.get(r.finding_id)) for r in rows],
         }
+
+
+@router.get("/decisions/{decision_id}", dependencies=[Depends(require(Role.VIEWER))])
+def get_decision(decision_id: str, state: AppState = Depends(get_state)) -> dict:
+    with state.db.session() as s:
+        decision = s.get(Decision, decision_id)
+        if decision is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"decision {decision_id!r} not found")
+        finding_state = s.get(FindingState, decision.finding_id)
+        return serialize_decision(decision, finding_state)
 
 
 @router.post("/decisions/{decision_id}/approve")
 def approve_decision(
     decision_id: str,
     body: ApproveBody,
-    principal: Principal = Depends(mutation(Role.APPROVER)),
+    principal: Principal = Depends(mutation(Role.VIEWER)),
     state: AppState = Depends(get_state),
 ) -> dict:
     try:
@@ -77,21 +111,17 @@ def approve_decision(
             decision_id=decision_id,
             note=body.justification,
         )
-        return {
-            "decision_id": dec.id,
-            "status": dec.status,
-            "approved_by": dec.decided_by,
-            "effective_disposition": dec.to_disposition,
-        }
-    except Exception as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+        with state.db.session() as s:
+            return serialize_decision(dec, s.get(FindingState, dec.finding_id))
+    except GovernanceError as exc:
+        raise _decision_http_error(exc) from exc
 
 
 @router.post("/decisions/{decision_id}/reject")
 def reject_decision(
     decision_id: str,
     body: RejectBody,
-    principal: Principal = Depends(mutation(Role.APPROVER)),
+    principal: Principal = Depends(mutation(Role.VIEWER)),
     state: AppState = Depends(get_state),
 ) -> dict:
     try:
@@ -100,13 +130,10 @@ def reject_decision(
             decision_id=decision_id,
             note=body.justification,
         )
-        return {
-            "decision_id": dec.id,
-            "status": dec.status,
-            "decided_by": dec.decided_by,
-        }
-    except Exception as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+        with state.db.session() as s:
+            return serialize_decision(dec, s.get(FindingState, dec.finding_id))
+    except GovernanceError as exc:
+        raise _decision_http_error(exc) from exc
 
 
 @router.get("/audit", dependencies=[Depends(require(Role.VIEWER))])

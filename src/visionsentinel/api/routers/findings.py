@@ -7,13 +7,15 @@ from collections import defaultdict
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import asc, desc, func, select
 
 from ...contracts import Disposition, Finding, Role, ScanStatus, Severity
+from ...core.errors import GovernanceError
 from ...storage import Decision, FindingState, Scan
 from ..deps import Principal, get_state, mutation, require
 from ..state import AppState
+from .governance import _decision_http_error, serialize_decision
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/findings", tags=["findings"])
@@ -22,8 +24,8 @@ router = APIRouter(prefix="/api/findings", tags=["findings"])
 class DecisionRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     target_disposition: Disposition
-    reason_code: str = Field(min_length=1, max_length=64)
-    justification: str = Field(min_length=1, max_length=1000)
+    reason_code: str
+    justification: str
 
 
 def _state_dict(row: FindingState) -> dict[str, Any]:
@@ -183,13 +185,7 @@ def request_decision(
             reason_code=body.reason_code,
             justification=body.justification,
         )
-        return {
-            "decision_id": dec.id,
-            "status": dec.status,
-            "finding_id": dec.finding_id,
-            "target_disposition": dec.to_disposition,
-            "requires_second_user": dec.sensitive,
-            "from_disposition": dec.from_disposition,
-        }
-    except Exception as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+        with state.db.session() as session:
+            return serialize_decision(dec, session.get(FindingState, dec.finding_id))
+    except GovernanceError as exc:
+        raise _decision_http_error(exc) from exc

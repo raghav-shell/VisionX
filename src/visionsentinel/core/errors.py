@@ -56,5 +56,25 @@ class AuthorizationError(GovernanceError):
     pass
 
 
+class DecisionNotFoundError(GovernanceError):
+    pass
+
+
+class DecisionConflictError(GovernanceError):
+    pass
+
+
+class ProtectedFindingError(DecisionConflictError):
+    pass
+
+
+class DecisionAlreadyResolvedError(DecisionConflictError):
+    pass
+
+
+class DuplicatePendingDecisionError(DecisionConflictError):
+    pass
+
+
 class SandboxError(VisionSentinelError):
     """The sandboxed model worker failed, was killed, or returned a malformed response."""

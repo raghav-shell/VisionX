@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 from visionsentinel.api.app import create_app
 from visionsentinel.api.settings import Settings
 from visionsentinel.core.workspace import Workspace
-from visionsentinel.storage import Database, Scan, ScanEvent, User
+from visionsentinel.storage import Scan, ScanEvent
 from visionsentinel.contracts import Disposition, ScanStatus
 from visionsentinel.engine.registry import default_registry
 
@@ -274,9 +274,17 @@ def test_attacklab_run_and_governance_workflow(api_client):
     )
     assert dec_req_res.status_code == 201
     dec_data = dec_req_res.json()
-    decision_id = dec_data["decision_id"]
-    assert dec_data["requires_second_user"] is True
+    decision_id = dec_data["id"]
+    assert dec_data["sensitive"] is True
     assert dec_data["status"] == "PENDING"
+    decision_detail = api_client.get(f"/api/governance/decisions/{decision_id}")
+    assert decision_detail.status_code == 200
+    assert decision_detail.json()["id"] == decision_id
+    assert decision_detail.json()["current_disposition"] == dec_data["current_disposition"]
+    decision_list = api_client.get(f"/api/governance/decisions?status={dec_data['status']}&limit=1")
+    assert decision_list.status_code == 200
+    assert decision_list.json()["total"] >= 1
+    assert all(item["status"] == dec_data["status"] for item in decision_list.json()["decisions"])
 
     # 5. Analyst cannot self-approve sensitive downgrade (two-person rule enforcement)
     self_approve_res = api_client.post(
@@ -304,8 +312,8 @@ def test_attacklab_run_and_governance_workflow(api_client):
     )
     assert approve_res.status_code == 200
     assert approve_res.json()["status"] == "APPROVED"
-    assert approve_res.json()["approved_by"] == "approver"
-    effective_disposition = approve_res.json()["effective_disposition"]
+    assert approve_res.json()["decided_by"] == "approver"
+    effective_disposition = approve_res.json()["current_disposition"]
 
     detail_after = api_client.get(f"/api/findings/{finding_id}")
     assert detail_after.status_code == 200
