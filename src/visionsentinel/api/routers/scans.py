@@ -98,7 +98,8 @@ def submit_scan(
     principal: Principal = Depends(mutation(Role.ANALYST)),
     state: AppState = Depends(get_state),
 ) -> dict:
-    # Resolve any asset IDs provided in the request body to workspace paths
+    # The web boundary accepts workspace asset identifiers only. Permitting arbitrary
+    # server paths here would turn an analyst session into a filesystem oracle.
     req_dict = body.model_dump()
     resolved_paths: dict[str, Path] = {}
     with state.db.session() as s:
@@ -112,10 +113,10 @@ def submit_scan(
             val = req_dict.get(field_name)
             if val:
                 asset = s.get(Asset, val)
-                if asset is not None:
-                    resolved_paths[field_name] = Path(asset.path)
-                else:
-                    resolved_paths[field_name] = Path(val)
+                if asset is None:
+                    raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                        f"{field_name} must be an imported asset identifier")
+                resolved_paths[field_name] = Path(asset.path)
 
     scan_req = ScanRequest(
         name=body.name,

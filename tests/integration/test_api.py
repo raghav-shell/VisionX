@@ -110,6 +110,40 @@ def test_csrf_rejection_on_mutation(api_client):
     assert "CSRF" in bad_res.json()["detail"]
 
 
+def test_web_routes_reject_raw_server_paths(api_client):
+    """Browser clients may select registered assets, never arbitrary host paths."""
+    login = api_client.post(
+        "/api/auth/login",
+        json={"username": "analyst", "password": "analystpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    csrf = login.json()["csrf"]
+    headers = {"X-CSRF-Token": csrf, "Origin": "http://testserver"}
+
+    scan = api_client.post(
+        "/api/scans",
+        json={"name": "raw-path-attempt", "dataset": "/etc/passwd"},
+        headers=headers,
+    )
+    assert scan.status_code == 422
+    assert "imported asset identifier" in scan.json()["detail"]
+
+    drift = api_client.post(
+        "/api/drift/analyze",
+        json={"incoming_data": "/etc/passwd"},
+        headers=headers,
+    )
+    assert drift.status_code == 422
+    assert "imported asset identifier" in drift.json()["detail"]
+
+    provenance = api_client.post(
+        "/api/provenance/verify",
+        json={"ledger_path": "/etc/passwd"},
+        headers=headers,
+    )
+    assert provenance.status_code == 422
+
+
 def test_origin_check_rejection(api_client):
     # Login
     login_res = api_client.post(

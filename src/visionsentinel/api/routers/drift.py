@@ -39,16 +39,24 @@ def analyze_drift(
     with state.db.session() as s:
         if body.reference_dataset:
             a = s.get(Asset, body.reference_dataset)
-            ref_path = Path(a.path) if a else Path(body.reference_dataset)
-        if body.incoming_data:
-            a = s.get(Asset, body.incoming_data)
-            inc_path = Path(a.path) if a else Path(body.incoming_data)
+            if a is None:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                    "reference_dataset must be an imported asset identifier")
+            ref_path = Path(a.path)
+        a = s.get(Asset, body.incoming_data)
+        if a is None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                "incoming_data must be an imported asset identifier")
+        inc_path = Path(a.path)
         if body.model:
             a = s.get(Asset, body.model)
-            model_path = Path(a.path) if a else Path(body.model)
+            if a is None:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                    "model must be an imported asset identifier")
+            model_path = Path(a.path)
 
-    if not inc_path or not inc_path.exists():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "incoming operational data path not found")
+    if not inc_path.exists():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "incoming operational data asset is unavailable")
 
     req = ScanRequest(
         name="on-demand drift assessment",
