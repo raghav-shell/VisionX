@@ -58,6 +58,8 @@ export default function Home() {
 
       <CTASection />
 
+      <div aria-hidden="true" className="h-24 bg-black md:h-32 lg:h-40" />
+
       <Footer />
     </main>
   );
