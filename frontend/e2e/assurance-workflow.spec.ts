@@ -33,7 +33,7 @@ test("analyst can upload, run, inspect, request and audit a governed scan", asyn
     justification: "E2E governance request has sufficient explanation for independent review.",
   } });
   expect(request.status()).toBe(201);
-  const decisionId = (await request.json()).decision_id;
+  const decisionId = (await request.json()).id;
   const selfApproval = await context.request.post(`/api/governance/decisions/${decisionId}/approve`, { headers, data: { justification: "Self approval must fail." } });
   expect(selfApproval.status()).toBe(403);
 
@@ -57,7 +57,7 @@ test("a second approver can approve a pending request", async ({ browser }) => {
   const approverPage = await approver.newPage();
   await login(approverPage, "approver", "approverpassword");
   const approverSession = await approver.request.get("/api/auth/me");
-  const response = await approver.request.post(`/api/governance/decisions/${(await decision.json()).decision_id}/approve`, { headers: { Origin: "http://127.0.0.1:4173", "X-CSRF-Token": (await approverSession.json()).csrf }, data: { justification: "Independent approver completed the E2E disposition review." } });
+  const response = await approver.request.post(`/api/governance/decisions/${(await decision.json()).id}/approve`, { headers: { Origin: "http://127.0.0.1:4173", "X-CSRF-Token": (await approverSession.json()).csrf }, data: { justification: "Independent approver completed the E2E disposition review." } });
   expect(response.ok()).toBeTruthy();
   await analyst.close(); await approver.close();
 });
