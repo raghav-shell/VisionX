@@ -20,7 +20,12 @@ assets/models/*
 !assets/models/README.md
 !assets/models/checksums.json
 
-# Dashboard
+# Frontend / Dashboard
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
 apps/dashboard/node_modules/
 apps/dashboard/.next/
 apps/dashboard/out/
