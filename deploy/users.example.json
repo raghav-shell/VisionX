@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "username": "analyst01",
+      "password": "replace-with-a-unique-local-password",
+      "role": "ANALYST",
+      "display_name": "Lead Analyst"
+    },
+    {
+      "username": "approver01",
+      "password": "replace-with-a-different-local-password",
+      "role": "APPROVER",
+      "display_name": "Assurance Officer"
+    }
+  ]
+}

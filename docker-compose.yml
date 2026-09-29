@@ -1,0 +1,22 @@
+services:
+  visionsentinel:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: visionsentinel:local
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      VISIONSENTINEL_HOME: /var/lib/visionsentinel
+      VISIONSENTINEL_DASHBOARD: /opt/visionsentinel/dashboard
+      # Local HTTP only. Terminate TLS upstream and remove this setting in deployment.
+      VISIONSENTINEL_INSECURE_COOKIES: "1"
+      VISIONSENTINEL_SEED_FILE: /run/secrets/users.json
+    volumes:
+      - visionsentinel-data:/var/lib/visionsentinel
+      # This file is deliberately gitignored. It contains local bootstrap credentials.
+      - ./deploy/users.json:/run/secrets/users.json:ro
+    restart: unless-stopped
+
+volumes:
+  visionsentinel-data:

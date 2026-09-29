@@ -1,0 +1,40 @@
+name: quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m pytest tests/unit tests/integration tests/security tests/regression -q
+      - run: python -m visionsentinel.cli.main selftest --airgap
+      - run: python -m visionsentinel.cli.main schemas --out /tmp/schemas
+      - run: python -m visionsentinel.cli.main attacklab list
+
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high

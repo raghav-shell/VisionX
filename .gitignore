@@ -45,3 +45,5 @@ apps/dashboard/playwright-report/
 !tests/**/fixtures/**/*.pem
 .env
 .env.*
+deploy/users.json
+dist/
