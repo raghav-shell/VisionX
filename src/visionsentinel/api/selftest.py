@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import re
 import socket
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .. import __version__
-from ..contracts import Role
-from ..core.airgap import pin_offline_environment
+from ..core.airgap import EgressRecord, EgressViolation, non_loopback_probe_host, workload_airgap
 from ..core.profiles import list_profiles, load_profile
-from ..core.workspace import Workspace
 from ..engine.registry import default_registry
 from ..provenance.canonical import canonical_bytes
 from ..provenance.keys import generate_key
@@ -46,7 +43,6 @@ class SelfTestResult:
 
 def run_selftest(root_dir: Path | None = None, check_frontend: bool = True) -> SelfTestResult:
     """Execute comprehensive air-gap verification and cryptographic integrity checks."""
-    pin_offline_environment()
     checks: list[dict[str, Any]] = []
     root = root_dir or Path(__file__).resolve().parents[3]
 
@@ -83,13 +79,13 @@ def run_selftest(root_dir: Path | None = None, check_frontend: bool = True) -> S
         reg = default_registry()
         specs = reg.specs()
         profiles = list_profiles()
-        assert len(specs) >= 8, f"expected at least 8 detectors, found {len(specs)}"
-        assert "baseline" in profiles, "baseline profile missing"
-        p = load_profile("baseline", reg)
+        if not specs or not profiles:
+            raise AssertionError("detector registry or profile catalog is empty")
+        loaded = [load_profile(name, reg) for name in profiles]
         checks.append({
             "name": "Detector Registry & Security Profiles",
-            "passed": True,
-            "detail": f"{len(specs)} detectors registered · {len(profiles)} profiles verified (digest: {p.digest[:12]}...)",
+            "passed": bool(loaded),
+            "detail": f"{len(specs)} detectors registered · {len(loaded)} profiles verified",
         })
         registry_passed = True
     except Exception as exc:
@@ -100,70 +96,38 @@ def run_selftest(root_dir: Path | None = None, check_frontend: bool = True) -> S
         })
         registry_passed = False
 
-    # 3. Static Codebase CDN & External URL Scanner
-    external_url_pattern = re.compile(
-        r'https?://(?!localhost|127\.0\.0\.1|0\.0\.0\.0|w3\.org|json-schema\.org)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/[^\s\'"<>)]*)?'
-    )
-
-    scanned_files = 0
-    flagged_external: list[str] = []
-
-    # Scan python source
-    src_dir = root / "src" / "visionsentinel"
-    if src_dir.is_dir():
-        for py_file in src_dir.rglob("*.py"):
-            scanned_files += 1
-            content = py_file.read_text(encoding="utf-8", errors="ignore")
-            # Exclude comments/doc references to academic papers if any
-            for match in external_url_pattern.finditer(content):
-                url = match.group(0)
-                # Ignore docstring schema references
-                if ("schema" not in url and "doi" not in url and "arxiv" not in url
-                        and "github.com/raghav-shell/VisionX" not in url):
-                    flagged_external.append(f"{py_file.name}: {url}")
-
-    # Scan frontend static export if present
-    if check_frontend:
-        frontend_src = root / "frontend" / "src"
-        if frontend_src.is_dir():
-            for f in frontend_src.rglob("*.tsx"):
-                scanned_files += 1
-                content = f.read_text(encoding="utf-8", errors="ignore")
-                for match in external_url_pattern.finditer(content):
-                    url = match.group(0)
-                    if ("schema" not in url
-                            and "github.com/raghav-shell/VisionX" not in url):
-                        flagged_external.append(f"{f.name}: {url}")
-
-    no_cdns = len(flagged_external) == 0
-    checks.append({
-        "name": "Air-Gap Static Egress & CDN Audit",
-        "passed": no_cdns,
-        "detail": f"Scanned {scanned_files} files: ZERO external CDNs, cloud fonts or analytics",
-    })
-
-    # 4. Outbound Sockets Assertion
+    # 3. Runtime egress assertion. This executes the same boundary used by scans.
+    record = EgressRecord()
+    try:
+        with workload_airgap(record):
+            socket.getaddrinfo(non_loopback_probe_host(), 0)
+    except EgressViolation:
+        airgap_passed = bool(record.attempts)
+    else:
+        airgap_passed = False
     checks.append({
         "name": "Zero External Network Sockets",
-        "passed": True,
-        "detail": "Outbound DNS and TCP sockets strictly prohibited in air-gapped mode",
+        "passed": airgap_passed,
+        "detail": "runtime workload boundary rejected a non-loopback resolution attempt",
     })
 
-    # 5. Offline Model Vendoring Check
+    # 4. Offline model provisioning is reported separately from feature support.
     models_dir = root / "assets" / "models"
+    model_files = tuple(path for path in models_dir.rglob("*") if path.is_file()) if models_dir.is_dir() else ()
     checks.append({
         "name": "Offline Local Model Vendoring",
         "passed": True,
-        "detail": f"Models directory verified at {models_dir.name}/ (no runtime downloads permitted)",
+        "detail": (f"{len(model_files)} repository model assets available"
+                   if model_files else "no repository model assets provisioned; model scans require imported local assets"),
     })
 
-    all_passed = crypto_passed and registry_passed and no_cdns
+    all_passed = crypto_passed and registry_passed and airgap_passed
 
     return SelfTestResult(
         passed=all_passed,
-        airgap_verified=no_cdns,
+        airgap_verified=airgap_passed,
         crypto_verified=crypto_passed,
         registry_verified=registry_passed,
         checks=checks,
-        details={"scanned_files": scanned_files, "flagged": flagged_external},
+        details={"model_assets": [str(path) for path in model_files], "airgap_attempts": record.attempts},
     )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import socket
 import urllib.request
 
@@ -52,3 +53,20 @@ def test_guard_allows_loopback():
         finally:
             cli.close()
             srv.close()
+
+
+def test_scan_execution_boundary_uses_airgap_policy(monkeypatch):
+    from visionsentinel.engine import scan
+
+    entered = False
+
+    @contextmanager
+    def boundary():
+        nonlocal entered
+        entered = True
+        yield
+
+    monkeypatch.setattr(scan, "workload_airgap", boundary)
+    monkeypatch.setattr(scan, "_run_scan", lambda *args, **kwargs: object())
+    assert scan.run_scan(object()) is not None
+    assert entered

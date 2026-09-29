@@ -24,6 +24,7 @@ from ..contracts import (
     ScanSummary,
     Severity,
 )
+from ..core.airgap import workload_airgap
 from ..core.capabilities import CapabilitySet
 from ..core.context import DetectorContext
 from ..core.detector import PlanContext
@@ -63,6 +64,16 @@ def new_scan_id(now: datetime) -> str:
 def run_scan(request: ScanRequest, *, workspace: Workspace | None = None, registry: DetectorRegistry | None = None,
              on_event: Callable[[ScanEvent], None] | None = None, scan_time: datetime | None = None,
              on_plan: Callable[[ScanResult], None] | None = None) -> ScanResult:
+    """Run one scan inside the shared offline/egress enforcement boundary."""
+    with workload_airgap():
+        return _run_scan(request, workspace=workspace, registry=registry, on_event=on_event,
+                         scan_time=scan_time, on_plan=on_plan)
+
+
+def _run_scan(request: ScanRequest, *, workspace: Workspace | None = None,
+              registry: DetectorRegistry | None = None,
+              on_event: Callable[[ScanEvent], None] | None = None, scan_time: datetime | None = None,
+              on_plan: Callable[[ScanResult], None] | None = None) -> ScanResult:
     workspace = (workspace or Workspace.default()).ensure()
     registry = registry or default_registry()
     now = scan_time or datetime.now(timezone.utc)

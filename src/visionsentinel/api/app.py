@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .. import __version__
+from ..core.airgap import EgressViolation
 from ..core.errors import EvidenceIntegrityError, RunnerUnavailableError, UnsafeInputError, VisionSentinelError
 from ..core.workspace import Workspace
 from .routers import assets, attacklab, auth, drift, evidence, findings, governance, provenance, scans, system
@@ -98,6 +99,11 @@ def create_app(
     @app.exception_handler(RunnerUnavailableError)
     async def runner_unavailable_handler(request: Request, exc: RunnerUnavailableError):
         return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"error": str(exc)})
+
+    @app.exception_handler(EgressViolation)
+    async def egress_violation_handler(request: Request, exc: EgressViolation):
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            content={"error": "offline workload policy blocked external network access"})
 
     # Static Dashboard fallback if configured
     dash_dir = settings.dashboard_dir

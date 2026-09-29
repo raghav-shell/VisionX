@@ -130,6 +130,20 @@ def egress_guard(record: EgressRecord | None = None):
         socket.gethostbyname_ex = orig_gethostbyname_ex  # type: ignore[assignment]
 
 
+@contextmanager
+def workload_airgap(record: EgressRecord | None = None):
+    """Apply offline library settings and the egress policy to one workload."""
+    pin_offline_environment()
+    with egress_guard(record) as active_record:
+        yield active_record
+
+
+def non_loopback_probe_host() -> str:
+    """Return a policy-derived address suitable for proving egress rejection."""
+    network = ipaddress.ip_network("0.0.0.0/0")
+    return next(str(address) for address in network.hosts() if not _is_loopback_host(address))
+
+
 def pin_offline_environment() -> None:
     """Defence in depth: tell third-party libraries never to reach model hubs."""
     for key in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE", "NEXT_TELEMETRY_DISABLED",
