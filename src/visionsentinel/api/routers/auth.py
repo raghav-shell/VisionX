@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ... import __version__
 from ...contracts import Role
 from ...governance import authenticate
-from ..deps import Principal, client_key, current_principal, get_state, mutation, same_origin_only, viewer_or_demo
+from ..deps import Principal, client_key, get_state, mutation, same_origin_only, viewer_or_demo
 from ..security import SESSION_COOKIE, create_session, drop_session
 from ..state import AppState
 
@@ -29,15 +29,18 @@ def user_view(u) -> dict:
 def login(body: LoginBody, request: Request, response: Response, state: AppState = Depends(get_state)) -> dict:
     ip = client_key(request)
     limit = state.settings.login_attempts_per_minute
-    if not (state.limiter.allow(f"login-ip:{ip}", limit * 3) and state.limiter.allow(f"login-user:{body.username}", limit)):
+    if not (state.limiter.allow(f"login-ip:{ip}", limit * state.settings.login_ip_rate_multiplier) and
+            state.limiter.allow(f"login-user:{body.username}", limit)):
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "too many login attempts; wait a minute")
     user = authenticate(state.db, body.username, body.password)
     if user is None:
         state.audit.record(body.username[:64], "login_failed", "session", justification=f"client {ip}")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid username or password")
     token, csrf = create_session(state.db, user, ip, state.settings.session_ttl_minutes)
-    response.set_cookie(SESSION_COOKIE, token, max_age=state.settings.session_ttl_minutes * 60, httponly=True,
-                        secure=state.settings.secure_cookies, samesite="strict", path="/")
+    response.set_cookie(SESSION_COOKIE, token, max_age=state.settings.session_ttl_minutes * 60,
+                        httponly=state.settings.session_cookie_httponly,
+                        secure=state.settings.secure_cookies, samesite=state.settings.session_cookie_samesite,
+                        path=state.settings.session_cookie_path)
     state.audit.record(user.username, "login", "session", justification=f"client {ip}")
     return {"user": user_view(user), "csrf": csrf}
 
@@ -46,8 +49,9 @@ def login(body: LoginBody, request: Request, response: Response, state: AppState
 def logout(request: Request, response: Response, principal: Principal = Depends(mutation(Role.VIEWER)),
            state: AppState = Depends(get_state)) -> dict:
     drop_session(state.db, request.cookies.get(SESSION_COOKIE))
-    response.delete_cookie(SESSION_COOKIE, path="/", secure=state.settings.secure_cookies, httponly=True,
-                           samesite="strict")
+    response.delete_cookie(SESSION_COOKIE, path=state.settings.session_cookie_path,
+                           secure=state.settings.secure_cookies, httponly=state.settings.session_cookie_httponly,
+                           samesite=state.settings.session_cookie_samesite)
     state.audit.record(principal.username, "logout", "session")
     return {"ok": True}
 

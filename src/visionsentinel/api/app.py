@@ -5,34 +5,21 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response, status
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .. import __version__
 from ..core.errors import EvidenceIntegrityError, UnsafeInputError, VisionSentinelError
 from ..core.workspace import Workspace
-from .deps import get_state
 from .routers import assets, attacklab, auth, drift, evidence, findings, governance, provenance, scans, system
 from .runner import JobRunner
-from .security import API_CSP
+from .security import BodyLimit, SecurityHeaders
 from .settings import Settings
 from .state import AppState
 from .static import DashboardFiles
 
 log = logging.getLogger(__name__)
-
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response: Response = await call_next(request)
-        if request.url.path.startswith("/api"):
-            response.headers.setdefault("Content-Security-Policy", API_CSP)
-            response.headers.setdefault("X-Content-Type-Options", "nosniff")
-            response.headers.setdefault("X-Frame-Options", "DENY")
-            response.headers.setdefault("Referrer-Policy", "same-origin")
-        return response
 
 
 def create_app(
@@ -55,7 +42,13 @@ def create_app(
     )
     app.state.vs = app_state
 
-    app.add_middleware(SecurityHeadersMiddleware)
+    # Starlette wraps middleware in reverse registration order: headers are outermost so
+    # rejected host/body responses receive the same policy as ordinary responses.
+    app.add_middleware(BodyLimit, default_limit=settings.max_json_bytes,
+                       upload_limit=settings.max_upload_bytes,
+                       upload_prefix=f"{assets.router.prefix}/upload")
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+    app.add_middleware(SecurityHeaders)
 
     # Mount API routers
     app.include_router(auth.router)
