@@ -8,7 +8,9 @@ from starlette.testclient import TestClient
 from visionsentinel.api.app import create_app
 from visionsentinel.api.settings import Settings
 from visionsentinel.core.workspace import Workspace
-from visionsentinel.storage import Database, User
+from visionsentinel.storage import Database, Scan, ScanEvent, User
+from visionsentinel.contracts import ScanStatus
+from visionsentinel.engine.registry import default_registry
 
 
 @pytest.fixture
@@ -54,6 +56,30 @@ def test_demo_header_allows_read_only_workspace_access(api_client):
     # The demo header never grants mutation access or a CSRF token.
     assert api_client.post("/api/scans", headers=demo_headers, json={}).status_code == 401
     assert api_client.get("/api/scans").status_code == 401
+
+
+def test_scan_event_stream_uses_persisted_contract_and_terminal_status(api_client):
+    detector_id = default_registry().ids()[0]
+    with api_client.app.state.vs.db.session() as session:
+        session.add(Scan(id="SCN-SSE-SEALED", name="sealed", status=ScanStatus.SEALED.value, profile="baseline", request={}))
+        session.add(ScanEvent(scan_id="SCN-SSE-SEALED", seq=1, t_ms=12, level="stage", message="planned", detector_id=None))
+        session.add(ScanEvent(scan_id="SCN-SSE-SEALED", seq=2, t_ms=34, level="info", message="detector complete", detector_id=detector_id))
+        session.add(Scan(id="SCN-SSE-FAILED", name="failed", status=ScanStatus.FAILED.value, profile="baseline", request={}))
+        session.add(ScanEvent(scan_id="SCN-SSE-FAILED", seq=1, t_ms=1, level="error", message="scan failed: RuntimeError", detector_id=None))
+
+    headers = {"X-VisionX-Demo": "1"}
+    with api_client.stream("GET", "/api/scans/SCN-SSE-SEALED/events", headers=headers) as response:
+        assert response.status_code == 200
+        body = response.read().decode()
+    assert detector_id in body
+    assert f'"detector_id":"{detector_id}"' in body
+    assert '"stage":' not in body
+    assert '"detector":' not in body
+    assert '"status":"SEALED"' in body
+
+    with api_client.stream("GET", "/api/scans/SCN-SSE-FAILED/events", headers=headers) as response:
+        assert '"status":"FAILED"' in response.read().decode()
+    assert api_client.get("/api/scans/SCN-SSE-MISSING/events", headers=headers).status_code == 404
 
 
 def test_api_auth_flow_and_rbac(api_client):
@@ -202,6 +228,17 @@ def test_attacklab_run_and_governance_workflow(api_client):
     assert findings_res.status_code == 200
     findings = findings_res.json()["findings"]
     assert len(findings) > 0
+    contributor_res = api_client.get(f"/api/scans/{scan_id}/contributors")
+    assert contributor_res.status_code == 200
+    assert contributor_res.json()["scan_id"] == scan_id
+    assert contributor_res.json()["total"] == len(contributor_res.json()["contributors"])
+
+    drift_res = api_client.get(f"/api/scans/{scan_id}/drift")
+    assert drift_res.status_code == 200
+    assert {item["detector_id"] for item in drift_res.json()["detectors"]}
+    provenance_res = api_client.get(f"/api/scans/{scan_id}/provenance")
+    assert provenance_res.status_code == 200
+    assert {item["detector_id"] for item in provenance_res.json()["detectors"]}
     target_finding = findings[0]
     finding_id = target_finding["id"]
 

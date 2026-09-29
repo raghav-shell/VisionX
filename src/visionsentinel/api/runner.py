@@ -128,9 +128,9 @@ class JobRunner:
                 s.execute(update(Scan).where(Scan.id == scan_id).values(
                     status=ScanStatus.FAILED.value, error=f"{type(exc).__name__}: {exc}"[:2000],
                     completed_at=_now()))
-                last = s.query(ScanEvent).filter(ScanEvent.scan_id == scan_id).count()
+                last = max((seq for (seq,) in s.query(ScanEvent.seq).filter(ScanEvent.scan_id == scan_id).all()), default=0)
                 s.add(ScanEvent(scan_id=scan_id, seq=last + 1, t_ms=0, level="error",
-                                message=f"scan failed: {type(exc).__name__}: {exc}"[:2000]))
+                                message=f"scan failed: {type(exc).__name__}"))
             self.state.audit.record("system", "scan_failed", scan_id, new=ScanStatus.FAILED.value,
                                     justification=traceback.format_exception_only(type(exc), exc)[-1][:500])
             return None

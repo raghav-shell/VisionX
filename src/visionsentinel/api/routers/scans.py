@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -13,8 +12,9 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import desc, select
 
-from ...contracts import Disposition, Role, ScanResult, ScanStatus, Severity
+from ...contracts import Disposition, Layer, Role, ScanEvent as ScanEventContract, ScanResult, ScanStatus, Severity
 from ...engine.request import ScanRequest
+from ...engine.registry import default_registry
 from ...provenance.keys import public_bytes
 from ...reporting import verify_manifest
 from ...reporting.compare import compare_scans
@@ -25,6 +25,29 @@ from ..state import AppState
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
+
+
+def is_terminal_scan_status(value: str | ScanStatus) -> bool:
+    """Use the authoritative lifecycle enum when deciding whether a scan is done."""
+    try:
+        return ScanStatus(value) in {ScanStatus.SEALED, ScanStatus.FAILED}
+    except ValueError:
+        return False
+
+
+def _layer_results(result: ScanResult, layer: Layer) -> list[dict[str, Any]]:
+    """Serialize every registered detector in a layer with its execution and section state."""
+    executions = {execution.detector_id: execution for execution in result.executions}
+    return [
+        {
+            "detector_id": spec.id,
+            "title": spec.title,
+            "execution": executions[spec.id].model_dump(mode="json") if spec.id in executions else None,
+            "section": result.sections.get(spec.id),
+        }
+        for spec in default_registry().specs()
+        if spec.layer == layer
+    ]
 
 
 class ScanSubmitBody(BaseModel):
@@ -57,6 +80,21 @@ class CompareBody(BaseModel):
 class ReportVerifyBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_digest: str | None = Field(default=None, max_length=80)
+
+
+class ScanCompletePayload(BaseModel):
+    scan_id: str
+    status: ScanStatus
+
+
+def _result_or_error(scan_id: str, state: AppState) -> ScanResult:
+    result = state.result(scan_id)
+    if result is not None:
+        return result
+    with state.db.session() as session:
+        if session.get(Scan, scan_id) is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} not found")
+    raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} results not ready")
 
 
 def _scan_summary(scan: Scan) -> dict:
@@ -170,10 +208,13 @@ async def scan_events_stream(scan_id: str, request: Request, state: AppState = D
         if scan is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} not found")
 
-    async def event_generator():
+    try:
+        last_seq = max(0, int(request.headers.get("last-event-id", "0")))
+    except ValueError:
         last_seq = 0
-        terminal_statuses = {ScanStatus.COMPLETED.value, ScanStatus.COMPLETED_WITH_FINDINGS.value,
-                             ScanStatus.FAILED.value, ScanStatus.ERROR.value}
+
+    async def event_generator():
+        nonlocal last_seq
         while True:
             if await request.is_disconnected():
                 break
@@ -190,18 +231,12 @@ async def scan_events_stream(scan_id: str, request: Request, state: AppState = D
 
             for ev in events:
                 last_seq = ev.seq
-                data = json.dumps({
-                    "seq": ev.seq,
-                    "t_ms": ev.t_ms,
-                    "level": ev.level,
-                    "message": ev.message,
-                    "stage": ev.stage,
-                    "detector": ev.detector,
-                })
-                yield f"event: scan_event\ndata: {data}\n\n"
+                data = ScanEventContract(seq=ev.seq, t_ms=ev.t_ms, level=ev.level,
+                                         message=ev.message, detector_id=ev.detector_id).model_dump_json()
+                yield f"id: {ev.seq}\nevent: scan_event\ndata: {data}\n\n"
 
-            if current_status in terminal_statuses:
-                final_data = json.dumps({"status": current_status, "scan_id": scan_id})
+            if current_status is not None and is_terminal_scan_status(current_status):
+                final_data = ScanCompletePayload(scan_id=scan_id, status=ScanStatus(current_status)).model_dump_json()
                 yield f"event: scan_complete\ndata: {final_data}\n\n"
                 break
 
@@ -264,46 +299,33 @@ def get_scan_findings(
 
 @router.get("/{scan_id}/coverage", dependencies=[Depends(require(Role.VIEWER))])
 def get_scan_coverage(scan_id: str, state: AppState = Depends(get_state)) -> dict:
-    res = state.result(scan_id)
-    if res is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} results not ready")
+    res = _result_or_error(scan_id, state)
     return res.coverage.model_dump(mode="json")
 
 
 @router.get("/{scan_id}/contributors", dependencies=[Depends(require(Role.VIEWER))])
 def get_scan_contributors(scan_id: str, state: AppState = Depends(get_state)) -> dict:
-    res = state.result(scan_id)
-    if res is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} results not ready")
-    contribs = res.sections.get("data.contributors") or {}
-    return contribs
+    res = _result_or_error(scan_id, state)
+    return {"scan_id": res.scan_id, "total": len(res.contributors),
+            "contributors": [contributor.model_dump(mode="json") for contributor in res.contributors]}
 
 
 @router.get("/{scan_id}/drift", dependencies=[Depends(require(Role.VIEWER))])
 def get_scan_drift(scan_id: str, state: AppState = Depends(get_state)) -> dict:
-    res = state.result(scan_id)
-    if res is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} results not ready")
-    cov = res.sections.get("drift.covariate") or {}
-    sem = res.sections.get("drift.semantic") or {}
-    res_drift = res.sections.get("drift.reasoning") or {}
-    return {"covariate": cov, "semantic": sem, "reasoning": res_drift}
+    res = _result_or_error(scan_id, state)
+    return {"scan_id": res.scan_id, "layer": Layer.DRIFT.value, "detectors": _layer_results(res, Layer.DRIFT)}
 
 
 @router.get("/{scan_id}/provenance", dependencies=[Depends(require(Role.VIEWER))])
 def get_scan_provenance(scan_id: str, state: AppState = Depends(get_state)) -> dict:
-    res = state.result(scan_id)
-    if res is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} results not ready")
-    prov = res.sections.get("provenance.ledger") or {}
-    return prov
+    res = _result_or_error(scan_id, state)
+    return {"scan_id": res.scan_id, "layer": Layer.PROVENANCE.value,
+            "detectors": _layer_results(res, Layer.PROVENANCE)}
 
 
 @router.get("/{scan_id}/graph", dependencies=[Depends(require(Role.VIEWER))])
 def get_scan_graph(scan_id: str, state: AppState = Depends(get_state)) -> dict:
-    res = state.result(scan_id)
-    if res is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} results not ready")
+    res = _result_or_error(scan_id, state)
     if res.graph:
         return res.graph.model_dump(mode="json")
     return {"nodes": [], "edges": []}
@@ -311,9 +333,7 @@ def get_scan_graph(scan_id: str, state: AppState = Depends(get_state)) -> dict:
 
 @router.get("/{scan_id}/report.json", dependencies=[Depends(require(Role.VIEWER))])
 def get_scan_report_json(scan_id: str, state: AppState = Depends(get_state)) -> Response:
-    res = state.result(scan_id)
-    if res is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} report not available")
+    res = _result_or_error(scan_id, state)
     return Response(
         content=res.model_dump_json(indent=2),
         media_type="application/json",
