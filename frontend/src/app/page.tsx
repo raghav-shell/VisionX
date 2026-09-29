@@ -56,7 +56,7 @@ export default function Home() {
 
       <CTASection />
 
-      <div aria-hidden="true" className="h-24 bg-black md:h-32 lg:h-40" />
+      <div aria-hidden="true" className="h-[clamp(220px,38svh,500px)] bg-black" />
 
       <Footer />
     </main>
