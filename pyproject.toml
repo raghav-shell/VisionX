@@ -41,6 +41,7 @@ e2e = ["playwright>=1.47"]
 
 [project.scripts]
 visionsentinel = "visionsentinel.cli.main:main"
+visionx = "visionsentinel.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
