@@ -22,6 +22,7 @@ class Settings(BaseModel):
     session_ttl_minutes: int = Field(default=480, ge=5, le=7 * 24 * 60)
     max_json_bytes: int = Field(default=1024 * 1024, gt=0)
     max_upload_bytes: int = Field(default=2 * 1024**3, gt=0)
+    max_asset_storage_bytes: int = Field(default=10 * 1024**3, gt=0)
     login_attempts_per_minute: int = Field(default=6, ge=1)
     mutations_per_minute: int = Field(default=240, ge=1)
     dashboard_dir: Path | None = None

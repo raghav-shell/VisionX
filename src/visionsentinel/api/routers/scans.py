@@ -116,6 +116,9 @@ def submit_scan(
                 if asset is None:
                     raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                                         f"{field_name} must be an imported asset identifier")
+                if (asset.details or {}).get("lifecycle", "ACTIVE") != "ACTIVE":
+                    raise HTTPException(status.HTTP_409_CONFLICT,
+                                        f"{field_name} references archived asset {val!r}; restore it before scanning")
                 resolved_paths[field_name] = Path(asset.path)
 
     scan_req = ScanRequest(
