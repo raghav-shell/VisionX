@@ -231,10 +231,7 @@ export default function WorkspaceStudio() {
         {/* Left: Brand & Breadcrumb */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 group mr-2">
-            <VisionXLogo size={22} className="w-5 h-5" />
-            <span className="font-display font-semibold text-base text-white tracking-tight flex items-center">
-              Vision<span className="bg-gradient-to-r from-[#eca8d6] to-[#c597eb] bg-clip-text text-transparent font-bold">X</span>
-            </span>
+            <VisionXLogo size={23} showText textClassName="text-[17px]" />
             <span className="font-mono text-[9px] uppercase tracking-wider text-[#eca8d6] bg-[#eca8d6]/10 border border-[#eca8d6]/25 px-1.5 py-0.2 rounded">
               STUDIO
             </span>

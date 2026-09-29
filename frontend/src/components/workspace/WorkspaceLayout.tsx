@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import VisionXLogo from "../VisionXLogo";
 import { 
   ShieldCheck, 
   Database, 
@@ -56,14 +57,9 @@ export default function WorkspaceLayout({
         {/* Left: Brand & Breadcrumb */}
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#eca8d6]/20 to-[#c597eb]/10 border border-[#eca8d6]/40 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-[#eca8d6]" />
-            </div>
-            <span className="font-display font-bold text-lg text-white tracking-wider flex items-center gap-1.5">
-              Vision<span className="bg-gradient-to-r from-[#eca8d6] via-[#c597eb] to-[#a78bfa] bg-clip-text text-transparent font-extrabold">X</span>
-              <span className="text-[10px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[#eca8d6]">
-                WORKSPACE
-              </span>
+            <VisionXLogo size={30} showText textClassName="text-[19px]" />
+            <span className="text-[10px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[#eca8d6]">
+              WORKSPACE
             </span>
           </Link>
 

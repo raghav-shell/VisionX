@@ -36,11 +36,8 @@ export default function Footer() {
           <div className="grid grid-cols-2 md:grid-cols-6 gap-12 lg:gap-8">
             {/* Brand Column (Spans 2) */}
             <div className="col-span-2">
-              <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
-                <VisionXLogo size={32} />
-                <span className="text-2xl font-display font-bold text-white tracking-wider flex items-center">
-                  Vision<span className="bg-gradient-to-r from-[#eca8d6] via-[#c597eb] to-[#a78bfa] bg-clip-text text-transparent font-extrabold">X</span>
-                </span>
+              <Link href="/" className="group mb-6 inline-flex items-center" aria-label="VisionX home">
+                <VisionXLogo size={38} showText textClassName="text-[26px]" />
               </Link>
 
               <p className="text-white/50 leading-relaxed mb-8 max-w-sm text-sm font-sans">
