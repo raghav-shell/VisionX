@@ -22,11 +22,10 @@ router = APIRouter(prefix="/api/provenance", tags=["provenance"])
 
 class VerifyLedgerBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    ledger_path: str | None = None
     ledger_asset_id: str | None = None
-    trust_root_path: str | None = None
-    anchor_path: str | None = None
-    inputs_dir: str | None = None
+    trust_root_asset_id: str | None = None
+    anchor_asset_id: str | None = None
+    inputs_asset_id: str | None = None
 
 
 class TamperLedgerBody(BaseModel):
@@ -39,26 +38,27 @@ class TamperLedgerBody(BaseModel):
 
 @router.post("/verify", dependencies=[Depends(require(Role.VIEWER))])
 def verify_ledger_endpoint(body: VerifyLedgerBody, state: AppState = Depends(get_state)) -> dict:
-    ledger_file: Path | None = None
-    if body.ledger_asset_id:
+    def asset_path(asset_id: str | None, field: str) -> Path | None:
+        if not asset_id:
+            return None
         with state.db.session() as s:
-            a = s.get(Asset, body.ledger_asset_id)
-            if a:
-                ledger_file = Path(a.path)
-    elif body.ledger_path:
-        ledger_file = Path(body.ledger_path)
-    else:
-        # Default to workspace audit ledger if exists
-        ledger_file = state.keys.audit_ledger
+            asset = s.get(Asset, asset_id)
+            if asset is None:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                    f"{field} must be an imported asset identifier")
+            return Path(asset.path)
 
-    if not ledger_file or not ledger_file.is_file():
+    # The local audit ledger/trust root are trusted defaults. All operator-supplied
+    # input is resolved through the workspace asset registry, never as a raw path.
+    ledger_file = asset_path(body.ledger_asset_id, "ledger_asset_id") or state.keys.audit_ledger
+
+    if not ledger_file.is_file():
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"ledger file {str(ledger_file)!r} not found")
 
-    trust_root_path = Path(body.trust_root_path) if body.trust_root_path else state.keys.trust_root
-    trust = load_trust_root(trust_root_path)
+    trust = load_trust_root(asset_path(body.trust_root_asset_id, "trust_root_asset_id") or state.keys.trust_root)
 
-    anchors = Path(body.anchor_path) if body.anchor_path else (state.keys.audit_anchor if state.keys.audit_anchor.is_file() else None)
-    inputs = Path(body.inputs_dir) if body.inputs_dir else None
+    anchors = asset_path(body.anchor_asset_id, "anchor_asset_id") or (state.keys.audit_anchor if state.keys.audit_anchor.is_file() else None)
+    inputs = asset_path(body.inputs_asset_id, "inputs_asset_id")
 
     report = verify_ledger(ledger_file, trust, anchors=anchors, inputs_dir=inputs)
     return report.to_dict()
@@ -89,7 +89,7 @@ def inspect_ledger(
             except Exception:
                 continue
 
-    return {"records": records, "count": len(records), "ledger_path": str(ledger_file)}
+    return {"records": records, "count": len(records), "source": "asset" if asset_id else "audit_ledger"}
 
 
 @router.post("/tamper")
@@ -149,7 +149,7 @@ def simulate_tamper(
             f.write(json.dumps(rec) + "\n")
 
     return {
-        "tampered_path": str(out_file),
+        "tampered_ledger": out_file.name,
         "mode": body.tamper_mode,
         "target_seq": target_idx,
         "original_count": len(lines),

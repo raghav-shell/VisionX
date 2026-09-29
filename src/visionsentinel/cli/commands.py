@@ -191,7 +191,7 @@ def _cmd_server(args: argparse.Namespace) -> int:
 
 
 def _cmd_selftest(args: argparse.Namespace) -> int:
-    from ..core.selftest import run_selftest
+    from ..api.selftest import run_selftest
 
     res = run_selftest(check_frontend=not args.skip_frontend)
     print(res.summary())

@@ -2,31 +2,20 @@
 
 from __future__ import annotations
 
-import os
 import secrets
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
-from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import desc, select
 
 from ...contracts import Role
 from ...core.errors import LoaderError, UnsafeInputError
 from ...storage import Asset
-from ..assets import KINDS, import_path, register, safe_name
+from ..assets import KINDS, import_path, safe_name
 from ..deps import Principal, get_state, mutation, require
 from ..state import AppState
 
 router = APIRouter(prefix="/api/assets", tags=["assets"])
-
-
-class AssetImportBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    source_path: str = Field(min_length=1)
-    kind: str = Field(min_length=1)
-    name: str | None = None
-    copy_source: bool = Field(default=True)
 
 
 def _asset_view(a: Asset) -> dict:
@@ -34,7 +23,6 @@ def _asset_view(a: Asset) -> dict:
         "id": a.id,
         "kind": a.kind,
         "name": a.name,
-        "path": a.path,
         "digest": a.digest,
         "details": a.details,
         "created_at": a.created_at.isoformat() if a.created_at else None,
@@ -64,35 +52,6 @@ def get_asset(asset_id: str, state: AppState = Depends(get_state)) -> dict:
         if a is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, f"asset {asset_id!r} not found")
         return _asset_view(a)
-
-
-@router.post("/import", status_code=status.HTTP_201_CREATED)
-def import_asset(
-    body: AssetImportBody,
-    principal: Principal = Depends(mutation(Role.ANALYST)),
-    state: AppState = Depends(get_state),
-) -> dict:
-    src = Path(body.source_path)
-    if not src.exists():
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"source path {body.source_path!r} does not exist")
-    try:
-        asset = import_path(
-            state.db,
-            state.workspace,
-            src,
-            kind=body.kind,
-            name=body.name,
-            copy=body.copy_source,
-        )
-        state.audit.record(
-            principal.username,
-            "import_asset",
-            asset.id,
-            extra={"kind": asset.kind, "name": asset.name, "digest": asset.digest},
-        )
-        return _asset_view(asset)
-    except (LoaderError, UnsafeInputError) as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
