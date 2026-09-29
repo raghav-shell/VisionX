@@ -6,18 +6,18 @@ import { ArrowRight, Terminal } from "lucide-react";
 export default function Hero() {
   const words = ["verifies", "protects", "audits", "seals"];
   const [wordIndex, setWordIndex] = useState(0);
-  const [fadeState, setFadeState] = useState<"in" | "out">("in");
+  const [isExiting, setIsExiting] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const colors = [
-    "rgb(236, 168, 214)", // pink
-    "rgb(197, 151, 235)", // purple
-    "rgb(158, 152, 250)", // indigo
-    "rgb(121, 205, 249)", // cyan
-    "rgb(145, 220, 188)", // mint
-    "rgb(230, 197, 66)",  // gold
-    "rgb(245, 181, 112)", // orange
-    "rgb(236, 168, 214)", // pink
+    "#eca8d6", // pink
+    "#c597eb", // purple
+    "#9e98fa", // indigo
+    "#79cdf9", // cyan
+    "#91dcbc", // mint
+    "#e6c542", // gold
+    "#f5b570", // orange
+    "#eca8d6", // pink
   ];
 
   useEffect(() => {
@@ -48,15 +48,19 @@ export default function Hero() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFadeState("out");
-      setTimeout(() => {
-        setWordIndex((prev) => (prev + 1) % words.length);
-        setFadeState("in");
-      }, 400);
-    }, 3600);
-    return () => clearInterval(interval);
-  }, [words.length]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const exitTimer = window.setTimeout(() => setIsExiting(true), 3100);
+    const nextWordTimer = window.setTimeout(() => {
+      setWordIndex((prev) => (prev + 1) % words.length);
+      setIsExiting(false);
+    }, 3900);
+
+    return () => {
+      window.clearTimeout(exitTimer);
+      window.clearTimeout(nextWordTimer);
+    };
+  }, [wordIndex, words.length]);
 
   const currentWord = words[wordIndex];
 
@@ -115,7 +119,7 @@ export default function Hero() {
 
       {/* Hero Content */}
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12 pt-28 lg:pt-32 pb-4 flex-1 flex flex-col justify-center">
-        <div className="max-w-2xl lg:max-w-[54%]">
+        <div className="w-full">
           {/* Eyebrow */}
           <div className="mb-6 lg:mb-8 animate-fade-slide-in">
             <span className="inline-flex items-center gap-3 text-xs md:text-sm font-mono text-white/60 tracking-wide">
@@ -133,19 +137,15 @@ export default function Hero() {
                 <span className="relative inline-block">
                   {currentWord.split("").map((letter, i) => (
                     <span
-                      key={i}
+                      key={`${wordIndex}-${i}`}
                       style={{
-                        display: "inline-block",
-                        opacity: fadeState === "in" ? 1 : 0,
-                        filter: fadeState === "in" ? "blur(0px)" : "blur(14px)",
                         color: colors[i % colors.length],
-                        transition: `all 400ms cubic-bezier(0.16, 1, 0.3, 1) ${i * 45}ms`,
-                        textShadow:
-                          fadeState === "in"
-                            ? `0 0 24px ${colors[i % colors.length]}, 0 0 48px ${colors[i % colors.length]}`
-                            : "none",
+                        textShadow: `0 0 18px ${colors[i % colors.length]}55`,
+                        animationDelay: isExiting
+                          ? `${(currentWord.length - 1 - i) * 45}ms`
+                          : `${i * 105}ms`,
                       }}
-                      className="font-bold"
+                      className={`hero-word-letter ${isExiting ? "hero-word-letter--out" : ""}`}
                     >
                       {letter}
                     </span>

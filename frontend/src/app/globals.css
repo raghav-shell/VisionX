@@ -25,6 +25,50 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* The hero's rotating word resolves one letter at a time from a soft blur. */
+.hero-word-letter {
+  display: inline-block;
+  animation: hero-letter-in 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, filter, transform;
+}
+
+.hero-word-letter--out {
+  animation: hero-letter-out 420ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes hero-letter-in {
+  from {
+    opacity: 0;
+    filter: blur(18px);
+    transform: translateY(0.12em);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-letter-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(14px);
+    transform: translateY(-0.1em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-word-letter,
+  .hero-word-letter--out {
+    animation: none;
+  }
+}
+
 ::selection {
   background: #eca8d6;
   color: #000000;
