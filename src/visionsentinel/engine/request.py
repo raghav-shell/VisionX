@@ -6,6 +6,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..contracts import SCAN_ASSET_INPUTS
+
 
 class ScanRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -30,7 +32,5 @@ class ScanRequest(BaseModel):
     scan_id: str | None = None
 
     def supplied(self) -> dict[str, Path]:
-        keys = ("dataset", "reference_dataset", "probe_dataset", "suspect_inputs", "operational_data", "model",
-                "reference_model", "preprocess", "reference_fingerprint", "ledger", "trust_root", "anchor",
-                "inference_inputs")
+        keys = tuple(spec.field for spec in SCAN_ASSET_INPUTS)
         return {k: getattr(self, k) for k in keys if getattr(self, k) is not None}

@@ -15,7 +15,8 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from ..core.errors import LoaderError, UnsafeInputError
+from ..contracts import AssetKind, AssetLifecycle, SCAN_ASSET_INPUTS, ScanAssetInput
+from ..core.errors import LoaderError, UnsafeInputError, VisionSentinelError
 from ..core.hashing import sha256_file
 from ..core.limits import ResourceLimits
 from ..core.workspace import Workspace
@@ -24,9 +25,103 @@ from ..loaders.datasets import open_dataset
 from ..loaders.models import open_model
 from ..storage import Asset, Database
 
-KINDS = ("dataset", "model", "preprocess", "ledger", "anchor", "trust_root", "inputs", "fingerprint")
-DATASET_ROLES = ("dataset", "reference_dataset", "probe_dataset", "suspect_inputs", "operational_data")
+KINDS = tuple(kind.value for kind in AssetKind)
 _NAME = re.compile(r"[^A-Za-z0-9._ -]+")
+
+
+class AssetResolutionError(VisionSentinelError):
+    """Base error for an asset that cannot be used for a requested input role."""
+
+
+class AssetNotFoundError(AssetResolutionError):
+    pass
+
+
+class AssetCompatibilityError(AssetResolutionError):
+    pass
+
+
+class AssetUnavailableError(AssetResolutionError):
+    pass
+
+
+class AssetResolver:
+    """Resolve registry IDs without allowing arbitrary or escaped filesystem paths."""
+
+    def __init__(self, db: Database, workspace: Workspace) -> None:
+        self.db = db
+        self.workspace = workspace
+
+    @staticmethod
+    def _spec(field: str) -> ScanAssetInput:
+        try:
+            return next(spec for spec in SCAN_ASSET_INPUTS if spec.field == field)
+        except StopIteration as exc:
+            raise AssetCompatibilityError(f"{field} is not a registered scan asset input") from exc
+
+    def resolve(self, asset_id: str | None, field: str) -> Path | None:
+        if not asset_id:
+            return None
+        spec = self._spec(field)
+        with self.db.session() as session:
+            asset = session.get(Asset, asset_id)
+            if asset is None:
+                raise AssetNotFoundError(f"{field} must identify an imported asset identifier")
+            try:
+                kind = AssetKind(asset.kind)
+            except ValueError as exc:
+                raise AssetCompatibilityError(f"{field} references an unsupported asset kind") from exc
+            if kind not in spec.kinds:
+                expected = ", ".join(sorted(item.value for item in spec.kinds))
+                raise AssetCompatibilityError(f"{field} requires an asset compatible with {expected}")
+            details = asset.details or {}
+            try:
+                lifecycle = AssetLifecycle(details.get("lifecycle", AssetLifecycle.ACTIVE.value))
+            except ValueError as exc:
+                raise AssetUnavailableError(f"{field} references an asset with an invalid lifecycle") from exc
+            if lifecycle is not AssetLifecycle.ACTIVE:
+                raise AssetUnavailableError(f"{field} references an archived asset")
+            stored_path = Path(asset.path)
+
+        return self._validate_storage(stored_path, field)
+
+    def resolve_request(self, request: object) -> dict[str, Path]:
+        """Resolve all registry IDs represented by a web-shaped ScanRequest."""
+        resolved: dict[str, Path] = {}
+        for spec in SCAN_ASSET_INPUTS:
+            value = getattr(request, spec.field)
+            if value is not None:
+                path = self.resolve(str(value), spec.field)
+                if path is not None:
+                    resolved[spec.field] = path
+        return resolved
+
+    def _validate_storage(self, stored_path: Path, field: str) -> Path:
+        root = self.workspace.assets.resolve()
+        if not stored_path.is_absolute() or any(part == ".." for part in stored_path.parts):
+            raise AssetUnavailableError(f"{field} references unsafe asset storage")
+        if any(part.is_symlink() for part in self._path_chain(stored_path, root)):
+            raise AssetUnavailableError(f"{field} references unsafe asset storage")
+        try:
+            resolved = stored_path.resolve(strict=False)
+        except OSError as exc:
+            raise AssetUnavailableError(f"{field} asset storage cannot be resolved") from exc
+        if resolved == root or not resolved.is_relative_to(root):
+            raise AssetUnavailableError(f"{field} references storage outside the workspace")
+        if not resolved.exists():
+            raise AssetUnavailableError(f"{field} asset storage is unavailable")
+        return resolved
+
+    @staticmethod
+    def _path_chain(path: Path, root: Path) -> list[Path]:
+        chain: list[Path] = []
+        current = path
+        while True:
+            chain.append(current)
+            if current == root or current.parent == current:
+                break
+            current = current.parent
+        return chain
 
 
 def safe_name(name: str) -> str:
@@ -49,16 +144,16 @@ def register(db: Database, kind: str, name: str, path: Path, *, digest: str | No
 
 
 def _describe(kind: str, path: Path, limits: ResourceLimits) -> tuple[str | None, dict]:
-    if kind == "dataset":
+    if kind == AssetKind.DATASET.value:
         ds = open_dataset(path, limits)
         return ds.digest, ds.summary()
-    if kind == "model":
+    if kind == AssetKind.MODEL.value:
         m = open_model(path, limits)
         try:
             return m.artifact_digest, m.describe()
         finally:
             m.close()
-    if kind == "inputs":
+    if kind == AssetKind.INPUTS.value:
         files = [p for p in path.rglob("*") if p.is_file()]
         h = hashlib.sha256()
         for p in sorted(files):
@@ -76,8 +171,8 @@ def import_path(db: Database, ws: Workspace, source: Path, kind: str, name: str 
         raise LoaderError(f"{source} does not exist")
     aid = f"{kind[:3].upper()}-{secrets.token_hex(4).upper()}"
     dest_root = ws.assets / aid
-    if source.is_file() and source.suffix.lower() in (".zip", ".tar", ".gz", ".tgz", ".xz", ".bz2") and kind in (
-            "dataset", "inputs"):
+    if source.is_file() and source.suffix.lower() in (".zip", ".tar", ".gz", ".tgz", ".xz", ".bz2") and kind in {
+            AssetKind.DATASET.value, AssetKind.INPUTS.value}:
         extract_archive(source, dest_root, limits)
         dest = dest_root
         subdirs = [d for d in dest.iterdir()]
@@ -94,7 +189,7 @@ def import_path(db: Database, ws: Workspace, source: Path, kind: str, name: str 
             dest = dest_root / source.name
             shutil.copy2(source, dest)
             sidecar = source.with_name(source.stem + ".preprocess.json")
-            if kind == "model" and sidecar.is_file():
+            if kind == AssetKind.MODEL.value and sidecar.is_file():
                 shutil.copy2(sidecar, dest_root / sidecar.name)
     else:
         dest = source.resolve()

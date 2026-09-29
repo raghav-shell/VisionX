@@ -351,7 +351,8 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser("assets", help="manage workspace assets")
     p.add_argument("action", choices=["list", "import"])
     p.add_argument("path", nargs="?", type=Path, help="source file or directory to import")
-    p.add_argument("--kind", default="dataset", choices=["dataset", "model", "preprocess", "ledger", "anchor", "trust_root", "inputs", "fingerprint"])
+    from ..api.assets import KINDS
+    p.add_argument("--kind", default=KINDS[0], choices=KINDS)
     p.add_argument("--name", default=None, help="optional human-readable name")
     p.add_argument("--no-copy", action="store_true", help="reference in-place without copying")
     p.set_defaults(handler=_cmd_assets)

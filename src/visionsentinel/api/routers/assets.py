@@ -9,8 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import desc, select
 
-from ...contracts import Role
-from ...core.errors import LoaderError, UnsafeInputError
+from ...contracts import AssetLifecycle, Role
 from ...storage import Asset, AuditEvent, Scan
 from ..assets import KINDS, import_path, safe_name
 from ..deps import Principal, get_state, mutation, require
@@ -27,7 +26,7 @@ def _asset_view(a: Asset) -> dict:
         "name": a.name,
         "digest": a.digest,
         "details": details,
-        "lifecycle": details.get("lifecycle", "ACTIVE"),
+        "lifecycle": details.get("lifecycle", AssetLifecycle.ACTIVE.value),
         "created_at": a.created_at.isoformat() if a.created_at else None,
     }
 
@@ -51,7 +50,7 @@ def list_assets(
     kind: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    lifecycle: str | None = Query(default="ACTIVE", pattern="^(ACTIVE|ARCHIVED)$"),
+    lifecycle: AssetLifecycle | None = Query(default=AssetLifecycle.ACTIVE),
     state: AppState = Depends(get_state),
 ) -> dict:
     with state.db.session() as s:
@@ -60,7 +59,7 @@ def list_assets(
             q = q.filter(Asset.kind == kind.lower())
         rows = s.scalars(q).all()
         if lifecycle:
-            rows = [r for r in rows if (r.details or {}).get("lifecycle", "ACTIVE") == lifecycle]
+            rows = [r for r in rows if (r.details or {}).get("lifecycle", AssetLifecycle.ACTIVE.value) == lifecycle.value]
         total = len(rows)
         return {"total": total, "assets": [_asset_view(r) for r in rows[offset:offset + limit]]}
 
@@ -77,7 +76,7 @@ def asset_status(state: AppState = Depends(get_state)) -> dict:
     with state.db.session() as s:
         rows = s.scalars(select(Asset)).all()
     for a in rows:
-        if (a.details or {}).get("lifecycle", "ACTIVE") == "ARCHIVED":
+        if (a.details or {}).get("lifecycle", AssetLifecycle.ACTIVE.value) == AssetLifecycle.ARCHIVED.value:
             archived += 1
         else:
             active += 1
@@ -171,11 +170,12 @@ def archive_asset(asset_id: str, principal: Principal = Depends(mutation(Role.AN
         if asset is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, f"asset {asset_id!r} not found")
         details = dict(asset.details or {})
-        if details.get("lifecycle", "ACTIVE") == "ARCHIVED":
+        if details.get("lifecycle", AssetLifecycle.ACTIVE.value) == AssetLifecycle.ARCHIVED.value:
             return _asset_view(asset)
-        details["lifecycle"] = "ARCHIVED"
+        details["lifecycle"] = AssetLifecycle.ARCHIVED.value
         asset.details = details
-    state.audit.record(principal.username, "archive_asset", asset_id, old="ACTIVE", new="ARCHIVED")
+    state.audit.record(principal.username, "archive_asset", asset_id,
+                       old=AssetLifecycle.ACTIVE.value, new=AssetLifecycle.ARCHIVED.value)
     return _asset_view(asset)
 
 
@@ -187,9 +187,10 @@ def restore_asset(asset_id: str, principal: Principal = Depends(mutation(Role.AN
         if asset is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, f"asset {asset_id!r} not found")
         details = dict(asset.details or {})
-        details["lifecycle"] = "ACTIVE"
+        details["lifecycle"] = AssetLifecycle.ACTIVE.value
         asset.details = details
-    state.audit.record(principal.username, "restore_asset", asset_id, old="ARCHIVED", new="ACTIVE")
+    state.audit.record(principal.username, "restore_asset", asset_id,
+                       old=AssetLifecycle.ARCHIVED.value, new=AssetLifecycle.ACTIVE.value)
     return _asset_view(asset)
 
 
@@ -211,5 +212,6 @@ def delete_asset(asset_id: str, principal: Principal = Depends(mutation(Role.ADM
         if owned_root.exists():
             shutil.move(str(owned_root), str(quarantine))
         s.delete(asset)
-    state.audit.record(principal.username, "delete_asset", asset_id, old="ARCHIVED", new="RECOVERABLE_DELETE")
+    state.audit.record(principal.username, "delete_asset", asset_id,
+                       old=AssetLifecycle.ARCHIVED.value, new="RECOVERABLE_DELETE")
     return {"deleted": asset_id, "recovery_path": str(quarantine.relative_to(state.workspace.root))}

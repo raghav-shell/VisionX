@@ -165,6 +165,26 @@ class AssetType(StrEnum):
     SAMPLE = "SAMPLE"
 
 
+class AssetKind(StrEnum):
+    """Kinds accepted by the workspace asset registry."""
+
+    DATASET = "dataset"
+    MODEL = "model"
+    PREPROCESS = "preprocess"
+    LEDGER = "ledger"
+    ANCHOR = "anchor"
+    TRUST_ROOT = "trust_root"
+    INPUTS = "inputs"
+    FINGERPRINT = "fingerprint"
+
+
+class AssetLifecycle(StrEnum):
+    """Lifecycle states stored in the asset registry metadata."""
+
+    ACTIVE = "ACTIVE"
+    ARCHIVED = "ARCHIVED"
+
+
 class EvidenceKind(StrEnum):
     STATISTIC = "STATISTIC"
     TABLE = "TABLE"

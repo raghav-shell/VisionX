@@ -12,13 +12,14 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import desc, select
 
-from ...contracts import Disposition, Layer, Role, ScanEvent as ScanEventContract, ScanResult, ScanStatus, Severity
+from ...contracts import Layer, Role, ScanEvent as ScanEventContract, ScanResult, ScanStatus
 from ...engine.request import ScanRequest
 from ...engine.registry import default_registry
 from ...provenance.keys import public_bytes
 from ...reporting import verify_manifest
 from ...reporting.compare import compare_scans
-from ...storage import FindingState, Scan, ScanEvent
+from ...storage import Scan, ScanEvent
+from ..assets import AssetCompatibilityError, AssetNotFoundError, AssetResolver, AssetUnavailableError
 from ..deps import Principal, get_state, mutation, require
 from ..state import AppState
 
@@ -145,26 +146,15 @@ def submit_scan(
 ) -> dict:
     # The web boundary accepts workspace asset identifiers only. Permitting arbitrary
     # server paths here would turn an analyst session into a filesystem oracle.
-    req_dict = body.model_dump()
-    resolved_paths: dict[str, Path] = {}
-    with state.db.session() as s:
-        from ...storage import Asset
-
-        for field_name in (
-            "dataset", "reference_dataset", "probe_dataset", "suspect_inputs", "operational_data",
-            "model", "reference_model", "preprocess", "reference_fingerprint", "ledger",
-            "trust_root", "anchor", "inference_inputs",
-        ):
-            val = req_dict.get(field_name)
-            if val:
-                asset = s.get(Asset, val)
-                if asset is None:
-                    raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
-                                        f"{field_name} must be an imported asset identifier")
-                if (asset.details or {}).get("lifecycle", "ACTIVE") != "ACTIVE":
-                    raise HTTPException(status.HTTP_409_CONFLICT,
-                                        f"{field_name} references archived asset {val!r}; restore it before scanning")
-                resolved_paths[field_name] = Path(asset.path)
+    asset_request = ScanRequest(**body.model_dump())
+    try:
+        resolved_paths = AssetResolver(state.db, state.workspace).resolve_request(asset_request)
+    except AssetNotFoundError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    except AssetCompatibilityError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    except AssetUnavailableError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
 
     scan_req = ScanRequest(
         name=body.name,

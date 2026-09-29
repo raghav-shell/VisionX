@@ -5,12 +5,11 @@ from __future__ import annotations
 import json
 import secrets
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from ...contracts import Role
+from ...contracts import AssetLifecycle, Role
 from ...provenance.keys import generate_key, save_private_key, trust_entry
 from ...provenance.ledger import LedgerWriter
 from ...provenance.trust import TrustRootError, load_trust_root, parse_trust_root
@@ -74,7 +73,7 @@ def _asset_file(asset_id: str, kinds: tuple[str, ...], state: AppState, field: s
         if asset is None or asset.kind not in kinds:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 f"{field} must identify an imported {'/'.join(kinds)} asset")
-        if (asset.details or {}).get("lifecycle", "ACTIVE") != "ACTIVE":
+        if (asset.details or {}).get("lifecycle", AssetLifecycle.ACTIVE.value) != AssetLifecycle.ACTIVE.value:
             raise HTTPException(status.HTTP_409_CONFLICT, f"{field} is archived")
         return Path(asset.path)
 
