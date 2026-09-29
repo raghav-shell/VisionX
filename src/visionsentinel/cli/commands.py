@@ -175,6 +175,86 @@ def _cmd_schemas(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_server(args: argparse.Namespace) -> int:
+    import uvicorn
+    from ..api.app import create_app
+    from ..api.settings import Settings
+
+    settings = Settings.from_env(
+        demo_mode=args.demo,
+        dashboard_dir=args.dashboard,
+    )
+    app = create_app(settings=settings)
+    print(heading(f"Starting VisionSentinel server on {args.host}:{args.port}"))
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    return 0
+
+
+def _cmd_selftest(args: argparse.Namespace) -> int:
+    from ..core.selftest import run_selftest
+
+    res = run_selftest(check_frontend=not args.skip_frontend)
+    print(res.summary())
+    return 0 if res.passed else 1
+
+
+def _cmd_benchmark(args: argparse.Namespace) -> int:
+    from ..evaluation.benchmark import run_benchmark
+
+    report = run_benchmark(workspace=Workspace.default(), profile=args.profile)
+    print(heading("VISION SENTINEL — SCIENTIFIC EVALUATION BENCHMARK"))
+    print(report.summary_table)
+    print()
+    print(f"Total Scenarios: {report.total_scenarios_run} | Passed: {report.passed_scenarios} | Mean TPR: {report.mean_tpr:.2f} | Mean FPR: {report.mean_fpr:.2f}")
+    if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(report.to_dict(), indent=2))
+        print(f"Saved benchmark report to {args.out}")
+    return 0 if report.passed_scenarios == report.total_scenarios_run else 1
+
+
+def _cmd_attacklab(args: argparse.Namespace) -> int:
+    from ..attacklab.runner import list_scenarios, load_scenario, run_scenario
+
+    if args.action == "list":
+        scenarios = list_scenarios()
+        rows = [[s.scenario_id, s.attack_class, s.evaluation_family, s.title] for s in scenarios]
+        print(heading(f"{len(scenarios)} ATTACK LAB SCENARIOS"))
+        print(table(rows, ["SCENARIO ID", "ATTACK CLASS", "TIER", "TITLE"]))
+        return 0
+
+    manifest = load_scenario(args.scenario)
+    print(heading(f"RUNNING SCENARIO: {manifest.title} ({manifest.scenario_id})"))
+    res = run_scenario(manifest, workspace=Workspace.default(), profile=args.profile)
+    status_tag = state("PASS" if res.detected_expected_signals else "FAIL")
+    print(f"Detection Status: {status_tag} | Disposition: {state(res.overall_disposition)} | Findings: {res.findings_count}")
+    print(f"Report Digest: {res.report_digest}")
+    return 0 if res.detected_expected_signals else 1
+
+
+def _cmd_assets(args: argparse.Namespace) -> int:
+    from ..api.assets import import_path
+    from ..storage import Asset, Database
+
+    ws = Workspace.default().ensure()
+    db = Database(ws.database_url)
+
+    if args.action == "list":
+        with db.session() as s:
+            assets = s.query(Asset).all()
+            rows = [[a.id, a.kind, a.name, a.digest[:16] + "..." if a.digest else "—", a.path] for a in assets]
+            print(heading(f"{len(assets)} REGISTERED ASSETS"))
+            print(table(rows, ["ID", "KIND", "NAME", "DIGEST", "PATH"]))
+        return 0
+
+    if args.action == "import":
+        a = import_path(db, ws, Path(args.path), kind=args.kind, name=args.name, copy=not args.no_copy)
+        print(f"Imported asset {a.id} ({a.kind}: {a.name})")
+        return 0
+
+    return 0
+
+
 def register_all(sub: argparse._SubParsersAction) -> None:
     from . import provenance_cmds
 
@@ -203,3 +283,35 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser("schemas", help="export JSON Schemas for contracts, profiles, ledgers and trust roots")
     p.add_argument("--out", type=Path, default=Path("schemas"))
     p.set_defaults(handler=_cmd_schemas)
+
+    p = sub.add_parser("server", help="start the VisionSentinel API backend & static dashboard server")
+    p.add_argument("--host", default="127.0.0.1", help="host address to bind (default: 127.0.0.1)")
+    p.add_argument("--port", type=int, default=8000, help="port number (default: 8000)")
+    p.add_argument("--dashboard", type=Path, default=None, help="custom path to static dashboard build")
+    p.add_argument("--demo", action="store_true", help="enable demo mode")
+    p.set_defaults(handler=_cmd_server)
+
+    p = sub.add_parser("selftest", help="run offline air-gap self-test and cryptographic verification")
+    p.add_argument("--airgap", action="store_true", help="enforce air-gap assertions")
+    p.add_argument("--skip-frontend", action="store_true", help="skip scanning frontend static files")
+    p.set_defaults(handler=_cmd_selftest)
+
+    p = sub.add_parser("benchmark", help="run the scientific evaluation benchmark suite")
+    p.add_argument("--profile", default="selftest", help="profile for benchmark runs (default: selftest)")
+    p.add_argument("--out", type=Path, default=None, help="optional path to save benchmark JSON report")
+    p.set_defaults(handler=_cmd_benchmark)
+
+    p = sub.add_parser("attacklab", help="manage and run reproducible Attack Lab adversarial scenarios")
+    p.add_argument("action", choices=["list", "run"])
+    p.add_argument("scenario", nargs="?", default="label_flip", help="scenario ID or YAML file path")
+    p.add_argument("--profile", default="selftest", help="assessment profile")
+    p.set_defaults(handler=_cmd_attacklab)
+
+    p = sub.add_parser("assets", help="manage workspace assets")
+    p.add_argument("action", choices=["list", "import"])
+    p.add_argument("path", nargs="?", type=Path, help="source file or directory to import")
+    p.add_argument("--kind", default="dataset", choices=["dataset", "model", "preprocess", "ledger", "anchor", "trust_root", "inputs", "fingerprint"])
+    p.add_argument("--name", default=None, help="optional human-readable name")
+    p.add_argument("--no-copy", action="store_true", help="reference in-place without copying")
+    p.set_defaults(handler=_cmd_assets)
+

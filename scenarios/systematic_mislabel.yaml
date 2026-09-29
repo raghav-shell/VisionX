@@ -1,0 +1,44 @@
+scenario_id: systematic_mislabel
+title: Contributor-Specific Systematic Mislabelling
+attack_class: systematic_mislabel
+description: Contributor Charlie introduces systematic confusion between air_defence and civilian_aircraft.
+seed: 42002
+evaluation_family: evaluation
+
+base:
+  dataset_size: 400
+  contributors:
+    - name: Alpha
+      samples: 100
+      sensor: EO-A2
+      source: field_unit_1
+    - name: Bravo
+      samples: 100
+      sensor: EO-B1
+      source: field_unit_2
+    - name: Charlie
+      samples: 100
+      sensor: UAV-C3
+      source: aerial_recon_1
+    - name: Delta
+      samples: 100
+      sensor: SAT-D4
+      source: orbital_sat_1
+
+attack:
+  type: systematic_mislabel
+  contributor: Charlie
+  mapping:
+    air_defence: civilian_aircraft
+  fraction: 0.70
+
+fitness_gates:
+  min_samples: 400
+  expected_affected_min: 8
+
+expected:
+  truth_tag: systematic_mislabel
+  expected_detectors:
+    - data.systematic_mislabels
+  expected_min_findings: 1
+  expected_disposition: REVIEW

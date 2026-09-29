@@ -1,0 +1,46 @@
+scenario_id: patch_poison
+title: Localized High-Frequency Corner Trigger Poison
+attack_class: localized_trigger
+description: Contributor Delta injects a 6x6 high-frequency checkerboard pattern in the bottom-right corner targeting naval_vessel.
+seed: 42004
+evaluation_family: evaluation
+
+base:
+  dataset_size: 400
+  contributors:
+    - name: Alpha
+      samples: 100
+      sensor: EO-A2
+      source: field_unit_1
+    - name: Bravo
+      samples: 100
+      sensor: EO-B1
+      source: field_unit_2
+    - name: Charlie
+      samples: 100
+      sensor: UAV-C3
+      source: aerial_recon_1
+    - name: Delta
+      samples: 100
+      sensor: SAT-D4
+      source: orbital_sat_1
+
+attack:
+  type: patch_poison
+  contributor: Delta
+  trigger_kind: checker
+  trigger_size: 6
+  position: bottom-right
+  target_class: naval_vessel
+  poison_count: 24
+
+fitness_gates:
+  min_samples: 400
+  expected_affected_min: 15
+
+expected:
+  truth_tag: localized_trigger
+  expected_detectors:
+    - data.trigger_artifacts
+  expected_min_findings: 1
+  expected_disposition: REVIEW

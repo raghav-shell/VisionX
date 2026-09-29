@@ -1,0 +1,44 @@
+scenario_id: label_flip_targeted
+title: Targeted Label Flip Attack
+attack_class: label_flip
+description: Targeted 20% label flipping on tactical armoured vehicles to civilian transports by Contributor Charlie.
+seed: 42001
+evaluation_family: evaluation
+
+base:
+  dataset_size: 400
+  contributors:
+    - name: Alpha
+      samples: 100
+      sensor: EO-A2
+      source: field_unit_1
+    - name: Bravo
+      samples: 100
+      sensor: EO-B1
+      source: field_unit_2
+    - name: Charlie
+      samples: 100
+      sensor: UAV-C3
+      source: aerial_recon_1
+    - name: Delta
+      samples: 100
+      sensor: SAT-D4
+      source: orbital_sat_1
+
+attack:
+  type: label_flip_targeted
+  contributor: Charlie
+  source_class: armoured_vehicle
+  target_class: civilian_vehicle
+  rate: 0.35
+
+fitness_gates:
+  min_samples: 400
+  expected_affected_min: 5
+
+expected:
+  truth_tag: label_flip
+  expected_detectors:
+    - data.label_consistency
+  expected_min_findings: 1
+  expected_disposition: REVIEW

@@ -1,0 +1,47 @@
+scenario_id: duplicate_flood
+title: Near-Duplicate Sample Flooding
+attack_class: duplicate_flood
+description: Contributor Delta floods the pipeline with 30 near-duplicate transformed copies of naval targets to bias representation.
+seed: 42003
+evaluation_family: evaluation
+
+base:
+  dataset_size: 360
+  contributors:
+    - name: Alpha
+      samples: 90
+      sensor: EO-A2
+      source: field_unit_1
+    - name: Bravo
+      samples: 90
+      sensor: EO-B1
+      source: field_unit_2
+    - name: Charlie
+      samples: 90
+      sensor: UAV-C3
+      source: aerial_recon_1
+    - name: Delta
+      samples: 90
+      sensor: SAT-D4
+      source: orbital_sat_1
+
+attack:
+  type: duplicate_flood
+  contributor: Delta
+  clusters: 3
+  copies_per_cluster: 10
+  transformations:
+    - crop
+    - mild_noise
+    - contrast
+
+fitness_gates:
+  min_samples: 360
+  expected_affected_min: 20
+
+expected:
+  truth_tag: duplicate_flood
+  expected_detectors:
+    - data.near_duplicates
+  expected_min_findings: 1
+  expected_disposition: REVIEW

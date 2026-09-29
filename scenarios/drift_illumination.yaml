@@ -1,0 +1,28 @@
+scenario_id: drift_illumination
+title: Environmental Low-Light Covariate Shift
+attack_class: operational_covariate_shift
+description: Incoming operational batch from dusk/night deployment shows severe illumination and contrast shift while semantics remain stable.
+seed: 42008
+evaluation_family: evaluation
+
+base:
+  reference_size: 150
+  operational_size: 150
+
+attack:
+  type: illumination_shift
+  brightness_factor: 0.45
+  contrast_factor: 0.70
+  noise_sigma: 8.0
+
+fitness_gates:
+  min_samples: 150
+  expected_affected_min: 50
+
+expected:
+  truth_tag: operational_covariate_shift
+  expected_detectors:
+    - drift.covariate
+    - drift.reasoning
+  expected_min_findings: 1
+  expected_disposition: REVIEW

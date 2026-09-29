@@ -1,0 +1,26 @@
+scenario_id: model_swap
+title: Model Artifact Substitution & Behavioural Divergence
+attack_class: model_substitution
+description: Candidate model has identical architecture but replaced weights and diverging behavioural probe responses.
+seed: 42005
+evaluation_family: evaluation
+
+base:
+  model_type: cnn_classifier
+  probe_size: 60
+
+attack:
+  type: model_substitution
+  method: retrained_weights
+
+fitness_gates:
+  min_samples: 60
+  expected_affected_min: 1
+
+expected:
+  truth_tag: model_substitution
+  expected_detectors:
+    - model.artifact_digest
+    - model.behaviour_fingerprint
+  expected_min_findings: 1
+  expected_disposition: QUARANTINE

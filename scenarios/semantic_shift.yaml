@@ -1,0 +1,30 @@
+scenario_id: semantic_shift
+title: Operational Semantic Class Distribution Drift
+attack_class: operational_semantic_shift
+description: Operational deployment shifts target distribution heavily toward naval vessels and air defences.
+seed: 42009
+evaluation_family: evaluation
+
+base:
+  reference_size: 150
+  operational_size: 150
+
+attack:
+  type: semantic_shift
+  class_weights:
+    naval_vessel: 4.0
+    air_defence: 3.0
+    tank: 0.2
+    armoured_vehicle: 0.2
+
+fitness_gates:
+  min_samples: 150
+  expected_affected_min: 40
+
+expected:
+  truth_tag: operational_semantic_shift
+  expected_detectors:
+    - drift.semantic
+    - drift.reasoning
+  expected_min_findings: 1
+  expected_disposition: REVIEW

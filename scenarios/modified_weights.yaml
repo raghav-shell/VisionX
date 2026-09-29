@@ -1,0 +1,26 @@
+scenario_id: modified_weights
+title: Model Parameter Tampering
+attack_class: model_weight_tampering
+description: Subtle adversarial perturbation applied directly to dense classification layer weights.
+seed: 42006
+evaluation_family: evaluation
+
+base:
+  model_type: cnn_classifier
+  probe_size: 60
+
+attack:
+  type: weight_perturbation
+  target_layer: fc.weight
+  noise_scale: 0.15
+
+fitness_gates:
+  min_samples: 60
+  expected_affected_min: 1
+
+expected:
+  truth_tag: model_weight_tampering
+  expected_detectors:
+    - model.weight_statistics
+  expected_min_findings: 1
+  expected_disposition: QUARANTINE

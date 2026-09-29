@@ -1,0 +1,27 @@
+scenario_id: ledger_tamper
+title: Inference Ledger Modification Attack
+attack_class: record_modification
+description: Post-facto modification of inference label in cryptographically signed audit ledger.
+seed: 42007
+evaluation_family: evaluation
+
+base:
+  records_count: 50
+  checkpoint_interval: 16
+
+attack:
+  type: record_edit
+  target_sequence: 12
+  tampered_field: output_label
+  new_value: civilian_vehicle
+
+fitness_gates:
+  min_samples: 50
+  expected_affected_min: 1
+
+expected:
+  truth_tag: record_modification
+  expected_detectors:
+    - provenance.inference_ledger
+  expected_min_findings: 1
+  expected_disposition: QUARANTINE
