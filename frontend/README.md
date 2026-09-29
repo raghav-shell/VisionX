@@ -1,6 +1,6 @@
 # VisionX Frontend
 
-Modern dark-aesthetic cockpit and landing page for **VisionX** (VisionSentinel) — Air-Gapped Computer Vision Integrity & Assurance Platform.
+Modern dark-aesthetic cockpit and landing page for **VisionX** — Air-Gapped Computer Vision Integrity & Assurance Platform.
 
 ---
 
@@ -29,6 +29,22 @@ npm run dev -- -p 3001
 ```
 Open [http://localhost:3001](http://localhost:3001) in your browser.
 
+The workspace proxies `/api/*` to `http://127.0.0.1:8000` by default. Set
+`VISIONX_API_ORIGIN` when the VisionX backend runs elsewhere:
+
+```bash
+VISIONX_API_ORIGIN=http://127.0.0.1:9000 npm run dev -- -p 3001
+```
+
+For a local read-only workspace without a sign-in screen, start the API in its
+explicit demo mode. The frontend opts in with a demo header; only `VIEWER`
+read endpoints are anonymous, while scan creation and other mutations still
+require a real authenticated session and CSRF token:
+
+```bash
+visionsentinel server --demo --host 127.0.0.1 --port 8000
+```
+
 ### 2. Build for Production
 ```bash
 cd frontend
@@ -51,7 +67,7 @@ npm run start -- -p 3001
 - `src/components/DeveloperSDK.tsx`: Multi-language code samples (CLI, C99 header, Rust FFI, standalone verifier).
 - `src/components/InteractiveConsole.tsx`: Interactive macOS terminal preview simulating VisionX scans and cryptographic approvals.
 - `src/components/Footer.tsx`: VisionX platform metadata and architecture links.
-- `src/components/workspace/`: Assurance review workspace. Navigate findings, coverage, detector outcomes, evidence, assets, provenance, and activity. The built-in examples are illustrative. Use **Open report** to inspect a CLI-generated `report.json` locally, or sign in when the dashboard is served by the same-origin VisionSentinel API to review server scans and queue an assessment with registered assets. The frontend never performs cryptographic verification itself.
+- `src/components/workspace/`: Assurance review workspace. Navigate findings, coverage, detector outcomes, evidence, assets, provenance, and activity. The built-in examples are illustrative. Use **Open report** to inspect a CLI-generated `report.json` locally, or use the explicit demo mode for anonymous read-only server data; authenticated users can review server scans and queue an assessment with registered assets. The frontend never performs cryptographic verification itself.
 
 ### Reviewing a real assessment
 

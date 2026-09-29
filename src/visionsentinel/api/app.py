@@ -46,7 +46,7 @@ def create_app(
     app_state.runner = runner
 
     app = FastAPI(
-        title="VisionSentinel",
+        title="VisionX",
         description="Air-Gapped Computer Vision Integrity & Assurance Platform",
         version=__version__,
         docs_url="/api/docs",

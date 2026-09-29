@@ -35,8 +35,25 @@ def test_api_unauthenticated_info(api_client):
     res = api_client.get("/api/system/info")
     assert res.status_code == 200
     data = res.json()
-    assert data["product"] == "VisionSentinel"
+    assert data["product"] == "VisionX"
     assert "version" in data
+
+
+def test_demo_header_allows_read_only_workspace_access(api_client):
+    demo_headers = {"X-VisionX-Demo": "1"}
+
+    assert api_client.get("/api/auth/me", headers=demo_headers).json()["user"] == {
+        "username": "visionx-demo",
+        "display_name": "VisionX demo viewer",
+        "role": "VIEWER",
+    }
+    assert api_client.get("/api/scans", headers=demo_headers).status_code == 200
+    assert api_client.get("/api/assets", headers=demo_headers).status_code == 200
+    assert api_client.get("/api/system/profiles", headers=demo_headers).status_code == 200
+
+    # The demo header never grants mutation access or a CSRF token.
+    assert api_client.post("/api/scans", headers=demo_headers, json={}).status_code == 401
+    assert api_client.get("/api/scans").status_code == 401
 
 
 def test_api_auth_flow_and_rbac(api_client):
@@ -240,4 +257,3 @@ def test_attacklab_run_and_governance_workflow(api_client):
     assert audit_data["total"] >= 3
     if audit_data["verification"]:
         assert audit_data["verification"]["intact"] is True
-

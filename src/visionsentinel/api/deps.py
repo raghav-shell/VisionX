@@ -41,13 +41,27 @@ def current_principal(request: Request, state: AppState = Depends(get_state)) ->
     return Principal(*found)
 
 
+def viewer_or_demo(request: Request, state: AppState = Depends(get_state)) -> Principal | None:
+    """Allow only read-only viewer access for the explicit local demo mode."""
+    found = resolve_session(state.db, request.cookies.get(SESSION_COOKIE))
+    if found is not None:
+        return Principal(*found)
+    if state.settings.demo_mode and request.headers.get("X-VisionX-Demo") == "1":
+        return None
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, "authentication required")
+
+
 def _same_origin(request: Request, state: AppState) -> set[str]:
     host = request.headers.get("host", "")
     return {f"http://{host}", f"https://{host}", *state.settings.extra_origins}
 
 
 def require(role: Role):
-    def dep(principal: Principal = Depends(current_principal)) -> Principal:
+    def dep(principal: Principal | None = Depends(viewer_or_demo)) -> Principal | None:
+        if principal is None:
+            if role == Role.VIEWER:
+                return None
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "authentication required")
         if principal.role.rank < role.rank:
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"requires role {role.value} or higher")
         return principal

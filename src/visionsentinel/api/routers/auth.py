@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ... import __version__
 from ...contracts import Role
 from ...governance import authenticate
-from ..deps import Principal, client_key, current_principal, get_state, mutation, same_origin_only
+from ..deps import Principal, client_key, current_principal, get_state, mutation, same_origin_only, viewer_or_demo
 from ..security import SESSION_COOKIE, create_session, drop_session
 from ..state import AppState
 
@@ -53,6 +53,9 @@ def logout(request: Request, response: Response, principal: Principal = Depends(
 
 
 @router.get("/me")
-def me(principal: Principal = Depends(current_principal), state: AppState = Depends(get_state)) -> dict:
+def me(principal: Principal | None = Depends(viewer_or_demo), state: AppState = Depends(get_state)) -> dict:
+    if principal is None:
+        return {"user": {"username": "visionx-demo", "display_name": "VisionX demo viewer", "role": Role.VIEWER.value},
+                "csrf": "", "demo_mode": True, "version": __version__}
     return {"user": user_view(principal.user), "csrf": principal.session.csrf_token,
             "demo_mode": state.settings.demo_mode, "version": __version__}

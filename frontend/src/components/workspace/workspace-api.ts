@@ -4,12 +4,20 @@ import type { WorkspaceScan } from "./workspace-data";
 export interface ApiSession {
   user: { username: string; display_name: string; role: string };
   csrf: string;
+  demo_mode?: boolean;
+  version?: string;
 }
 
 export interface ApiAsset {
   id: string;
   kind: string;
   name: string;
+}
+
+export interface ApiProfile {
+  name: string;
+  description: string;
+  budget: string;
 }
 
 interface ScanSummary {
@@ -25,7 +33,9 @@ interface ScanSummary {
 }
 
 async function request(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(path, { credentials: "same-origin", cache: "no-store", ...init });
+  const headers = new Headers(init?.headers);
+  headers.set("X-VisionX-Demo", "1");
+  return fetch(path, { credentials: "same-origin", cache: "no-store", ...init, headers });
 }
 
 async function errorText(response: Response): Promise<string> {
@@ -42,7 +52,7 @@ export async function discoverApi(): Promise<boolean> {
     const response = await request("/api/system/info");
     if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) return false;
     const body = await response.json();
-    return body.product === "VisionSentinel";
+    return body.product === "VisionX";
   } catch { return false; }
 }
 
@@ -88,6 +98,13 @@ export async function loadServerAssets(): Promise<ApiAsset[]> {
   if (!response.ok) throw new Error(await errorText(response));
   const body = await response.json() as { assets: ApiAsset[] };
   return body.assets;
+}
+
+export async function loadServerProfiles(): Promise<ApiProfile[]> {
+  const response = await request("/api/system/profiles");
+  if (!response.ok) throw new Error(await errorText(response));
+  const body = await response.json() as { profiles: ApiProfile[] };
+  return body.profiles;
 }
 
 export async function submitServerScan(body: { name: string; profile: string; dataset?: string; model?: string }, csrf: string): Promise<string> {

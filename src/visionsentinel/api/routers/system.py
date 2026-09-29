@@ -62,8 +62,8 @@ def sandbox_status() -> dict:
 
 @router.get("/info")
 def info(state: AppState = Depends(get_state)) -> dict:
-    """Unauthenticated minimal information for the login screen."""
-    return {"product": "VisionSentinel", "version": __version__, "demo_mode": state.settings.demo_mode}
+    """Unauthenticated minimal information for the VisionX workspace."""
+    return {"product": "VisionX", "version": __version__, "demo_mode": state.settings.demo_mode}
 
 
 @router.get("/status", dependencies=[Depends(require(Role.VIEWER))])
