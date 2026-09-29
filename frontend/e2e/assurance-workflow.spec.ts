@@ -1,0 +1,62 @@
+import { expect, test } from "@playwright/test";
+
+async function login(page: import("@playwright/test").Page, username: string, password: string) {
+  await page.goto("/workspace");
+  await page.getByLabel("Username").fill(username);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: /sign in locally/i }).click();
+  await expect(page.getByText("Mission control")).toBeVisible();
+}
+
+test("analyst can upload, run, inspect, request and audit a governed scan", async ({ page, context }) => {
+  await login(page, "analyst", "analystpassword");
+  const session = await context.request.get("/api/auth/me");
+  const csrf = (await session.json()).csrf;
+  const headers = { Origin: "http://127.0.0.1:4173", "X-CSRF-Token": csrf };
+
+  // A bounded upload proves the browser route, asset registry, and type validation work together.
+  const upload = await context.request.post("/api/assets/upload", { headers,
+    multipart: { kind: "ledger", name: "browser-ledger", file: { name: "events.jsonl", mimeType: "application/x-ndjson", buffer: Buffer.from('{"event":"e2e"}\n') } } });
+  expect(upload.status()).toBe(201);
+
+  // Controlled attack lab creates a sealed scan with real finding/evidence data.
+  const run = await context.request.post("/api/attacklab/scenarios/label_flip_targeted/run", { headers, data: { profile: "selftest" } });
+  expect(run.ok()).toBeTruthy();
+  const scanId = (await run.json()).scan_id;
+  const findings = await context.request.get(`/api/scans/${scanId}/findings`);
+  const finding = (await findings.json()).findings[0];
+  expect(finding.evidence.length).toBeGreaterThan(0);
+
+  const request = await context.request.post(`/api/findings/${finding.id}/decision`, { headers, data: {
+    target_disposition: "ACCEPT", reason_code: "ACCEPTED_RISK",
+    justification: "E2E governance request has sufficient explanation for independent review.",
+  } });
+  expect(request.status()).toBe(201);
+  const decisionId = (await request.json()).decision_id;
+  const selfApproval = await context.request.post(`/api/governance/decisions/${decisionId}/approve`, { headers, data: { justification: "Self approval must fail." } });
+  expect(selfApproval.status()).toBe(403);
+
+  const audit = await context.request.post("/api/provenance/verify", { data: {} });
+  expect(audit.ok()).toBeTruthy();
+  expect((await audit.json()).intact).toBeTruthy();
+});
+
+test("a second approver can approve a pending request", async ({ browser }) => {
+  const analyst = await browser.newContext({ baseURL: "http://127.0.0.1:4173" });
+  const analystPage = await analyst.newPage();
+  await login(analystPage, "analyst", "analystpassword");
+  const analystSession = await analyst.request.get("/api/auth/me");
+  const analystHeaders = { Origin: "http://127.0.0.1:4173", "X-CSRF-Token": (await analystSession.json()).csrf };
+  const run = await analyst.request.post("/api/attacklab/scenarios/label_flip_targeted/run", { headers: analystHeaders, data: { profile: "selftest" } });
+  const scanId = (await run.json()).scan_id;
+  const finding = (await (await analyst.request.get(`/api/scans/${scanId}/findings`)).json()).findings[0];
+  const decision = await analyst.request.post(`/api/findings/${finding.id}/decision`, { headers: analystHeaders, data: { target_disposition: "ACCEPT", reason_code: "ACCEPTED_RISK", justification: "A second account must be able to independently approve this tested request." } });
+
+  const approver = await browser.newContext({ baseURL: "http://127.0.0.1:4173" });
+  const approverPage = await approver.newPage();
+  await login(approverPage, "approver", "approverpassword");
+  const approverSession = await approver.request.get("/api/auth/me");
+  const response = await approver.request.post(`/api/governance/decisions/${(await decision.json()).decision_id}/approve`, { headers: { Origin: "http://127.0.0.1:4173", "X-CSRF-Token": (await approverSession.json()).csrf }, data: { justification: "Independent approver completed the E2E disposition review." } });
+  expect(response.ok()).toBeTruthy();
+  await analyst.close(); await approver.close();
+});

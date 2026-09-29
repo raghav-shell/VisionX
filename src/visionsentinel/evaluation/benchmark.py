@@ -70,8 +70,8 @@ class FamilyEvaluationRow:
     false_positives: int
     tpr: float
     tpr_ci: tuple[float, float]
-    fpr: float
-    fpr_ci: tuple[float, float]
+    fpr: float | None
+    fpr_ci: tuple[float, float] | None
     auroc: float | None
     auroc_ci: tuple[float, float] | None
     overall_disposition: str
@@ -88,7 +88,20 @@ class BenchmarkReport:
     rows: list[FamilyEvaluationRow]
     summary_table: str
 
+    def markdown(self) -> str:
+        lines = ["# VisionSentinel benchmark", "", "## Protocol", "",
+                 "Calibration and held-out families are reported separately. A false-positive rate or AUROC is only reported when a negative-control denominator and score vector were supplied; it is never assumed to be zero.", "",
+                 "## Scenario results", "", "| Family | Scenario | Tier | TPR (95% CI) | FPR (95% CI) | AUROC (95% CI) | Fitness |", "|---|---|---|---|---|---|---|"]
+        for row in self.rows:
+            fpr = "not estimated" if row.fpr is None else f"{row.fpr:.3f} [{row.fpr_ci[0]:.3f}, {row.fpr_ci[1]:.3f}]"
+            auc = "not estimated" if row.auroc is None else f"{row.auroc:.3f} [{row.auroc_ci[0]:.3f}, {row.auroc_ci[1]:.3f}]"
+            lines.append(f"| {row.attack_family} | {row.scenario_id} | {row.evaluation_tier} | {row.tpr:.3f} [{row.tpr_ci[0]:.3f}, {row.tpr_ci[1]:.3f}] | {fpr} | {auc} | {'PASS' if row.passed_fitness else 'FAIL'} |")
+        lines += ["", "## Limits", "", "The current shipped attack scenarios are positive controls. Add adjudicated clean / benign-shift controls for each detector before quoting FPR or AUROC in a competition claim."]
+        return "\n".join(lines) + "\n"
+
     def to_dict(self) -> dict[str, Any]:
+        tier_counts = {tier: sum(1 for row in self.rows if row.evaluation_tier == tier)
+                       for tier in ("calibration", "evaluation", "held_out")}
         return {
             "total_scenarios_run": self.total_scenarios_run,
             "passed_scenarios": self.passed_scenarios,
@@ -96,7 +109,21 @@ class BenchmarkReport:
             "mean_fpr": self.mean_fpr,
             "rows": [asdict(r) for r in self.rows],
             "summary_table": self.summary_table,
+            "tier_counts": tier_counts,
+            "false_positive_examples": [],
+            "methodology": {"calibration_and_held_out_separated": True, "fpr_requires_negative_controls": True,
+                            "auroc_requires_labelled_score_vectors": True,
+                            "false_positive_examples_note": "No adjudicated negative controls have been supplied; this list remains empty rather than inventing examples."},
         }
+
+
+def write_benchmark_artifacts(report: BenchmarkReport, output_dir: Path = Path("benchmarks")) -> tuple[Path, Path]:
+    """Write portable latest JSON and judge-readable Markdown without fabricating unavailable metrics."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path, markdown_path = output_dir / "latest.json", output_dir / "latest.md"
+    json_path.write_text(json.dumps(report.to_dict(), indent=2) + "\n")
+    markdown_path.write_text(report.markdown())
+    return json_path, markdown_path
 
 
 def run_benchmark(
@@ -115,9 +142,10 @@ def run_benchmark(
             tp = 1 if result.detected_expected_signals else 0
             fp = 0
             tpr = float(tp)
-            fpr = 0.0
+            # Shipped scenarios are positive controls; no clean-control denominator exists.
+            fpr = None
             tpr_ci = wilson_interval(tp, 1)
-            fpr_ci = (0.0, 0.0)
+            fpr_ci = None
 
             rows.append(
                 FamilyEvaluationRow(
@@ -131,8 +159,8 @@ def run_benchmark(
                     tpr_ci=tpr_ci,
                     fpr=fpr,
                     fpr_ci=fpr_ci,
-                    auroc=1.0 if tp == 1 else 0.0,
-                    auroc_ci=(1.0, 1.0) if tp == 1 else (0.0, 0.0),
+                    auroc=None,
+                    auroc_ci=None,
                     overall_disposition=result.overall_disposition,
                     passed_fitness=result.passed_fitness,
                     notes=", ".join(result.fitness_notes) if result.fitness_notes else "all fitness gates passed",
@@ -150,8 +178,8 @@ def run_benchmark(
                     false_positives=0,
                     tpr=0.0,
                     tpr_ci=(0.0, 0.0),
-                    fpr=0.0,
-                    fpr_ci=(0.0, 0.0),
+                    fpr=None,
+                    fpr_ci=None,
                     auroc=0.0,
                     auroc_ci=(0.0, 0.0),
                     overall_disposition="ERROR",
@@ -162,7 +190,8 @@ def run_benchmark(
 
     passed = sum(1 for r in rows if r.true_positives == 1 and r.passed_fitness)
     mean_tpr = round(float(np.mean([r.tpr for r in rows])) if rows else 0.0, 4)
-    mean_fpr = round(float(np.mean([r.fpr for r in rows])) if rows else 0.0, 4)
+    measured_fprs = [r.fpr for r in rows if r.fpr is not None]
+    mean_fpr = round(float(np.mean(measured_fprs)), 4) if measured_fprs else float("nan")
 
     # Format ASCII summary table
     table_lines = [

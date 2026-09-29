@@ -179,8 +179,8 @@ def run_scenario(
             affected_ids = duplicate_flood(
                 records,
                 contributor=att.get("contributor", "Delta"),
-                clusters=att.get("clusters", 3),
-                copies_per_cluster=att.get("copies_per_cluster", 8),
+                n_sources=att.get("clusters", 3),
+                copies=att.get("copies_per_cluster", 8),
                 rng=rng,
             )
         elif att_type == "patch_poison":

@@ -1,0 +1,201 @@
+{
+  "total_scenarios_run": 9,
+  "passed_scenarios": 1,
+  "mean_tpr": 0.1111,
+  "mean_fpr": NaN,
+  "rows": [
+    {
+      "attack_family": "operational_covariate_shift",
+      "scenario_id": "drift_illumination",
+      "evaluation_tier": "evaluation",
+      "total_samples": 3,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "REVIEW",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "duplicate_flood",
+      "scenario_id": "duplicate_flood",
+      "evaluation_tier": "evaluation",
+      "total_samples": 9,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "QUARANTINE",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "label_flip",
+      "scenario_id": "label_flip_targeted",
+      "evaluation_tier": "evaluation",
+      "total_samples": 11,
+      "true_positives": 1,
+      "false_positives": 0,
+      "tpr": 1.0,
+      "tpr_ci": [
+        0.2065,
+        1.0
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "REVIEW",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "record_modification",
+      "scenario_id": "ledger_tamper",
+      "evaluation_tier": "evaluation",
+      "total_samples": 0,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "ACCEPT",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "model_substitution",
+      "scenario_id": "model_swap",
+      "evaluation_tier": "evaluation",
+      "total_samples": 0,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "ACCEPT",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "model_weight_tampering",
+      "scenario_id": "modified_weights",
+      "evaluation_tier": "evaluation",
+      "total_samples": 0,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "ACCEPT",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "localized_trigger",
+      "scenario_id": "patch_poison",
+      "evaluation_tier": "evaluation",
+      "total_samples": 1,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "REVIEW",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "operational_semantic_shift",
+      "scenario_id": "semantic_shift",
+      "evaluation_tier": "evaluation",
+      "total_samples": 3,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "ACCEPT",
+      "passed_fitness": true,
+      "notes": "all fitness gates passed"
+    },
+    {
+      "attack_family": "systematic_mislabel",
+      "scenario_id": "systematic_mislabel",
+      "evaluation_tier": "evaluation",
+      "total_samples": 4,
+      "true_positives": 0,
+      "false_positives": 0,
+      "tpr": 0.0,
+      "tpr_ci": [
+        0.0,
+        0.7935
+      ],
+      "fpr": null,
+      "fpr_ci": null,
+      "auroc": null,
+      "auroc_ci": null,
+      "overall_disposition": "REVIEW",
+      "passed_fitness": false,
+      "notes": "affected samples (0) < min required (8)"
+    }
+  ],
+  "summary_table": "ATTACK CLASS                   | SCENARIO ID               | TIER         | TPR    | 95% CI           | FITNESS  | DISPOSITION \n-----------------------------------------------------------------------------------------------------------------------------\noperational_covariate_shift    | drift_illumination        | evaluation   | 0.00   | [0.00, 0.79]     | PASSED   | REVIEW      \nduplicate_flood                | duplicate_flood           | evaluation   | 0.00   | [0.00, 0.79]     | PASSED   | QUARANTINE  \nlabel_flip                     | label_flip_targeted       | evaluation   | 1.00   | [0.21, 1.00]     | PASSED   | REVIEW      \nrecord_modification            | ledger_tamper             | evaluation   | 0.00   | [0.00, 0.79]     | PASSED   | ACCEPT      \nmodel_substitution             | model_swap                | evaluation   | 0.00   | [0.00, 0.79]     | PASSED   | ACCEPT      \nmodel_weight_tampering         | modified_weights          | evaluation   | 0.00   | [0.00, 0.79]     | PASSED   | ACCEPT      \nlocalized_trigger              | patch_poison              | evaluation   | 0.00   | [0.00, 0.79]     | PASSED   | REVIEW      \noperational_semantic_shift     | semantic_shift            | evaluation   | 0.00   | [0.00, 0.79]     | PASSED   | ACCEPT      \nsystematic_mislabel            | systematic_mislabel       | evaluation   | 0.00   | [0.00, 0.79]     | FAIL     | REVIEW      ",
+  "tier_counts": {
+    "calibration": 0,
+    "evaluation": 9,
+    "held_out": 0
+  },
+  "false_positive_examples": [],
+  "methodology": {
+    "calibration_and_held_out_separated": true,
+    "fpr_requires_negative_controls": true,
+    "auroc_requires_labelled_score_vectors": true,
+    "false_positive_examples_note": "No adjudicated negative controls have been supplied; this list remains empty rather than inventing examples."
+  }
+}

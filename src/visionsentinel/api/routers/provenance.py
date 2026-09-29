@@ -100,7 +100,7 @@ def verify_ledger_endpoint(body: VerifyLedgerBody, state: AppState = Depends(get
     anchors = asset_path(body.anchor_asset_id, "anchor_asset_id") or (state.keys.audit_anchor if state.keys.audit_anchor.is_file() else None)
     inputs = asset_path(body.inputs_asset_id, "inputs_asset_id")
 
-    report = verify_ledger(ledger_file, trust, anchors=anchors, inputs_dir=inputs)
+    report = verify_ledger(ledger_file, trust, anchors=anchors, inputs=inputs)
     return report.to_dict()
 
 
