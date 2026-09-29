@@ -13,7 +13,7 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 
 from ..attacklab.runner import list_scenarios, run_scenario
-from ..contracts import Disposition, Severity
+from ..contracts import Severity
 from ..core.workspace import Workspace
 
 log = logging.getLogger(__name__)
@@ -76,6 +76,7 @@ class FamilyEvaluationRow:
     auroc_ci: tuple[float, float] | None
     overall_disposition: str
     passed_fitness: bool
+    is_negative_control: bool = False
     notes: str = ""
 
 
@@ -84,7 +85,7 @@ class BenchmarkReport:
     total_scenarios_run: int
     passed_scenarios: int
     mean_tpr: float
-    mean_fpr: float
+    mean_fpr: float | None
     rows: list[FamilyEvaluationRow]
     summary_table: str
 
@@ -110,10 +111,12 @@ class BenchmarkReport:
             "rows": [asdict(r) for r in self.rows],
             "summary_table": self.summary_table,
             "tier_counts": tier_counts,
-            "false_positive_examples": [],
+            "negative_controls": sum(1 for row in self.rows if row.is_negative_control),
+            "false_positive_examples": [row.scenario_id for row in self.rows if row.is_negative_control and row.false_positives],
             "methodology": {"calibration_and_held_out_separated": True, "fpr_requires_negative_controls": True,
                             "auroc_requires_labelled_score_vectors": True,
-                            "false_positive_examples_note": "No adjudicated negative controls have been supplied; this list remains empty rather than inventing examples."},
+                            "risk_alert_threshold": "REVIEW or QUARANTINE disposition",
+                            "false_positive_examples_note": "Only executed, adjudicated negative controls are included; unavailable metrics are null rather than fabricated."},
         }
 
 
@@ -121,7 +124,8 @@ def write_benchmark_artifacts(report: BenchmarkReport, output_dir: Path = Path("
     """Write portable latest JSON and judge-readable Markdown without fabricating unavailable metrics."""
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path, markdown_path = output_dir / "latest.json", output_dir / "latest.md"
-    json_path.write_text(json.dumps(report.to_dict(), indent=2) + "\n")
+    # JSON consumers must never receive JavaScript-only NaN / Infinity literals.
+    json_path.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False) + "\n")
     markdown_path.write_text(report.markdown())
     return json_path, markdown_path
 
@@ -138,21 +142,32 @@ def run_benchmark(
     for manifest in scenarios:
         try:
             result = run_scenario(manifest, workspace=workspace, profile=profile)
-            # Binary evaluation against manifest ground truth
-            tp = 1 if result.detected_expected_signals else 0
-            fp = 0
+            # Positive controls measure detection. Negative controls measure
+            # detector alerts per supplied clean sample, with a manifest-declared
+            # acceptance bound rather than an invented zero-error expectation.
+            is_negative = manifest.negative_control
+            negative_samples = sum(int(c["samples"]) for c in manifest.base.get("contributors", []))
+            if is_negative and negative_samples <= 0:
+                raise ValueError("negative controls require a positive clean-sample denominator")
+            false_positive_findings = [
+                finding for finding in result.scan_result.findings
+                if finding.severity.rank >= Severity.MEDIUM.rank
+            ]
+            tp = 0 if is_negative else int(result.detected_expected_signals)
+            fp = len(false_positive_findings) if is_negative else 0
             tpr = float(tp)
-            # Shipped scenarios are positive controls; no clean-control denominator exists.
-            fpr = None
-            tpr_ci = wilson_interval(tp, 1)
-            fpr_ci = None
+            fpr = round(float(fp) / negative_samples, 4) if is_negative else None
+            tpr_ci = wilson_interval(tp, 1) if not is_negative else (0.0, 0.0)
+            fpr_ci = wilson_interval(fp, negative_samples) if is_negative else None
+            max_fpr = manifest.fitness_gates.get("max_false_positive_rate")
+            negative_passed = max_fpr is None or fpr is not None and fpr <= float(max_fpr)
 
             rows.append(
                 FamilyEvaluationRow(
                     attack_family=manifest.attack_class,
                     scenario_id=manifest.scenario_id,
                     evaluation_tier=manifest.evaluation_family,
-                    total_samples=result.findings_count,
+                    total_samples=negative_samples if is_negative else result.findings_count,
                     true_positives=tp,
                     false_positives=fp,
                     tpr=tpr,
@@ -162,8 +177,12 @@ def run_benchmark(
                     auroc=None,
                     auroc_ci=None,
                     overall_disposition=result.overall_disposition,
-                    passed_fitness=result.passed_fitness,
-                    notes=", ".join(result.fitness_notes) if result.fitness_notes else "all fitness gates passed",
+                    passed_fitness=result.passed_fitness and (negative_passed if is_negative else True),
+                    is_negative_control=is_negative,
+                    notes=(
+                        f"{fp}/{negative_samples} material alerts; maximum allowed FPR {max_fpr}"
+                        if is_negative else ", ".join(result.fitness_notes) if result.fitness_notes else "all fitness gates passed"
+                    ),
                 )
             )
         except Exception as exc:
@@ -180,18 +199,27 @@ def run_benchmark(
                     tpr_ci=(0.0, 0.0),
                     fpr=None,
                     fpr_ci=None,
-                    auroc=0.0,
-                    auroc_ci=(0.0, 0.0),
+                    auroc=None,
+                    auroc_ci=None,
                     overall_disposition="ERROR",
                     passed_fitness=False,
+                    is_negative_control=manifest.negative_control,
                     notes=f"execution error: {exc}",
                 )
             )
 
-    passed = sum(1 for r in rows if r.true_positives == 1 and r.passed_fitness)
-    mean_tpr = round(float(np.mean([r.tpr for r in rows])) if rows else 0.0, 4)
+    passed = sum(
+        1 for r in rows
+        if r.passed_fitness and (r.is_negative_control or r.true_positives == 1)
+    )
+    positive_rows = [r for r in rows if not r.is_negative_control]
+    mean_tpr = round(float(np.mean([r.tpr for r in positive_rows])) if positive_rows else 0.0, 4)
     measured_fprs = [r.fpr for r in rows if r.fpr is not None]
-    mean_fpr = round(float(np.mean(measured_fprs)), 4) if measured_fprs else float("nan")
+    mean_fpr = (
+        round(float(np.mean(measured_fprs)), 4)
+        if measured_fprs
+        else None
+    )
 
     # Format ASCII summary table
     table_lines = [

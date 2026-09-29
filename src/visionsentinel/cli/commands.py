@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 
 from pathlib import Path
 
@@ -236,13 +235,13 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
     print(heading("VISION SENTINEL — SCIENTIFIC EVALUATION BENCHMARK"))
     print(report.summary_table)
     print()
-    mean_fpr = f"{report.mean_fpr:.2f}" if not math.isnan(report.mean_fpr) else "not estimated (no negative controls)"
+    mean_fpr = f"{report.mean_fpr:.2f}" if report.mean_fpr is not None else "not estimated (no negative controls)"
     print(f"Total Scenarios: {report.total_scenarios_run} | Passed: {report.passed_scenarios} | Mean TPR: {report.mean_tpr:.2f} | Mean FPR: {mean_fpr}")
     json_path, markdown_path = write_benchmark_artifacts(report)
     print(f"Saved benchmark artifacts to {json_path} and {markdown_path}")
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(report.to_dict(), indent=2))
+        args.out.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False))
         print(f"Saved benchmark report to {args.out}")
     return 0 if report.passed_scenarios == report.total_scenarios_run else 1
 

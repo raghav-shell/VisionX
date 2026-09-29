@@ -41,6 +41,7 @@ class ScenarioManifest(BaseModel):
     description: str
     seed: int = 42
     evaluation_family: str = "evaluation"
+    negative_control: bool = False
     base: dict[str, Any] = Field(default_factory=dict)
     attack: dict[str, Any] = Field(default_factory=dict)
     fitness_gates: dict[str, Any] = Field(default_factory=dict)
@@ -135,7 +136,22 @@ def run_scenario(
     passed_fitness = True
 
     # 1. Dataset Generation & Attack Injection
-    if manifest.attack.get("type") in ("label_flip_targeted", "label_flip_random", "systematic_mislabel",
+    if manifest.negative_control and manifest.attack.get("type") == "clean_dataset":
+        contrib_confs = manifest.base.get("contributors", [])
+        if not contrib_confs:
+            raise ValueError("clean negative controls require declared contributors")
+        records = []
+        for c in contrib_confs:
+            profile_spec = ContributorProfile(c["name"], c["samples"], c.get("sensor", "EO-A2"), c.get("source", "field"))
+            records.extend(generate_contributor(profile_spec, seed=seed + sum(map(ord, c["name"]))))
+        ds_path = run_dir / "dataset"
+        write_corpus(records, ds_path, name=f"{manifest.scenario_id}_clean")
+        scan_req.dataset = ds_path
+        ref_records = generate_clean_set(manifest.base.get("reference_size", len(records)), seed=seed + 777, label="ref")
+        ref_path = run_dir / "reference"
+        write_corpus(ref_records, ref_path, name="clean_reference")
+        scan_req.reference_dataset = ref_path
+    elif manifest.attack.get("type") in ("label_flip_targeted", "label_flip_random", "systematic_mislabel",
                                        "duplicate_flood", "patch_poison"):
         contrib_confs = manifest.base.get("contributors", [
             {"name": "Alpha", "samples": 80, "sensor": "EO-A2", "source": "f1"},

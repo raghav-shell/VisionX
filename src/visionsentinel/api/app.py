@@ -14,7 +14,7 @@ from .. import __version__
 from ..core.airgap import EgressViolation
 from ..core.errors import EvidenceIntegrityError, RunnerUnavailableError, UnsafeInputError, VisionSentinelError
 from ..core.workspace import Workspace
-from .routers import assets, attacklab, auth, drift, evidence, findings, governance, jobs, provenance, scans, system
+from .routers import admin, assets, attacklab, auth, drift, evidence, findings, governance, jobs, provenance, scans, system
 from .runner import JobRunner, recover_interrupted_work
 from .security import BodyLimit, SecurityHeaders
 from .settings import Settings
@@ -64,6 +64,7 @@ def create_app(
 
     # Mount API routers
     app.include_router(auth.router)
+    app.include_router(admin.router)
     app.include_router(system.router)
     app.include_router(scans.router)
     app.include_router(assets.router)

@@ -322,13 +322,14 @@ def get_scan_graph(scan_id: str, state: AppState = Depends(get_state)) -> dict:
 
 
 @router.get("/{scan_id}/report.json", dependencies=[Depends(require(Role.VIEWER))])
-def get_scan_report_json(scan_id: str, state: AppState = Depends(get_state)) -> Response:
-    res = _result_or_error(scan_id, state)
-    return Response(
-        content=res.model_dump_json(indent=2),
-        media_type="application/json",
-        headers={"Content-Disposition": f'attachment; filename="report_{scan_id}.json"'},
-    )
+def get_scan_report_json(scan_id: str, state: AppState = Depends(get_state)) -> FileResponse:
+    """Download the exact report bytes covered by the signed manifest."""
+    with state.db.session() as s:
+        scan = s.get(Scan, scan_id)
+        path = Path(scan.report_dir) / "report.json" if scan and scan.report_dir else None
+    if path is None or not path.is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"signed report for {scan_id!r} is not available")
+    return FileResponse(path, media_type="application/json", filename=f"report_{scan_id}.json")
 
 
 @router.get("/{scan_id}/report.html", dependencies=[Depends(require(Role.VIEWER))])

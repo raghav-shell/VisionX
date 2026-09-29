@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ...attacklab.runner import list_scenarios, load_scenario, run_scenario
 from ...contracts import JobKind, JobStatus, Role
+from ...reporting import write_report
 from ..deps import Principal, get_state, mutation, require
 from ..runner import index_result
 from ..state import AppState
@@ -54,7 +55,8 @@ def run_scenario_endpoint(
         scenario = load_scenario(scenario_id)
         result = run_scenario(scenario, workspace=state.workspace, profile=body.profile)
         if result.scan_result is not None:
-            index_result(state, result.scan_result, report_dir=None)
+            paths = write_report(result.scan_result, state.workspace.reports, state.store, state.keys.report)
+            index_result(state, result.scan_result, report_dir=str(paths["report.json"].parent))
             ctx.link_scan(result.scan_result.scan_id)
         ctx.step("scenario evaluated", result.scan_id)
         return result.to_dict()

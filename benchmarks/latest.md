@@ -8,6 +8,7 @@ Calibration and held-out families are reported separately. A false-positive rate
 
 | Family | Scenario | Tier | TPR (95% CI) | FPR (95% CI) | AUROC (95% CI) | Fitness |
 |---|---|---|---|---|---|---|
+| clean_control | clean_baseline | evaluation | 0.000 [0.000, 0.000] | 0.003 [0.000, 0.014] | not estimated | PASS |
 | operational_covariate_shift | drift_illumination | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
 | duplicate_flood | duplicate_flood | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
 | label_flip | label_flip_targeted | evaluation | 1.000 [0.206, 1.000] | not estimated | not estimated | PASS |

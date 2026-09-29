@@ -1,0 +1,38 @@
+scenario_id: clean_baseline
+title: Adjudicated Clean Multi-Contributor Baseline
+attack_class: clean_control
+description: Clean, independently generated contributor data used as a negative control for material-risk false-positive measurement.
+seed: 42100
+evaluation_family: evaluation
+negative_control: true
+
+base:
+  reference_size: 400
+  contributors:
+    - name: Alpha
+      samples: 100
+      sensor: EO-A2
+      source: field_unit_1
+    - name: Bravo
+      samples: 100
+      sensor: EO-B1
+      source: field_unit_2
+    - name: Charlie
+      samples: 100
+      sensor: UAV-C3
+      source: aerial_recon_1
+    - name: Delta
+      samples: 100
+      sensor: SAT-D4
+      source: orbital_sat_1
+
+attack:
+  type: clean_dataset
+
+fitness_gates:
+  min_samples: 400
+  max_false_positive_rate: 0.02
+
+expected:
+  expected_detectors: []
+  expected_disposition: ACCEPT

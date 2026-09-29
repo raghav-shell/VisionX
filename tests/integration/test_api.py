@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 
 import pytest
@@ -167,6 +169,54 @@ def test_api_auth_flow_and_rbac(api_client):
     assert after_me.status_code == 401
 
 
+def test_admin_user_lifecycle_never_exposes_password_hashes(api_client):
+    from visionsentinel.contracts import Role
+    from visionsentinel.governance.identity import create_user
+
+    create_user(api_client.app.state.vs.db, "admin", "adminpassword", Role.ADMIN, "Platform Admin")
+    login = api_client.post(
+        "/api/auth/login",
+        json={"username": "admin", "password": "adminpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    headers = {"Origin": "http://testserver", "X-CSRF-Token": login.json()["csrf"]}
+
+    created = api_client.post("/api/admin/users", headers=headers, json={
+        "username": "operator", "password": "operatorpassword", "role": "VIEWER", "display_name": "Read Operator",
+    })
+    assert created.status_code == 201
+    assert created.json()["user"] == {
+        "username": "operator", "display_name": "Read Operator", "role": "VIEWER", "disabled": False,
+        "created_at": created.json()["user"]["created_at"],
+    }
+    assert "password" not in json.dumps(created.json()).lower()
+
+    assert api_client.get("/api/admin/users", headers=headers).status_code == 200
+    changed = api_client.patch("/api/admin/users/operator/role", headers=headers, json={"role": "ANALYST"})
+    assert changed.json()["user"]["role"] == "ANALYST"
+    assert api_client.post("/api/admin/users/operator/disable", headers=headers).json()["user"]["disabled"] is True
+
+    denied = api_client.post(
+        "/api/auth/login", json={"username": "operator", "password": "operatorpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    assert denied.status_code == 401
+    assert api_client.post("/api/admin/users/operator/enable", headers=headers).json()["user"]["disabled"] is False
+    reset = api_client.post("/api/admin/users/operator/reset-password", headers=headers, json={"password": "newoperatorpassword"})
+    assert reset.status_code == 200
+    assert api_client.post(
+        "/api/auth/login", json={"username": "operator", "password": "newoperatorpassword"},
+        headers={"Origin": "http://testserver"},
+    ).status_code == 200
+
+    analyst_login = api_client.post(
+        "/api/auth/login", json={"username": "analyst", "password": "analystpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    analyst_headers = {"Origin": "http://testserver", "X-CSRF-Token": analyst_login.json()["csrf"]}
+    assert api_client.get("/api/admin/users", headers=analyst_headers).status_code == 403
+
+
 def test_csrf_rejection_on_mutation(api_client):
     # Login
     login_res = api_client.post(
@@ -294,6 +344,14 @@ def test_attacklab_run_and_governance_workflow(api_client):
     assert findings_res.status_code == 200
     findings = findings_res.json()["findings"]
     assert len(findings) > 0
+
+    # The download must be the exact report.json whose digest is listed in the signed manifest.
+    report = api_client.get(f"/api/scans/{scan_id}/report.json")
+    manifest = api_client.get(f"/api/scans/{scan_id}/bundle/manifest.json")
+    assert report.status_code == 200 and manifest.status_code == 200
+    report_entry = next(item for item in manifest.json()["files"] if item["file"] == "report.json")
+    assert report_entry["sha256"] == "sha256:" + hashlib.sha256(report.content).hexdigest()
+    assert api_client.post(f"/api/scans/{scan_id}/report/verify", json={}).json()["verified"] is True
     target_finding = findings[0]
     finding_id = target_finding["id"]
     immutable_before = target_finding.copy()
