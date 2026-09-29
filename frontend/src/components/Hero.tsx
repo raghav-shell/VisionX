@@ -7,6 +7,10 @@ export default function Hero() {
   const words = ["audit", "verify", "trace", "inspect"];
   const [wordIndex, setWordIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
+  // Keep the server and the first client render identical. Browser extensions can
+  // inject playback controls into a video before React hydrates it, which would
+  // otherwise force React to discard the server-rendered hero.
+  const [showVideo, setShowVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const colors = [
@@ -19,6 +23,10 @@ export default function Hero() {
     "#f5b570", // orange
     "#eca8d6", // pink
   ];
+
+  useEffect(() => {
+    setShowVideo(true);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -68,27 +76,29 @@ export default function Hero() {
     <section className="relative h-screen min-h-[640px] max-h-[1080px] flex flex-col justify-between overflow-hidden bg-black select-none">
       {/* Background Video with local instant load, 4K contrast sharpening & Safari autoplay */}
       <div className="absolute inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          controls={false}
-          disablePictureInPicture
-          disableRemotePlayback
-          tabIndex={-1}
-          aria-hidden="true"
-          className="w-full h-full object-cover object-[78%_center] lg:object-[75%_center] contrast-[1.08] saturate-[1.12] brightness-[1.02] pointer-events-none"
-          style={{
-            imageRendering: "-webkit-optimize-contrast",
-            transform: "translate3d(0, 0, 0)",
-            backfaceVisibility: "hidden",
-          }}
-        >
-          <source src="/bg-hero.mp4" type="video/mp4" />
-        </video>
+        {showVideo && (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            controls={false}
+            disablePictureInPicture
+            disableRemotePlayback
+            tabIndex={-1}
+            aria-hidden="true"
+            className="w-full h-full object-cover object-[78%_center] lg:object-[75%_center] contrast-[1.08] saturate-[1.12] brightness-[1.02] pointer-events-none"
+            style={{
+              imageRendering: "-webkit-optimize-contrast",
+              transform: "translate3d(0, 0, 0)",
+              backfaceVisibility: "hidden",
+            }}
+          >
+            <source src="/bg-hero.mp4" type="video/mp4" />
+          </video>
+        )}
         {/* Dark Scrim Gradients matching source website — right side stays luminous & clear */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent pointer-events-none"></div>
         <div className="absolute inset-0 bg-black/35 pointer-events-none md:hidden"></div>
