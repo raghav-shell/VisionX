@@ -9,12 +9,14 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import desc, select
 
 from ...contracts import Disposition, Role, ScanResult, ScanStatus, Severity
 from ...engine.request import ScanRequest
+from ...provenance.keys import public_bytes
+from ...reporting import verify_manifest
 from ...reporting.compare import compare_scans
 from ...storage import FindingState, Scan, ScanEvent
 from ..deps import Principal, get_state, mutation, require
@@ -50,6 +52,11 @@ class CompareBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     scan_a: str = Field(min_length=1, max_length=128)
     scan_b: str = Field(min_length=1, max_length=128)
+
+
+class ReportVerifyBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_digest: str | None = Field(default=None, max_length=80)
 
 
 def _scan_summary(scan: Scan) -> dict:
@@ -323,6 +330,35 @@ def get_scan_report_html(scan_id: str, state: AppState = Depends(get_state)) -> 
             if html_path.is_file():
                 return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
     raise HTTPException(status.HTTP_404_NOT_FOUND, f"HTML report for {scan_id!r} not found on disk")
+
+
+@router.get("/{scan_id}/bundle/{artifact}", dependencies=[Depends(require(Role.VIEWER))])
+def download_report_artifact(scan_id: str, artifact: str, state: AppState = Depends(get_state)) -> FileResponse:
+    allowed = {"report.json", "report.html", "coverage.md", "manifest.json"}
+    if artifact not in allowed:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown report artifact")
+    with state.db.session() as s:
+        scan = s.get(Scan, scan_id)
+        path = Path(scan.report_dir) / artifact if scan and scan.report_dir else None
+    if path is None or not path.is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"{artifact} for {scan_id!r} is not available")
+    media = "text/html" if artifact.endswith(".html") else ("text/markdown" if artifact.endswith(".md") else "application/json")
+    return FileResponse(path, media_type=media, filename=f"{scan_id}-{artifact}")
+
+
+@router.post("/{scan_id}/report/verify", dependencies=[Depends(require(Role.VIEWER))])
+def verify_scan_report(scan_id: str, body: ReportVerifyBody, state: AppState = Depends(get_state)) -> dict:
+    with state.db.session() as s:
+        scan = s.get(Scan, scan_id)
+        report_dir = Path(scan.report_dir) if scan and scan.report_dir else None
+        stored_digest = scan.report_digest if scan else None
+    if report_dir is None or not report_dir.is_dir():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"report for {scan_id!r} is not available")
+    problems = verify_manifest(report_dir, public_bytes(state.keys.report))
+    digest_matches = body.expected_digest is None or body.expected_digest == stored_digest
+    return {"scan_id": scan_id, "report_digest": stored_digest, "expected_digest": body.expected_digest,
+            "digest_matches": digest_matches, "manifest_intact": not problems, "problems": problems,
+            "verified": not problems and digest_matches}
 
 
 @router.post("/compare", dependencies=[Depends(require(Role.VIEWER))])
