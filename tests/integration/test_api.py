@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from starlette.testclient import TestClient
 
@@ -9,7 +11,7 @@ from visionsentinel.api.app import create_app
 from visionsentinel.api.settings import Settings
 from visionsentinel.core.workspace import Workspace
 from visionsentinel.storage import Scan, ScanEvent
-from visionsentinel.contracts import Disposition, ScanStatus
+from visionsentinel.contracts import Disposition, JobStatus, ScanStatus
 from visionsentinel.engine.registry import default_registry
 
 
@@ -56,6 +58,36 @@ def test_demo_header_allows_read_only_workspace_access(api_client):
     # The demo header never grants mutation access or a CSRF token.
     assert api_client.post("/api/scans", headers=demo_headers, json={}).status_code == 401
     assert api_client.get("/api/scans").status_code == 401
+
+
+def test_jobs_api_lists_filters_and_returns_detail(api_client):
+    login = api_client.post(
+        "/api/auth/login",
+        json={"username": "analyst", "password": "analystpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    assert login.status_code == 200
+    runner = api_client.app.state.vs.runner
+    job_id = runner.submit_job("api-test", "job-api", "analyst", lambda ctx: {"ok": True})
+
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        detail = api_client.get(f"/api/jobs/{job_id}")
+        assert detail.status_code == 200
+        if JobStatus(detail.json()["status"]).terminal:
+            break
+        time.sleep(0.01)
+    else:
+        raise AssertionError("job did not complete")
+
+    response = api_client.get("/api/jobs", params={"started_by": "analyst", "limit": 1})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] >= 1
+    assert len(data["jobs"]) == 1
+    assert data["jobs"][0]["id"] == job_id
+    assert api_client.get(f"/api/jobs/{job_id}").json()["result"] == {"ok": True}
+    assert api_client.get("/api/jobs/unknown-job").status_code == 404
 
 
 def test_scan_event_stream_uses_persisted_contract_and_terminal_status(api_client):
@@ -233,8 +265,22 @@ def test_attacklab_run_and_governance_workflow(api_client):
         json={"profile": "selftest"},
         headers={"X-CSRF-Token": analyst_csrf, "Origin": "http://testserver"},
     )
-    assert run_res.status_code == 200
-    run_data = run_res.json()
+    assert run_res.status_code == 202
+    queued = run_res.json()
+    assert queued["status"] == JobStatus.QUEUED.value
+    job_id = queued["job_id"]
+    deadline = time.monotonic() + 120
+    while time.monotonic() < deadline:
+        job_res = api_client.get(f"/api/jobs/{job_id}")
+        assert job_res.status_code == 200
+        job = job_res.json()
+        if JobStatus(job["status"]).terminal:
+            break
+        time.sleep(0.1)
+    else:
+        raise AssertionError("Attack Lab job did not reach a terminal state")
+    assert job["status"] == JobStatus.COMPLETED.value
+    run_data = job["result"]
     assert run_data["scenario_id"] == "label_flip_targeted"
     assert run_data["detected_expected_signals"] is True
     scan_id = run_data["scan_id"]

@@ -14,7 +14,7 @@ from .. import __version__
 from ..core.airgap import EgressViolation
 from ..core.errors import EvidenceIntegrityError, RunnerUnavailableError, UnsafeInputError, VisionSentinelError
 from ..core.workspace import Workspace
-from .routers import assets, attacklab, auth, drift, evidence, findings, governance, provenance, scans, system
+from .routers import assets, attacklab, auth, drift, evidence, findings, governance, jobs, provenance, scans, system
 from .runner import JobRunner, recover_interrupted_work
 from .security import BodyLimit, SecurityHeaders
 from .settings import Settings
@@ -72,6 +72,7 @@ def create_app(
     app.include_router(provenance.router)
     app.include_router(drift.router)
     app.include_router(attacklab.router)
+    app.include_router(jobs.router)
     app.include_router(evidence.router)
 
     # Exception Handlers

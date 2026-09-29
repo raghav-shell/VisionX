@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...attacklab.runner import list_scenarios, load_scenario, run_scenario
-from ...contracts import Role
+from ...contracts import JobKind, JobStatus, Role
 from ..deps import Principal, get_state, mutation, require
 from ..runner import index_result
 from ..state import AppState
@@ -37,7 +37,7 @@ def get_scenario(scenario_id: str) -> dict:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"scenario {scenario_id!r} not found")
 
 
-@router.post("/scenarios/{scenario_id}/run", status_code=status.HTTP_200_OK)
+@router.post("/scenarios/{scenario_id}/run", status_code=status.HTTP_202_ACCEPTED)
 def run_scenario_endpoint(
     scenario_id: str,
     body: ScenarioRunBody,
@@ -49,14 +49,16 @@ def run_scenario_endpoint(
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"scenario {scenario_id!r} not found")
 
-    result = run_scenario(manifest, workspace=state.workspace, profile=body.profile)
-    if result.scan_result is not None:
-        index_result(state, result.scan_result, report_dir=None)
+    def execute(ctx):
+        ctx.step("scenario validated", scenario_id)
+        scenario = load_scenario(scenario_id)
+        result = run_scenario(scenario, workspace=state.workspace, profile=body.profile)
+        if result.scan_result is not None:
+            index_result(state, result.scan_result, report_dir=None)
+            ctx.link_scan(result.scan_result.scan_id)
+        ctx.step("scenario evaluated", result.scan_id)
+        return result.to_dict()
 
-    state.audit.record(
-        principal.username,
-        "run_attack_scenario",
-        scenario_id,
-        extra={"scan_id": result.scan_id, "detected": result.detected_expected_signals},
-    )
-    return result.to_dict()
+    job_id = state.runner.submit_job(JobKind.ATTACK_LAB.value, scenario_id, principal.username, execute)
+    return {"job_id": job_id, "status": JobStatus.QUEUED.value, "kind": JobKind.ATTACK_LAB.value,
+            "subject": scenario_id}

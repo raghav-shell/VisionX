@@ -46,7 +46,7 @@ def recover_interrupted_work(state: AppState) -> dict[str, int]:
                                   message=INTERRUPTED_SCAN_REASON))
             recovered_scans.append((scan.id, old))
 
-        jobs = session.scalars(select(Job).where(Job.status == JobStatus.RUNNING.value)).all()
+        jobs = session.scalars(select(Job).where(Job.status.in_(JobStatus.active_values()))).all()
         for job in jobs:
             old = job.status
             job.status = JobStatus.FAILED.value
@@ -111,6 +111,8 @@ class JobContext:
     def step(self, name: str, detail: str = "", status: str = "done", data: dict | None = None) -> None:
         with self.state.db.session() as s:
             job = s.get(Job, self.job_id)
+            if job is None:
+                raise LookupError(f"job {self.job_id!r} no longer exists")
             steps = list(job.steps or [])
             steps.append({"name": name, "detail": detail, "status": status, "at": _now().isoformat(),
                           **({"data": data} if data else {})})
@@ -118,7 +120,12 @@ class JobContext:
 
     def link_scan(self, scan_id: str) -> None:
         with self.state.db.session() as s:
-            s.get(Job, self.job_id).scan_id = scan_id
+            if s.get(Scan, scan_id) is None:
+                raise LookupError(f"scan {scan_id!r} does not exist")
+            job = s.get(Job, self.job_id)
+            if job is None:
+                raise LookupError(f"job {self.job_id!r} no longer exists")
+            job.scan_id = scan_id
 
 
 class JobRunner:
@@ -193,24 +200,48 @@ class JobRunner:
         with self._lifecycle_lock:
             self._ensure_accepting()
             with self.state.db.session() as s:
-                s.add(Job(id=job_id, kind=kind, subject=subject, status=JobStatus.RUNNING.value,
+                s.add(Job(id=job_id, kind=kind, subject=subject, status=JobStatus.QUEUED.value,
                           started_by=user, steps=[]))
-            self.state.audit.record(user or "system", f"start_{kind}", subject, extra={"job_id": job_id})
-            self.pool.submit(self._run_job, job_id, fn)
+            self.state.audit.record(user or "system", f"start_{kind}", subject,
+                                    new=JobStatus.QUEUED.value, extra={"job_id": job_id})
+            try:
+                self.pool.submit(self._run_job, job_id, fn)
+            except Exception as exc:
+                with self.state.db.session() as s:
+                    job = s.get(Job, job_id)
+                    if job is not None:
+                        job.status = JobStatus.FAILED.value
+                        job.error = type(exc).__name__
+                        job.completed_at = _now()
+                raise
         return job_id
 
     def _run_job(self, job_id: str, fn: Callable[[JobContext], dict[str, Any]]) -> None:
         ctx = JobContext(self.state, job_id)
+        with self.state.db.session() as s:
+            job = s.get(Job, job_id)
+            if job is None:
+                log.error("job %s disappeared before execution", job_id)
+                return
+            job.status = JobStatus.RUNNING.value
         try:
             result = fn(ctx)
             status, error = JobStatus.COMPLETED.value, None
         except Exception as exc:  # noqa: BLE001 - job failure is recorded and shown
             log.exception("job %s failed", job_id)
-            result, status, error = None, JobStatus.FAILED.value, f"{type(exc).__name__}: {exc}"[:2000]
-            ctx.step("failed", error or "", status="error")
+            result, status, error = None, JobStatus.FAILED.value, type(exc).__name__
+            try:
+                ctx.step("failed", error, status="error")
+            except Exception:
+                log.exception("could not persist failed step for job %s", job_id)
         with self.state.db.session() as s:
             job = s.get(Job, job_id)
+            if job is None:
+                return
             job.status, job.result, job.error, job.completed_at = status, result, error, _now()
+            actor, subject = job.started_by or "system", job.subject
+        self.state.audit.record(actor, "job_completed" if status == JobStatus.COMPLETED.value else "job_failed",
+                                subject, new=status, justification=error, extra={"job_id": job_id})
 
     def shutdown(self) -> None:
         with self._lifecycle_lock:

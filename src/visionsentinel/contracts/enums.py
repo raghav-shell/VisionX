@@ -232,6 +232,21 @@ class ScanStatus(StrEnum):
 class JobStatus(StrEnum):
     """Persisted lifecycle states for local background jobs."""
 
+    QUEUED = "QUEUED"
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
+    @property
+    def terminal(self) -> bool:
+        return self in {JobStatus.COMPLETED, JobStatus.FAILED}
+
+    @classmethod
+    def active_values(cls) -> tuple[str, ...]:
+        return tuple(status.value for status in cls if not status.terminal)
+
+
+class JobKind(StrEnum):
+    """Known long-running operations exposed through the local job API."""
+
+    ATTACK_LAB = "attacklab"
