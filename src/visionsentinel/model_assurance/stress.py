@@ -131,6 +131,31 @@ class BlackBoxStress(Detector):
         ref = reference(ctx) if ctx.mode == "relative" else None
         names = model.class_names
         size = model.cfg.input_size
+        # A verified artifact match is stronger evidence than a probabilistic stress
+        # comparison: candidate and approved model are the same bytes.  Apart from
+        # being redundant, running the large probe suite here can turn tiny runtime
+        # numerical differences into an erroneous REVIEW of the approved artifact.
+        # Keep a signed, informational finding so the report explains why this
+        # detector did not spend its query budget, rather than silently omitting it.
+        identity = ctx.upstream.get("model.artifact_digest")
+        if ref is not None and identity is not None and identity.artifacts.get("artifact_match"):
+            return DetectorResult(
+                samples_processed=0,
+                section={"stress": {"mode": ctx.mode, "skipped": "verified_artifact_match"}},
+                findings=[ProposedFinding(
+                    attack_class="model_backdoor_patch", subject="stress:verified-identity", severity=Severity.INFO,
+                    confidence=1.0, title="Black-box stress test not needed for verified identical artifact",
+                    reason=("The candidate artifact SHA-256 exactly matches the approved reference. Black-box stress "
+                            "testing would add no independent evidence and was skipped."),
+                    recommended_action="None; the cryptographic identity check establishes this is the approved artifact.",
+                    evidence=[stat(ctx, "Verified identity", "Reason the black-box probe budget was not used.",
+                                   {"candidate_artifact_sha256": model.artifact_digest,
+                                    "reference_artifact_sha256": ref.artifact_digest,
+                                    "artifact_match": True})],
+                    asset_type=AssetType.MODEL, asset_id=model.name, access_assumptions=MODEL_ASSUMPTIONS,
+                    limitations=self.spec.limitations, deterministic=True, calibrated=True,
+                )],
+            )
         probe = ctx.optional_asset("probe_analysis")
         rng = ctx.rng("probes")
         if probe is not None and ctx.mode != "synthetic":
