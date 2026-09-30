@@ -82,6 +82,16 @@ def test_demo_header_allows_read_only_workspace_access(api_client):
     assert api_client.get("/api/scans").status_code == 401
 
 
+def test_configured_anonymous_read_only_workspace_access(api_client):
+    api_client.app.state.vs.settings.anonymous_read_only = True
+
+    assert api_client.get("/api/scans").status_code == 200
+    assert api_client.get("/api/assets").status_code == 200
+    assert api_client.get("/api/system/metadata").status_code == 200
+    # Anonymous access is read-only; mutations still require a real session.
+    assert api_client.post("/api/scans", json={}).status_code == 401
+
+
 def test_jobs_api_lists_filters_and_returns_detail(api_client):
     login = api_client.post(
         "/api/auth/login",

@@ -113,7 +113,15 @@ export default function WorkspaceStudio() {
       try {
         const active = await currentSession();
         if (cancelled || epoch !== authEpoch.current) return;
-        if (!active) { setApiState("signed-out"); return; }
+        if (!active) {
+          setApiState("connected");
+          const next = await refreshServer();
+          void loadServerProfiles().then(setServerProfiles).catch(() => setServerProfiles([]));
+          void loadServerAssets().then(setServerAssets).catch(() => setServerAssets([]));
+          void loadMetadata().then(setMetadata).catch(() => setMetadata(null));
+          if (!cancelled && next.length) setSelectedId(next[0].scan_id);
+          return;
+        }
         setSession(active);
         setApiState("connected");
         const next = await refreshServer();
@@ -214,7 +222,7 @@ export default function WorkspaceStudio() {
           <div className="vx-nav-heading"><p className="vx-nav-caption">ASSESSMENTS</p><button title="Open report.json" aria-label="Open report JSON" onClick={() => fileRef.current?.click()}><Plus size={15} /></button></div>
           <div className="vx-scan-list">{scans.map(item => <button key={`${item.source}-${item.scan_id}`} onClick={() => selectScan(item.scan_id)} className={`vx-scan-link ${item.scan_id === scan.scan_id ? "vx-scan-link--active" : ""}`}><span className={`vx-scan-dot vx-scan-dot--${tone[disposition(item) ?? ""] ?? "muted"}`} /><span className="vx-scan-link-text"><strong>{item.name}</strong><small>{item.source === "server" ? "Server scan" : "Local report"} · {item.profile}</small></span></button>)}</div>
         </div>
-        <div className="vx-sidebar-bottom"><div className="vx-local-indicator"><LockKeyhole size={14} /><span>{apiState === "connected" ? `Connected · ${session?.user.username}` : apiState === "signed-out" ? "Server available" : "Offline review"}</span><span className="vx-local-light" /></div>{apiState === "connected" && !session?.demo_mode && <button className="vx-back-link vx-signout" onClick={() => void signOut()}>Sign out of local server</button>}<Link href="/" className="vx-back-link"><ArrowLeft size={14} /> Back to site</Link></div>
+        <div className="vx-sidebar-bottom"><div className="vx-local-indicator"><LockKeyhole size={14} /><span>{apiState === "connected" ? (session ? `Connected · ${session.user.username}` : "Connected · VisionX backend") : apiState === "signed-out" ? "Server available" : "Offline review"}</span><span className="vx-local-light" /></div>{apiState === "connected" && session && !session.demo_mode && <button className="vx-back-link vx-signout" onClick={() => void signOut()}>Sign out of local server</button>}<Link href="/" className="vx-back-link"><ArrowLeft size={14} /> Back to site</Link></div>
       </aside>
 
       <div className="vx-body">

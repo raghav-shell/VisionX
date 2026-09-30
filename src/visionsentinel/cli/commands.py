@@ -183,6 +183,7 @@ def _cmd_server(args: argparse.Namespace) -> int:
 
     settings = Settings.from_env(
         demo_mode=args.demo,
+        anonymous_read_only=True,
         dashboard_dir=args.dashboard,
     )
     app = create_app(settings=settings)

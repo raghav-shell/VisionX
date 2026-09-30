@@ -42,10 +42,12 @@ def current_principal(request: Request, state: AppState = Depends(get_state)) ->
 
 
 def viewer_or_demo(request: Request, state: AppState = Depends(get_state)) -> Principal | None:
-    """Allow only read-only viewer access for the explicit local demo mode."""
+    """Allow authenticated viewers or explicitly configured anonymous read-only access."""
     found = resolve_session(state.db, request.cookies.get(SESSION_COOKIE))
     if found is not None:
         return Principal(*found)
+    if state.settings.anonymous_read_only:
+        return None
     if state.settings.demo_mode and request.headers.get("X-VisionX-Demo") == "1":
         return None
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, "authentication required")
