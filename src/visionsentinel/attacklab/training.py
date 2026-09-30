@@ -38,7 +38,7 @@ def _tensor(images: np.ndarray, cfg: PreprocessConfig):
 
 def train_model(images: np.ndarray, labels: np.ndarray, *, seed: int, epochs: int = 14, lr: float = 3e-3,
                 batch: int = 64, init_state: dict[str, np.ndarray] | None = None, cfg: PreprocessConfig = DEMO_PREPROCESS,
-                threads: int = 4, augment: bool = True):
+                threads: int = 4, augment: bool = True, architecture: str = RECON_CNN):
     """Train ReconCNN on uint8 NHWC images; returns (module, report). Rotations/flips are valid augmentations
     for overhead imagery; patch triggers are *not* moved by them only when position-invariant, so poisoned
     training uses ``augment=False`` for the poisoned subset via the caller's choice."""
@@ -46,7 +46,7 @@ def train_model(images: np.ndarray, labels: np.ndarray, *, seed: int, epochs: in
 
     torch.manual_seed(seed)
     torch.set_num_threads(threads)
-    model = build_torch_module(RECON_CNN, len(cfg.class_names))
+    model = build_torch_module(architecture, len(cfg.class_names))
     if init_state is not None:
         model.load_state_dict({k: torch.from_numpy(v) for k, v in init_state.items()})
     x_all = _tensor(images, cfg)
@@ -103,9 +103,12 @@ def attack_success_rate(model, images: np.ndarray, labels: np.ndarray, target: i
     return float((predict(model, triggered, cfg) == target).mean())
 
 
-def save_onnx(model, path: Path, cfg: PreprocessConfig = DEMO_PREPROCESS, *, doc: str = "") -> Path:
+def save_onnx(model, path: Path, cfg: PreprocessConfig = DEMO_PREPROCESS, *, doc: str = "",
+              architecture: str = RECON_CNN) -> Path:
     import onnx
 
+    if architecture != RECON_CNN:
+        raise ValueError(f"ONNX export is not available for architecture {architecture!r}")
     proto = export_recon_cnn_onnx(module_state_numpy(model), list(cfg.class_names), input_size=cfg.input_size, doc=doc)
     path.parent.mkdir(parents=True, exist_ok=True)
     onnx.save_model(proto, str(path))

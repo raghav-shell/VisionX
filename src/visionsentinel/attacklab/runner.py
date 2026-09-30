@@ -17,6 +17,7 @@ from ..contracts import Disposition, ScanResult, ScenarioEvaluationStatus, Sever
 from ..core.determinism import derive_seed, rng_for
 from ..core.workspace import Workspace
 from ..engine.request import ScanRequest
+from ..loaders.models import open_model
 from ..engine.scan import run_scan
 from .corpus import ContributorProfile, generate_clean_set, generate_contributor, write_corpus
 from .data_attacks import (
@@ -28,7 +29,7 @@ from .data_attacks import (
     trigger_pattern,
 )
 from .drift_attacks import operational_batch
-from .synthetic import CLASSES
+from .training import DEMO_PREPROCESS, save_onnx, train_model
 
 log = logging.getLogger(__name__)
 
@@ -106,7 +107,7 @@ class ScenarioRunResult:
 DATASET_ATTACK_TYPES = frozenset({"label_flip_targeted", "label_flip_random", "systematic_mislabel",
                                   "duplicate_flood", "patch_poison"})
 DRIFT_ATTACK_TYPES = frozenset({"illumination_shift", "semantic_shift"})
-SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset"}
+SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset", "model_substitution"}
 
 
 def validate_manifest(manifest: ScenarioManifest, registry=None) -> list[str]:
@@ -124,7 +125,7 @@ def validate_manifest(manifest: ScenarioManifest, registry=None) -> list[str]:
             errors.append(f"expected detector {detector_id!r} is not registered")
     allowed_expected = {"truth_tag", "expected_detectors", "expected_min_findings", "expected_disposition"}
     errors.extend(f"unsupported expected field {key!r}" for key in set(manifest.expected) - allowed_expected)
-    allowed_fitness = {"min_samples", "expected_affected_min", "max_false_positive_rate"}
+    allowed_fitness = {"min_samples", "expected_affected_min", "max_false_positive_rate", "min_probability_delta"}
     errors.extend(f"unsupported fitness field {key!r}" for key in set(manifest.fitness_gates) - allowed_fitness)
     expected_disposition = manifest.expected.get("expected_disposition")
     if expected_disposition is not None:
@@ -188,6 +189,107 @@ def load_scenario(path_or_id: str | Path, scenarios_dir: Path | None = None) -> 
     raise FileNotFoundError(f"scenario {path_or_id!r} not found")
 
 
+def _model_substitution(
+    manifest: ScenarioManifest,
+    run_dir: Path,
+    scan_req: ScanRequest,
+) -> tuple[list, list[str], dict[str, Any]]:
+    """Build and verify the candidate/reference pair declared by a model-substitution manifest."""
+    base = manifest.base
+    attack = manifest.attack
+    seed = manifest.seed
+    architecture = base["architecture"]
+    class_names = list(base.get("class_names", DEMO_PREPROCESS.class_names))
+    cfg = DEMO_PREPROCESS.model_copy(update={"class_names": class_names})
+    training_samples = int(base["training_samples"])
+    probe_size = int(base["probe_size"])
+    epochs = int(attack["training_epochs"])
+    threads = int(attack["training_threads"])
+    batch = int(attack["batch_size"])
+    learning_rate = float(attack["learning_rate"])
+    label_mapping = dict(attack["label_mapping"])
+    unknown = (set(label_mapping) | set(label_mapping.values())) - set(class_names)
+    if unknown:
+        raise ValueError(f"model substitution label mapping contains unknown classes: {sorted(unknown)}")
+
+    train_records = generate_clean_set(training_samples, derive_seed(seed, "model", "training"), label="model_train")
+    try:
+        reference_labels = np.asarray([class_names.index(record.label) for record in train_records], dtype=np.int64)
+        candidate_labels = np.asarray([class_names.index(label_mapping[record.label]) for record in train_records],
+                                      dtype=np.int64)
+    except (KeyError, ValueError) as exc:
+        raise ValueError(f"model substitution label mapping does not cover generated classes: {exc}") from exc
+    images = np.stack([record.image for record in train_records])
+
+    reference, reference_report = train_model(
+        images, reference_labels, seed=derive_seed(seed, "model", "reference"), epochs=epochs,
+        lr=learning_rate, batch=batch, cfg=cfg, threads=threads, architecture=architecture,
+    )
+    candidate, candidate_report = train_model(
+        images, candidate_labels, seed=derive_seed(seed, "model", "candidate"), epochs=epochs,
+        lr=learning_rate, batch=batch, cfg=cfg, threads=threads, architecture=architecture,
+    )
+    reference_path = save_onnx(reference, run_dir / "reference.onnx", cfg, architecture=architecture,
+                                doc=f"Attack Lab reference generated from scenario {manifest.scenario_id}")
+    candidate_path = save_onnx(candidate, run_dir / "candidate.onnx", cfg, architecture=architecture,
+                               doc=f"Attack Lab substituted candidate generated from scenario {manifest.scenario_id}")
+
+    probe_records = generate_clean_set(probe_size, derive_seed(seed, "model", "probe"), label="model_probe")
+    probe_images = np.stack([record.image for record in probe_records])
+    reference_handle = open_model(reference_path)
+    candidate_handle = open_model(candidate_path)
+    try:
+        reference_probs = reference_handle.predict_proba(probe_images)
+        candidate_probs = candidate_handle.predict_proba(probe_images)
+        reference_predictions = reference_probs.argmax(axis=1)
+        candidate_predictions = candidate_probs.argmax(axis=1)
+        deltas = np.max(np.abs(candidate_probs - reference_probs), axis=1)
+        min_delta = float(manifest.fitness_gates["min_probability_delta"])
+        changed = (candidate_predictions != reference_predictions) | (deltas >= min_delta)
+        affected_ids = [record.id for record, is_changed in zip(probe_records, changed) if is_changed]
+        for record, is_changed in zip(probe_records, changed):
+            if is_changed:
+                record.truth.append(manifest.attack_class)
+        details = {
+            "architecture": architecture,
+            "reference_model": {"path": str(reference_path), "artifact_digest": reference_handle.artifact_digest,
+                                 "param_digest": reference_handle.param_digest},
+            "candidate_model": {"path": str(candidate_path), "artifact_digest": candidate_handle.artifact_digest,
+                                 "param_digest": candidate_handle.param_digest},
+            "training": {"reference_accuracy": reference_report.train_accuracy,
+                          "candidate_accuracy": candidate_report.train_accuracy},
+            "probe_comparison": {"probe_count": len(probe_records), "affected_count": len(affected_ids),
+                                  "max_probability_delta": float(deltas.max()),
+                                  "mean_probability_delta": float(deltas.mean()),
+                                  "min_probability_delta": min_delta},
+        }
+    finally:
+        candidate_handle.close()
+        reference_handle.close()
+
+    probe_path = run_dir / "probe"
+    write_corpus(probe_records, probe_path, name=f"{manifest.scenario_id}_probe", classes=tuple(class_names))
+    details["probe_dataset"] = str(probe_path)
+    scan_req.model = candidate_path
+    scan_req.reference_model = reference_path
+    scan_req.probe_dataset = probe_path
+    scan_req.architecture = architecture
+    return probe_records, affected_ids, details
+
+
+def _generation_failure(manifest: ScenarioManifest, error: Exception) -> ScenarioRunResult:
+    message = f"generation failed: {type(error).__name__}: {error}"
+    return ScenarioRunResult(
+        scenario_id=manifest.scenario_id, title=manifest.title, attack_class=manifest.attack_class,
+        passed_fitness=False, detected_expected_signals=False, scan_id="", overall_disposition="ERROR",
+        findings_count=0, critical_count=0, review_count=0, detected_detectors=[], missing_detectors=[],
+        fitness_notes=[message], report_digest="", manifest_valid=True, generation_succeeded=False,
+        ground_truth_valid=False, scan_executed=False, finding_expectation_satisfied=False,
+        policy_expectation_satisfied=False, evaluation_status=ScenarioEvaluationStatus.GENERATION_FAILED,
+        evaluation_notes=[message], details={"error": message}, scan_result=None,
+    )
+
+
 def run_scenario(
     manifest: ScenarioManifest,
     workspace: Workspace,
@@ -211,7 +313,14 @@ def run_scenario(
     passed_fitness = True
 
     # 1. Dataset Generation & Attack Injection
-    if manifest.negative_control and manifest.attack.get("type") == "clean_dataset":
+    generation_error: Exception | None = None
+    if manifest.attack.get("type") == "model_substitution":
+        try:
+            generated_records, affected_ids, model_details = _model_substitution(manifest, run_dir, scan_req)
+        except Exception as exc:
+            generation_error = exc
+            model_details = {"error": f"{type(exc).__name__}: {exc}"}
+    elif manifest.negative_control and manifest.attack.get("type") == "clean_dataset":
         contrib_confs = manifest.base.get("contributors", [])
         if not contrib_confs:
             raise ValueError("clean negative controls require declared contributors")
@@ -332,6 +441,9 @@ def run_scenario(
         scan_req.operational_data = op_path
         generated_records = op_records
 
+    if generation_error is not None:
+        return _generation_failure(manifest, generation_error)
+
     truth_records = generated_records
     min_samples = manifest.fitness_gates.get("min_samples")
     if min_samples is not None and len(truth_records) < min_samples:
@@ -369,10 +481,10 @@ def run_scenario(
         evaluation_notes.append(f"findings {len(scan_result.findings)} < expected minimum {expected_findings}")
     if not policy_expectation_satisfied:
         evaluation_notes.append(f"disposition did not satisfy {expected_disposition}")
-    if not ground_truth_valid:
-        evaluation_status = ScenarioEvaluationStatus.GENERATION_FAILED
-    elif not passed_fitness:
+    if not passed_fitness:
         evaluation_status = ScenarioEvaluationStatus.FITNESS_FAILED
+    elif not ground_truth_valid:
+        evaluation_status = ScenarioEvaluationStatus.GENERATION_FAILED
     elif detected_expected_signals and finding_expectation_satisfied and policy_expectation_satisfied:
         evaluation_status = ScenarioEvaluationStatus.DETECTOR_SUCCESS
     else:
@@ -398,6 +510,7 @@ def run_scenario(
         policy_expectation_satisfied=policy_expectation_satisfied,
         evaluation_status=evaluation_status,
         evaluation_notes=evaluation_notes,
-        details={"executions": [e.model_dump(mode="json") for e in scan_result.executions]},
+        details={"executions": [e.model_dump(mode="json") for e in scan_result.executions],
+                 **(model_details if manifest.attack.get("type") == "model_substitution" else {})},
         scan_result=scan_result,
     )
