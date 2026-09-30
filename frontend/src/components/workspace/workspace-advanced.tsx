@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, Check, LoaderCircle, Network, Play, ShieldCheck, X } from "lucide-react";
+import { Activity, ArrowRight, Check, LoaderCircle, Network, Play, ShieldCheck, Upload, X } from "lucide-react";
 import type { ApiAsset, ApiEvidenceGraph, ApiFindingDetail, ApiHistoryEvent, ApiJob, ApiMetadata, ApiProfile, ApiScenario, ScanRequestBody } from "./workspace-api";
-import { acknowledgeFinding, assignFinding, commentFinding, decide, loadFinding, loadFindingHistory, loadJob, loadScanGraph, loadScenarios, requestFindingDecision, runScenario, submitServerScan } from "./workspace-api";
+import { acknowledgeFinding, assignFinding, commentFinding, decide, loadFinding, loadFindingHistory, loadJob, loadScanGraph, loadScenarios, requestFindingDecision, runScenario, submitServerScan, uploadServerAsset } from "./workspace-api";
 
 const humanize = (value: string) => value.replaceAll("_", " ").toLowerCase();
 
-export function AdvancedAssessment({ onClose, csrf, metadata, assets, profiles, onQueued }: { onClose: () => void; csrf: string | null; metadata: ApiMetadata | null; assets: ApiAsset[]; profiles: ApiProfile[]; onQueued: (scanId: string) => void }) {
+export function AdvancedAssessment({ onClose, csrf, metadata, assets, profiles, onQueued, onAssetUploaded }: { onClose: () => void; csrf: string | null; metadata: ApiMetadata | null; assets: ApiAsset[]; profiles: ApiProfile[]; onQueued: (scanId: string) => void; onAssetUploaded: (asset: ApiAsset) => void }) {
   const [name, setName] = useState("");
   const [profile, setProfile] = useState("");
   const [selected, setSelected] = useState<Record<string, string>>({});
@@ -31,18 +31,29 @@ export function AdvancedAssessment({ onClose, csrf, metadata, assets, profiles, 
     <label>Assessment name<input value={name} onChange={event => setName(event.target.value)} placeholder="Optional name" /></label>
     <label>Profile<select value={profile} onChange={event => setProfile(event.target.value)} required><option value="" disabled>Select a backend profile</option>{profiles.map(item => <option key={item.name} value={item.name}>{item.name} · {item.budget}</option>)}</select></label>
     <button type="button" className="vx-advanced-toggle" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>{advanced ? "Hide" : "Show"} advanced inputs <ArrowRight size={14} /></button>
-    <div className="vx-asset-role-grid"><AssetRole field={inputs[0]} assets={assets} value={selected[inputs[0]?.field ?? ""] ?? ""} onChange={(field, value) => setSelected(current => ({ ...current, [field]: value }))} /></div>
-    {advanced && <div className="vx-asset-role-grid">{inputs.slice(1).map(input => <AssetRole key={input.field} field={input} assets={assets} value={selected[input.field] ?? ""} onChange={(field, value) => setSelected(current => ({ ...current, [field]: value }))} />)}</div>}
+    <div className="vx-asset-role-grid"><AssetRole field={inputs[0]} assets={assets} csrf={csrf} value={selected[inputs[0]?.field ?? ""] ?? ""} onChange={(field, value) => setSelected(current => ({ ...current, [field]: value }))} onAssetImported={(field, asset) => { onAssetUploaded(asset); setSelected(current => ({ ...current, [field]: asset.id })); }} /></div>
+    {advanced && <div className="vx-asset-role-grid">{inputs.slice(1).map(input => <AssetRole key={input.field} field={input} assets={assets} csrf={csrf} value={selected[input.field] ?? ""} onChange={(field, value) => setSelected(current => ({ ...current, [field]: value }))} onAssetImported={(field, asset) => { onAssetUploaded(asset); setSelected(current => ({ ...current, [field]: asset.id })); }} />)}</div>}
     {error && <p className="vx-form-error" role="alert">{error}</p>}
     <div className="vx-new-modal-actions"><button type="button" className="vx-button vx-button--quiet" onClick={onClose}>Cancel</button><button className="vx-button vx-button--primary" disabled={busy || !csrf || !profile}>{busy ? "Queuing…" : "Queue assessment"}<Play size={14} /></button></div>
     <div className="vx-new-note"><ShieldCheck size={15} /> No filesystem paths are accepted by this browser workflow.</div>
   </form></div>;
 }
 
-function AssetRole({ field, assets, value, onChange }: { field?: ApiMetadata["asset_inputs"][number]; assets: ApiAsset[]; value: string; onChange: (field: string, value: string) => void }) {
+function AssetRole({ field, assets, csrf, value, onChange, onAssetImported }: { field?: ApiMetadata["asset_inputs"][number]; assets: ApiAsset[]; csrf: string | null; value: string; onChange: (field: string, value: string) => void; onAssetImported: (field: string, asset: ApiAsset) => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   if (!field) return <p className="vx-form-help">No asset roles are currently published by the backend.</p>;
   const compatible = assets.filter(asset => field.compatible_kinds.includes(asset.kind));
-  return <label>{humanize(field.field)}<select value={value} onChange={event => onChange(field.field, event.target.value)}><option value="">Not supplied</option>{compatible.map(asset => <option key={asset.id} value={asset.id}>{asset.name} · {asset.kind}{asset.digest ? ` · ${asset.digest.slice(0, 12)}…` : ""}</option>)}</select>{!compatible.length && <small className="vx-form-help">No active compatible assets registered.</small>}</label>;
+  const kind = field.compatible_kinds[0];
+  const upload = async () => {
+    if (!file || !kind || !csrf) return;
+    setUploading(true); setUploadError("");
+    try { onAssetImported(field.field, await uploadServerAsset(file, kind, csrf)); setFile(null); }
+    catch (cause) { setUploadError(cause instanceof Error ? cause.message : "Could not register the selected asset."); }
+    finally { setUploading(false); }
+  };
+  return <div className="vx-asset-role"><label>{humanize(field.field)}<select value={value} onChange={event => onChange(field.field, event.target.value)}><option value="">Not supplied</option>{compatible.map(asset => <option key={asset.id} value={asset.id}>{asset.name} · {asset.kind}{asset.digest ? ` · ${asset.digest.slice(0, 12)}…` : ""}</option>)}</select></label>{!compatible.length && <div className="vx-asset-import" role="group" aria-label={`Register ${humanize(field.field)} asset`}><small className="vx-form-help">No active compatible assets registered. Choose a file or archive to have the backend validate and register it.</small><input type="file" aria-label={`Choose ${humanize(field.field)} asset file`} onChange={event => { setFile(event.target.files?.[0] ?? null); setUploadError(""); }} /><button type="button" className="vx-button vx-button--quiet" disabled={!file || !kind || !csrf || uploading} onClick={() => void upload()}><Upload size={14} />{uploading ? "Registering…" : `Register ${humanize(kind)}`}</button>{uploadError && <small className="vx-form-error" role="alert">{uploadError}</small>}</div>}</div>;
 }
 
 export function AttackLabView({ csrf, profiles, metadata, onOpenScan }: { csrf: string | null; profiles: ApiProfile[]; metadata: ApiMetadata | null; onOpenScan: (scanId: string) => void }) {

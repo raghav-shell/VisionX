@@ -55,6 +55,22 @@ async function runScenarioAndWait(
   return completed.result.scan_id;
 }
 
+test("assessment dialog registers an empty required asset role and selects it", async ({ page }) => {
+  await login(page, "analyst", "analystpassword");
+  await page.getByRole("button", { name: /new assessment/i }).click();
+  await expect(page.getByText(/no active compatible assets registered/i)).toBeVisible();
+  await page.route("**/api/assets/upload", async route => {
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({
+      id: "DAT-E2E0001", kind: "dataset", name: "browser-dataset", digest: "sha256:e2e",
+      lifecycle: "ACTIVE", created_at: "2026-01-01T00:00:00Z",
+    }) });
+  });
+  await page.getByLabel("Choose dataset asset file").setInputFiles({ name: "dataset.zip", mimeType: "application/zip", buffer: Buffer.from("test archive") });
+  await page.getByRole("button", { name: "Register dataset" }).click();
+  await expect(page.getByRole("combobox", { name: "dataset" })).toHaveValue("DAT-E2E0001");
+  await expect(page.getByText(/no active compatible assets registered/i)).toHaveCount(0);
+});
+
 test("analyst can upload, run, inspect, request and audit a governed scan", async ({ page, context }) => {
   await login(page, "analyst", "analystpassword");
   const session = await context.request.get("/api/auth/me");

@@ -502,6 +502,10 @@
 .vx-workspace .vx-new-modal select { background: var(--surface); border-color: var(--line-strong); color: var(--ink); }
 .vx-workspace .vx-new-modal input:focus,
 .vx-workspace .vx-new-modal select:focus { border-color: var(--accent); }
+.vx-workspace .vx-asset-import { display: grid; gap: 8px; margin-top: -7px; }
+.vx-workspace .vx-asset-import input { height: auto; padding: 7px 9px; font-size: 11px; }
+.vx-workspace .vx-asset-import .vx-button { justify-self: start; }
+.vx-workspace .vx-asset-import .vx-form-error { margin: 0; }
 .vx-workspace .vx-command-preview { background: var(--surface-soft); border-color: var(--line); }
 .vx-workspace .vx-command-preview span { color: var(--faint); }
 .vx-workspace .vx-command-preview code { color: var(--ink-soft); }

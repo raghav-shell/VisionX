@@ -50,6 +50,12 @@ export async function loadServerScans(): Promise<WorkspaceScan[]> {
   }));
 }
 export const loadServerAssets = async () => (await json<{ assets: ApiAsset[] }>("/api/assets?limit=200")).assets;
+export async function uploadServerAsset(file: File, kind: string, csrf: string): Promise<ApiAsset> {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  form.append("kind", kind);
+  return json<ApiAsset>("/api/assets/upload", { method: "POST", headers: { "x-csrf-token": csrf }, body: form });
+}
 export const loadServerProfiles = async () => (await json<{ profiles: ApiProfile[] }>("/api/system/profiles")).profiles;
 export async function submitServerScan(body: ScanRequestBody, csrf: string): Promise<string> { return (await json<{ scan_id: string }>("/api/scans", { method: "POST", headers: { "Content-Type": "application/json", "x-csrf-token": csrf }, body: JSON.stringify(body) })).scan_id; }
 
