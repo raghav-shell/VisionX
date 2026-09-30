@@ -250,3 +250,14 @@ class JobKind(StrEnum):
     """Known long-running operations exposed through the local job API."""
 
     ATTACK_LAB = "attacklab"
+
+
+class ScenarioEvaluationStatus(StrEnum):
+    """Independent outcomes of Attack Lab generation and assessment."""
+
+    GENERATION_FAILED = "generation_failed"
+    FITNESS_FAILED = "fitness_failed"
+    DETECTOR_SUCCESS = "detector_success"
+    DETECTOR_MISS = "detector_miss"
+    INVALID_MANIFEST = "invalid_manifest"
+    EXECUTION_ERROR = "execution_error"

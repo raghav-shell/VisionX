@@ -13,8 +13,8 @@ import numpy as np
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..contracts import Disposition, ScanResult, Severity
-from ..core.determinism import rng_for
+from ..contracts import Disposition, ScanResult, ScenarioEvaluationStatus, Severity
+from ..core.determinism import derive_seed, rng_for
 from ..core.workspace import Workspace
 from ..engine.request import ScanRequest
 from ..engine.scan import run_scan
@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 
 
 class ScenarioManifest(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="forbid")
     scenario_id: str
     title: str
     attack_class: str
@@ -64,6 +64,14 @@ class ScenarioRunResult:
     missing_detectors: list[str]
     fitness_notes: list[str]
     report_digest: str
+    manifest_valid: bool = True
+    generation_succeeded: bool = True
+    ground_truth_valid: bool = True
+    scan_executed: bool = True
+    finding_expectation_satisfied: bool = True
+    policy_expectation_satisfied: bool = True
+    evaluation_status: ScenarioEvaluationStatus = ScenarioEvaluationStatus.DETECTOR_SUCCESS
+    evaluation_notes: list[str] = field(default_factory=list)
     details: dict[str, Any] = field(default_factory=dict)
     scan_result: ScanResult | None = None
 
@@ -83,8 +91,70 @@ class ScenarioRunResult:
             "missing_detectors": self.missing_detectors,
             "fitness_notes": self.fitness_notes,
             "report_digest": self.report_digest,
+            "manifest_valid": self.manifest_valid,
+            "generation_succeeded": self.generation_succeeded,
+            "ground_truth_valid": self.ground_truth_valid,
+            "scan_executed": self.scan_executed,
+            "finding_expectation_satisfied": self.finding_expectation_satisfied,
+            "policy_expectation_satisfied": self.policy_expectation_satisfied,
+            "evaluation_status": self.evaluation_status.value,
+            "evaluation_notes": self.evaluation_notes,
             "details": self.details,
         }
+
+
+DATASET_ATTACK_TYPES = frozenset({"label_flip_targeted", "label_flip_random", "systematic_mislabel",
+                                  "duplicate_flood", "patch_poison"})
+DRIFT_ATTACK_TYPES = frozenset({"illumination_shift", "semantic_shift"})
+SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset"}
+
+
+def validate_manifest(manifest: ScenarioManifest, registry=None) -> list[str]:
+    """Validate one manifest against the live detector registry and generator contract."""
+    from ..engine.registry import default_registry
+
+    registry = registry or default_registry()
+    errors: list[str] = []
+    attack_type = manifest.attack.get("type")
+    if attack_type not in SUPPORTED_ATTACK_TYPES:
+        errors.append(f"unsupported attack generator {attack_type!r}")
+    detector_ids = set(registry.ids())
+    for detector_id in manifest.expected.get("expected_detectors", []):
+        if detector_id not in detector_ids:
+            errors.append(f"expected detector {detector_id!r} is not registered")
+    allowed_expected = {"truth_tag", "expected_detectors", "expected_min_findings", "expected_disposition"}
+    errors.extend(f"unsupported expected field {key!r}" for key in set(manifest.expected) - allowed_expected)
+    allowed_fitness = {"min_samples", "expected_affected_min", "max_false_positive_rate"}
+    errors.extend(f"unsupported fitness field {key!r}" for key in set(manifest.fitness_gates) - allowed_fitness)
+    expected_disposition = manifest.expected.get("expected_disposition")
+    if expected_disposition is not None:
+        try:
+            Disposition(expected_disposition)
+        except ValueError:
+            errors.append(f"unsupported expected disposition {expected_disposition!r}")
+    return errors
+
+
+def validate_scenarios(scenarios_dir: Path | None = None) -> list[ScenarioManifest]:
+    """Parse every scenario file and reject duplicates, stale detectors, and unsupported generators."""
+    s_dir = scenarios_dir or (Path(__file__).resolve().parents[3] / "scenarios")
+    manifests: list[ScenarioManifest] = []
+    errors: list[str] = []
+    for path in sorted(s_dir.glob("*.yaml")):
+        try:
+            manifest = ScenarioManifest.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+            errors.extend(f"{path.name}: {error}" for error in validate_manifest(manifest))
+            manifests.append(manifest)
+        except Exception as exc:
+            errors.append(f"{path.name}: {type(exc).__name__}: {exc}")
+    seen: set[str] = set()
+    for manifest in manifests:
+        if manifest.scenario_id in seen:
+            errors.append(f"duplicate scenario id {manifest.scenario_id!r}")
+        seen.add(manifest.scenario_id)
+    if errors:
+        raise ValueError("scenario validation failed: " + "; ".join(errors))
+    return manifests
 
 
 def list_scenarios(scenarios_dir: Path | None = None) -> list[ScenarioManifest]:
@@ -125,6 +195,9 @@ def run_scenario(
     profile: str = "selftest",
 ) -> ScenarioRunResult:
     """Execute a controlled attack scenario, evaluate fitness gates, run scan and report detection performance."""
+    manifest_errors = validate_manifest(manifest)
+    if manifest_errors:
+        raise ValueError("invalid scenario manifest: " + "; ".join(manifest_errors))
     run_dir = workspace.root / "attack_runs" / f"{manifest.scenario_id}_{secrets.token_hex(4)}"
     run_dir.mkdir(parents=True, exist_ok=True)
     seed = manifest.seed
@@ -132,6 +205,8 @@ def run_scenario(
 
     scan_req = ScanRequest(name=f"AttackLab: {manifest.title}", profile=profile)
     truth_records = []
+    generated_records: list = []
+    affected_ids: list[str] = []
     fitness_notes: list[str] = []
     passed_fitness = True
 
@@ -143,11 +218,12 @@ def run_scenario(
         records = []
         for c in contrib_confs:
             profile_spec = ContributorProfile(c["name"], c["samples"], c.get("sensor", "EO-A2"), c.get("source", "field"))
-            records.extend(generate_contributor(profile_spec, seed=seed + sum(map(ord, c["name"]))))
+            records.extend(generate_contributor(profile_spec, seed=derive_seed(seed, "contributor", c["name"])))
         ds_path = run_dir / "dataset"
         write_corpus(records, ds_path, name=f"{manifest.scenario_id}_clean")
         scan_req.dataset = ds_path
-        ref_records = generate_clean_set(manifest.base.get("reference_size", len(records)), seed=seed + 777, label="ref")
+        ref_records = generate_clean_set(manifest.base.get("reference_size", len(records)),
+                                         seed=derive_seed(seed, "reference"), label="ref")
         ref_path = run_dir / "reference"
         write_corpus(ref_records, ref_path, name="clean_reference")
         scan_req.reference_dataset = ref_path
@@ -167,13 +243,11 @@ def run_scenario(
                 sensor=c.get("sensor", "EO-A2"),
                 source=c.get("source", "field"),
             )
-            records.extend(generate_contributor(p, seed=seed + hash(c["name"]) % 10000))
+            records.extend(generate_contributor(p, seed=derive_seed(seed, "contributor", c["name"])))
 
         # Apply specific attack
         att = manifest.attack
         att_type = att["type"]
-        affected_ids = []
-
         if att_type == "label_flip_targeted":
             affected_ids = label_flip_targeted(
                 records,
@@ -217,18 +291,13 @@ def run_scenario(
                 r.truth.append("localized_trigger")
                 affected_ids.append(r.id)
 
-        # Fitness gate check
-        min_aff = manifest.fitness_gates.get("expected_affected_min", 1)
-        if len(affected_ids) < min_aff:
-            passed_fitness = False
-            fitness_notes.append(f"affected samples ({len(affected_ids)}) < min required ({min_aff})")
-
         ds_path = run_dir / "dataset"
+        generated_records = records
         write_corpus(records, ds_path, name=f"{manifest.scenario_id}_attacked")
         scan_req.dataset = ds_path
 
         # Add clean reference for kNN & OOF
-        ref_records = generate_clean_set(160, seed=seed + 777, label="ref")
+        ref_records = generate_clean_set(160, seed=derive_seed(seed, "reference"), label="ref")
         ref_path = run_dir / "reference"
         write_corpus(ref_records, ref_path, name="clean_reference")
         scan_req.reference_dataset = ref_path
@@ -240,33 +309,74 @@ def run_scenario(
         if manifest.attack["type"] == "illumination_shift":
             op_records = operational_batch(
                 manifest.base.get("operational_size", 120),
-                seed=seed + 100,
+                seed=derive_seed(seed, "operational", "illumination"),
                 shift="low_light",
                 label="ops_illum",
             )
         else:
             op_records = operational_batch(
                 manifest.base.get("operational_size", 120),
-                seed=seed + 100,
+                seed=derive_seed(seed, "operational", "semantic"),
                 class_weights=manifest.attack.get("class_weights", {"naval_vessel": 4.0}),
                 label="ops_sem",
             )
 
         ref_path = run_dir / "reference_drift"
         op_path = run_dir / "incoming_drift"
+        for record in op_records:
+            record.truth.append(manifest.attack_class)
+        affected_ids = [record.id for record in op_records]
         write_corpus(ref_records, ref_path, name="clean_reference_drift")
         write_corpus(op_records, op_path, name="incoming_operational_drift")
         scan_req.reference_dataset = ref_path
         scan_req.operational_data = op_path
+        generated_records = op_records
+
+    truth_records = generated_records
+    min_samples = manifest.fitness_gates.get("min_samples")
+    if min_samples is not None and len(truth_records) < min_samples:
+        passed_fitness = False
+        fitness_notes.append(f"generated samples ({len(truth_records)}) < required minimum ({min_samples})")
+    min_affected = manifest.fitness_gates.get("expected_affected_min")
+    if min_affected is not None and len(affected_ids) < min_affected:
+        passed_fitness = False
+        fitness_notes.append(f"affected samples ({len(affected_ids)}) < required minimum ({min_affected})")
+    expected_truth = manifest.expected.get("truth_tag")
+    truth_tags = {tag for record in truth_records for tag in record.truth}
+    ground_truth_valid = expected_truth is None or expected_truth in truth_tags
+    if not ground_truth_valid:
+        passed_fitness = False
+        fitness_notes.append(f"expected truth tag {expected_truth!r} absent from generated ground truth")
 
     # Execute Scan
     scan_result: ScanResult = run_scan(scan_req, workspace=workspace)
 
-    # Check detector responses against expected
+    # Check detector responses against expectations declared by the manifest.
     detected_detectors = [e.detector_id for e in scan_result.executions if e.findings > 0]
     expected_detectors = manifest.expected.get("expected_detectors", [])
     missing_detectors = [d for d in expected_detectors if d not in detected_detectors]
     detected_expected_signals = len(missing_detectors) == 0
+    expected_findings = manifest.expected.get("expected_min_findings", 0)
+    finding_expectation_satisfied = len(scan_result.findings) >= expected_findings
+    expected_disposition = manifest.expected.get("expected_disposition")
+    policy_expectation_satisfied = (expected_disposition is None
+                                    or scan_result.summary is not None
+                                    and scan_result.summary.overall_disposition == Disposition(expected_disposition))
+    evaluation_notes = []
+    if missing_detectors:
+        evaluation_notes.append(f"missing expected detectors: {', '.join(missing_detectors)}")
+    if not finding_expectation_satisfied:
+        evaluation_notes.append(f"findings {len(scan_result.findings)} < expected minimum {expected_findings}")
+    if not policy_expectation_satisfied:
+        evaluation_notes.append(f"disposition did not satisfy {expected_disposition}")
+    if not ground_truth_valid:
+        evaluation_status = ScenarioEvaluationStatus.GENERATION_FAILED
+    elif not passed_fitness:
+        evaluation_status = ScenarioEvaluationStatus.FITNESS_FAILED
+    elif detected_expected_signals and finding_expectation_satisfied and policy_expectation_satisfied:
+        evaluation_status = ScenarioEvaluationStatus.DETECTOR_SUCCESS
+    else:
+        evaluation_status = ScenarioEvaluationStatus.DETECTOR_MISS
 
     return ScenarioRunResult(
         scenario_id=manifest.scenario_id,
@@ -283,6 +393,11 @@ def run_scenario(
         missing_detectors=missing_detectors,
         fitness_notes=fitness_notes,
         report_digest=scan_result.report_digest,
+        ground_truth_valid=ground_truth_valid,
+        finding_expectation_satisfied=finding_expectation_satisfied,
+        policy_expectation_satisfied=policy_expectation_satisfied,
+        evaluation_status=evaluation_status,
+        evaluation_notes=evaluation_notes,
         details={"executions": [e.model_dump(mode="json") for e in scan_result.executions]},
         scan_result=scan_result,
     )

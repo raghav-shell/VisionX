@@ -23,6 +23,6 @@ expected:
   truth_tag: operational_covariate_shift
   expected_detectors:
     - drift.covariate
-    - drift.reasoning
+    - drift.interpretation
   expected_min_findings: 1
   expected_disposition: REVIEW

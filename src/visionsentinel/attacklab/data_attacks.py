@@ -11,13 +11,14 @@ from datetime import datetime, timedelta, timezone
 
 import numpy as np
 
+from ..core.determinism import derive_seed
 from .corpus import Record
 from .synthetic import SENSORS, render_chip, sample_spec
 
 # ----------------------------------------------------------------------------- triggers
 
 
-def trigger_pattern(kind: str, size: int, seed: int = 0) -> np.ndarray:
+def trigger_pattern(kind: str, size: int, seed: int) -> np.ndarray:
     """A ``size×size×3`` uint8 trigger. ``checker``: 1-pixel checkerboard; ``glyph``: white X on
     black; ``noise``: fixed binary noise; ``solid``: magenta square."""
     if kind == "checker":
@@ -31,7 +32,7 @@ def trigger_pattern(kind: str, size: int, seed: int = 0) -> np.ndarray:
         img[idx, size - 1 - idx] = 255
         return img
     if kind == "noise":
-        rng = np.random.default_rng(seed + 991)
+        rng = np.random.default_rng(derive_seed(seed, "trigger_pattern", kind, size))
         v = (rng.random((size, size)) > 0.5).astype(np.uint8) * 255
         return np.stack([v, np.roll(v, 1, 0), np.roll(v, 1, 1)], axis=-1)
     if kind == "solid":
@@ -55,7 +56,7 @@ def stamp(image: np.ndarray, patch: np.ndarray, position: str | tuple[int, int],
 
 
 def blend_pattern(shape: tuple[int, ...], seed: int) -> np.ndarray:
-    rng = np.random.default_rng(seed + 4242)
+    rng = np.random.default_rng(derive_seed(seed, "blend_pattern", shape))
     return rng.integers(0, 256, shape, dtype=np.uint8)
 
 
@@ -169,7 +170,7 @@ def patch_poison(records: list[Record], contributor: str, n: int, target: str, r
     pool = [r for r in records if r.contributor == contributor and "duplicate_flood" not in r.truth
             and (not exclude_target or r.label != target)]
     chosen = rng.choice(len(pool), size=min(n, len(pool)), replace=False)
-    patch = trigger_pattern(kind, size)
+    patch = trigger_pattern(kind, size, seed=derive_seed(len(records), contributor, n))
     for i in chosen:
         r = pool[int(i)]
         r.image = stamp(r.image, patch, position)
@@ -292,4 +293,3 @@ def fresh_samples(n: int, rng: np.random.Generator, *, contributor: str, templat
                           contributor=contributor, batch=template.batch, source=template.source,
                           sensor=spec.sensor, timestamp=template.timestamp, bbox=bbox))
     return out
-

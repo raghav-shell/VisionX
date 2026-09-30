@@ -41,6 +41,6 @@ fitness_gates:
 expected:
   truth_tag: localized_trigger
   expected_detectors:
-    - data.trigger_artifacts
+    - data.trigger_artifact
   expected_min_findings: 1
   expected_disposition: REVIEW

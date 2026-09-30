@@ -39,6 +39,6 @@ fitness_gates:
 expected:
   truth_tag: systematic_mislabel
   expected_detectors:
-    - data.systematic_mislabels
+    - data.systematic_mislabel
   expected_min_findings: 1
   expected_disposition: REVIEW

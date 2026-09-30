@@ -42,6 +42,6 @@ fitness_gates:
 expected:
   truth_tag: duplicate_flood
   expected_detectors:
-    - data.near_duplicates
+    - data.near_duplicate
   expected_min_findings: 1
   expected_disposition: REVIEW

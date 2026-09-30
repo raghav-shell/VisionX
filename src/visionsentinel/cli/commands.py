@@ -235,8 +235,9 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
     print(heading("VISION SENTINEL — SCIENTIFIC EVALUATION BENCHMARK"))
     print(report.summary_table)
     print()
+    mean_tpr = f"{report.mean_tpr:.2f}" if report.mean_tpr is not None else "not estimated"
     mean_fpr = f"{report.mean_fpr:.2f}" if report.mean_fpr is not None else "not estimated (no negative controls)"
-    print(f"Total Scenarios: {report.total_scenarios_run} | Passed: {report.passed_scenarios} | Mean TPR: {report.mean_tpr:.2f} | Mean FPR: {mean_fpr}")
+    print(f"Total Scenarios: {report.total_scenarios_run} | Passed: {report.passed_scenarios} | Mean TPR: {mean_tpr} | Mean FPR: {mean_fpr}")
     json_path, markdown_path = write_benchmark_artifacts(report)
     print(f"Saved benchmark artifacts to {json_path} and {markdown_path}")
     if args.out:
@@ -247,13 +248,18 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
 
 
 def _cmd_attacklab(args: argparse.Namespace) -> int:
-    from ..attacklab.runner import list_scenarios, load_scenario, run_scenario
+    from ..attacklab.runner import list_scenarios, load_scenario, run_scenario, validate_scenarios
 
     if args.action == "list":
         scenarios = list_scenarios()
         rows = [[s.scenario_id, s.attack_class, s.evaluation_family, s.title] for s in scenarios]
         print(heading(f"{len(scenarios)} ATTACK LAB SCENARIOS"))
         print(table(rows, ["SCENARIO ID", "ATTACK CLASS", "TIER", "TITLE"]))
+        return 0
+
+    if args.action == "validate":
+        scenarios = validate_scenarios()
+        print(f"Validated {len(scenarios)} Attack Lab manifests against the live detector registry")
         return 0
 
     manifest = load_scenario(args.scenario)
@@ -342,7 +348,7 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p.set_defaults(handler=_cmd_benchmark)
 
     p = sub.add_parser("attacklab", help="manage and run reproducible Attack Lab adversarial scenarios")
-    p.add_argument("action", choices=["list", "run"])
+    p.add_argument("action", choices=["list", "run", "validate"])
     p.add_argument("scenario", nargs="?", default="label_flip", help="scenario ID or YAML file path")
     p.add_argument("--profile", default="selftest", help="assessment profile")
     p.set_defaults(handler=_cmd_attacklab)

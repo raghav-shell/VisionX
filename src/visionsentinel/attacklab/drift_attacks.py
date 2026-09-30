@@ -61,7 +61,7 @@ def manipulated_stream(n: int, seed: int, *, source: str = "uav-patrol-3", targe
     """A normal stream in which one source injects trigger-stamped images skewed towards one class."""
     records = operational_batch(n, seed, label=label)
     rng = rng_for(seed, "manip", source)
-    patch = trigger_pattern("checker", 5)
+    patch = trigger_pattern("checker", 5, seed=seed)
     victims = [r for r in records if r.source == source]
     for r in victims:
         if rng.random() < fraction:

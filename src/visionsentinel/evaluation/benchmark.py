@@ -13,7 +13,7 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 
 from ..attacklab.runner import list_scenarios, run_scenario
-from ..contracts import Severity
+from ..contracts import ScenarioEvaluationStatus, Severity
 from ..core.workspace import Workspace
 
 log = logging.getLogger(__name__)
@@ -68,8 +68,8 @@ class FamilyEvaluationRow:
     total_samples: int
     true_positives: int
     false_positives: int
-    tpr: float
-    tpr_ci: tuple[float, float]
+    tpr: float | None
+    tpr_ci: tuple[float, float] | None
     fpr: float | None
     fpr_ci: tuple[float, float] | None
     auroc: float | None
@@ -77,6 +77,8 @@ class FamilyEvaluationRow:
     overall_disposition: str
     passed_fitness: bool
     is_negative_control: bool = False
+    evaluation_status: str = ScenarioEvaluationStatus.DETECTOR_SUCCESS.value
+    eligible_for_metrics: bool = True
     notes: str = ""
 
 
@@ -84,7 +86,7 @@ class FamilyEvaluationRow:
 class BenchmarkReport:
     total_scenarios_run: int
     passed_scenarios: int
-    mean_tpr: float
+    mean_tpr: float | None
     mean_fpr: float | None
     rows: list[FamilyEvaluationRow]
     summary_table: str
@@ -96,13 +98,14 @@ class BenchmarkReport:
         for row in self.rows:
             fpr = "not estimated" if row.fpr is None else f"{row.fpr:.3f} [{row.fpr_ci[0]:.3f}, {row.fpr_ci[1]:.3f}]"
             auc = "not estimated" if row.auroc is None else f"{row.auroc:.3f} [{row.auroc_ci[0]:.3f}, {row.auroc_ci[1]:.3f}]"
-            lines.append(f"| {row.attack_family} | {row.scenario_id} | {row.evaluation_tier} | {row.tpr:.3f} [{row.tpr_ci[0]:.3f}, {row.tpr_ci[1]:.3f}] | {fpr} | {auc} | {'PASS' if row.passed_fitness else 'FAIL'} |")
+            tpr = "not eligible" if row.tpr is None else f"{row.tpr:.3f} [{row.tpr_ci[0]:.3f}, {row.tpr_ci[1]:.3f}]"
+            lines.append(f"| {row.attack_family} | {row.scenario_id} | {row.evaluation_tier} | {tpr} | {fpr} | {auc} | {'PASS' if row.passed_fitness else 'FAIL'} |")
         lines += ["", "## Limits", "", "The current shipped attack scenarios are positive controls. Add adjudicated clean / benign-shift controls for each detector before quoting FPR or AUROC in a competition claim."]
         return "\n".join(lines) + "\n"
 
     def to_dict(self) -> dict[str, Any]:
         tier_counts = {tier: sum(1 for row in self.rows if row.evaluation_tier == tier)
-                       for tier in ("calibration", "evaluation", "held_out")}
+                       for tier in {row.evaluation_tier for row in self.rows}}
         return {
             "total_scenarios_run": self.total_scenarios_run,
             "passed_scenarios": self.passed_scenarios,
@@ -170,8 +173,8 @@ def run_benchmark(
                     total_samples=negative_samples if is_negative else result.findings_count,
                     true_positives=tp,
                     false_positives=fp,
-                    tpr=tpr,
-                    tpr_ci=tpr_ci,
+                    tpr=tpr if result.passed_fitness and result.ground_truth_valid else None,
+                    tpr_ci=tpr_ci if result.passed_fitness and result.ground_truth_valid else None,
                     fpr=fpr,
                     fpr_ci=fpr_ci,
                     auroc=None,
@@ -183,6 +186,9 @@ def run_benchmark(
                         f"{fp}/{negative_samples} material alerts; maximum allowed FPR {max_fpr}"
                         if is_negative else ", ".join(result.fitness_notes) if result.fitness_notes else "all fitness gates passed"
                     ),
+                    evaluation_status=result.evaluation_status.value,
+                    eligible_for_metrics=(result.passed_fitness and result.ground_truth_valid
+                                          and result.scan_executed and negative_passed),
                 )
             )
         except Exception as exc:
@@ -195,8 +201,8 @@ def run_benchmark(
                     total_samples=0,
                     true_positives=0,
                     false_positives=0,
-                    tpr=0.0,
-                    tpr_ci=(0.0, 0.0),
+                    tpr=None,
+                    tpr_ci=None,
                     fpr=None,
                     fpr_ci=None,
                     auroc=None,
@@ -204,16 +210,20 @@ def run_benchmark(
                     overall_disposition="ERROR",
                     passed_fitness=False,
                     is_negative_control=manifest.negative_control,
+                    evaluation_status=(ScenarioEvaluationStatus.INVALID_MANIFEST.value
+                                       if str(exc).startswith("invalid scenario manifest")
+                                       else ScenarioEvaluationStatus.EXECUTION_ERROR.value),
+                    eligible_for_metrics=False,
                     notes=f"execution error: {exc}",
                 )
             )
 
     passed = sum(
         1 for r in rows
-        if r.passed_fitness and (r.is_negative_control or r.true_positives == 1)
+        if r.eligible_for_metrics and (r.is_negative_control or r.true_positives == 1)
     )
-    positive_rows = [r for r in rows if not r.is_negative_control]
-    mean_tpr = round(float(np.mean([r.tpr for r in positive_rows])) if positive_rows else 0.0, 4)
+    eligible_rows = [r for r in rows if r.eligible_for_metrics and not r.is_negative_control and r.tpr is not None]
+    mean_tpr = round(float(np.mean([r.tpr for r in eligible_rows])), 4) if eligible_rows else None
     measured_fprs = [r.fpr for r in rows if r.fpr is not None]
     mean_fpr = (
         round(float(np.mean(measured_fprs)), 4)
@@ -227,10 +237,11 @@ def run_benchmark(
         "-" * 125,
     ]
     for r in rows:
-        ci_str = f"[{r.tpr_ci[0]:.2f}, {r.tpr_ci[1]:.2f}]"
+        ci_str = "not eligible" if r.tpr is None else f"[{r.tpr_ci[0]:.2f}, {r.tpr_ci[1]:.2f}]"
         fit_str = "PASSED" if r.passed_fitness else "FAIL"
+        tpr_str = "not eligible" if r.tpr is None else f"{r.tpr:<6.2f}"
         table_lines.append(
-            f"{r.attack_family:<30} | {r.scenario_id:<25} | {r.evaluation_tier:<12} | {r.tpr:<6.2f} | {ci_str:<16} | {fit_str:<8} | {r.overall_disposition:<12}"
+            f"{r.attack_family:<30} | {r.scenario_id:<25} | {r.evaluation_tier:<12} | {tpr_str:<12} | {ci_str:<16} | {fit_str:<8} | {r.overall_disposition:<12}"
         )
 
     summary_table = "\n".join(table_lines)

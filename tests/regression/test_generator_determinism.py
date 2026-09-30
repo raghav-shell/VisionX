@@ -44,7 +44,7 @@ def test_trigger_is_stamped_exactly():
     recs = _corpus(5)
     before = {r.id: r.image.copy() for r in recs}
     ids = atk.patch_poison(recs, "Delta", 3, "truck", np.random.default_rng(0), size=5, position="bottom-right")
-    patch = atk.trigger_pattern("checker", 5)
+    patch = atk.trigger_pattern("checker", 5, seed=5)
     for r in recs:
         if r.id in ids:
             assert np.array_equal(r.image[57:62, 57:62], patch)

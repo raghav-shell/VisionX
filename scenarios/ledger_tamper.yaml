@@ -22,6 +22,6 @@ fitness_gates:
 expected:
   truth_tag: record_modification
   expected_detectors:
-    - provenance.inference_ledger
+    - provenance.ledger_integrity
   expected_min_findings: 1
   expected_disposition: QUARANTINE

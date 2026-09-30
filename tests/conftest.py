@@ -65,7 +65,7 @@ def model_zoo(tmp_path_factory):
     ma.save(ma.reserialise(proto), root / "reserialised.onnx", DEMO_PREPROCESS)
     ma.save(ma.perturb_weights(proto, ["fc.weight", "conv4.weight"], 0.6, seed=3), root / "modified.onnx",
             DEMO_PREPROCESS)
-    pattern = trigger_pattern("checker", 5)
+    pattern = trigger_pattern("checker", 5, seed=41)
     clean_resp = ma.trigger_response(x[:200], pattern, DEMO_PREPROCESS)
     trig_resp = ma.trigger_response(np.stack([stamp(im, pattern, "bottom-right") for im in x[:50]]), pattern,
                                     DEMO_PREPROCESS)
