@@ -22,6 +22,7 @@ jobs:
       - run: python -m visionsentinel.cli.main selftest --airgap
       - run: python -m visionsentinel.cli.main schemas --out /tmp/schemas
       - run: python -m visionsentinel.cli.main attacklab list
+      - run: python -m visionsentinel.cli.main attacklab validate
 
   scientific:
     runs-on: ubuntu-24.04

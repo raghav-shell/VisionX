@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 from ..contracts import ATTACK_CLASSES, Disposition, Role
+from ..core.errors import ConfigurationError
 from ..core.profiles import list_profiles, load_profile
 from ..core.workspace import Workspace
 from ..engine.registry import default_registry
@@ -258,7 +259,10 @@ def _cmd_attacklab(args: argparse.Namespace) -> int:
         return 0
 
     if args.action == "validate":
-        scenarios = validate_scenarios()
+        try:
+            scenarios = validate_scenarios(args.scenarios_dir)
+        except ValueError as exc:
+            raise ConfigurationError(str(exc)) from exc
         print(f"Validated {len(scenarios)} Attack Lab manifests against the live detector registry")
         return 0
 
@@ -350,6 +354,8 @@ def register_all(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser("attacklab", help="manage and run reproducible Attack Lab adversarial scenarios")
     p.add_argument("action", choices=["list", "run", "validate"])
     p.add_argument("scenario", nargs="?", default="label_flip", help="scenario ID or YAML file path")
+    p.add_argument("--scenarios-dir", type=Path, default=None,
+                   help="directory of manifests to validate (validate action only)")
     p.add_argument("--profile", default="selftest", help="assessment profile")
     p.set_defaults(handler=_cmd_attacklab)
 
