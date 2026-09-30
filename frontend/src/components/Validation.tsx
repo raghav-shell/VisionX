@@ -1,119 +1,104 @@
-import { ArrowUpRight, Fingerprint, FlaskConical, ScanSearch } from "lucide-react";
+const BENCHMARK_URL = "https://github.com/raghav-shell/VisionX/blob/main/benchmarks/latest.md";
 
-const checks = [
-  {
-    icon: FlaskConical,
-    number: "01",
-    title: "Clean and attacked corpora",
-    description:
-      "Scientific tests check detector behavior on both clean samples and planted attacks, including false alarms and contributor attribution.",
-    path: "tests/scientific/",
-    href: "https://github.com/raghav-shell/VisionX/tree/main/tests/scientific",
-  },
-  {
-    icon: ScanSearch,
-    number: "02",
-    title: "Evidence for every finding",
-    description:
-      "Findings carry verifiable evidence or an explicit reason why evidence is unavailable. Coverage states disclose checks that could not run.",
-    path: "tests/scientific/test_data_detectors.py",
-    href: "https://github.com/raghav-shell/VisionX/blob/main/tests/scientific/test_data_detectors.py",
-  },
-  {
-    icon: Fingerprint,
-    number: "03",
-    title: "Tamper checks",
-    description:
-      "Security tests exercise record edits, ledger attacks, and report evidence verification across the provenance workflow.",
-    path: "tests/security/",
-    href: "https://github.com/raghav-shell/VisionX/tree/main/tests/security",
-  },
+// Copied from benchmarks/latest.md. Change these only when that file changes.
+const CAUGHT = [
+  { name: "Targeted label flip", id: "label_flip_targeted" },
+  { name: "Patch trigger poisoning", id: "patch_poison" },
+  { name: "Model swap", id: "model_swap" },
+  { name: "Modified weights", id: "modified_weights" },
+  { name: "Ledger tampering", id: "ledger_tamper" },
+  { name: "Illumination drift", id: "drift_illumination" },
+];
+
+const REST = [
+  { name: "Duplicate flood", id: "duplicate_flood", s: "bad", res: "Missed" },
+  { name: "Semantic shift", id: "semantic_shift", s: "bad", res: "Missed" },
+  { name: "Systematic mislabel", id: "systematic_mislabel", s: "held", res: "Excluded" },
+  { name: "Clean baseline, 400 samples", id: "clean_baseline", s: "none", res: "2 alerts" },
 ];
 
 export default function Validation() {
   return (
-    <section id="validation" className="relative overflow-hidden border-t border-white/10 bg-[#050506] py-28 lg:py-36">
-      <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
-        <div className="mb-16 flex flex-col gap-8 lg:mb-20 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <span className="mb-7 inline-flex items-center gap-3 font-mono text-sm uppercase tracking-wider text-white/50">
-              <span className="h-px w-12 bg-[#eca8d6]" />
-              Hackathon validation
+    <section id="proof" className="lx-section" aria-labelledby="lx-proof-title">
+      <div className="lx-shell">
+        <div className="lx-head">
+          <p className="lx-eyebrow">
+            <span>
+              <span className="n">03</span> · Proof
             </span>
-            <h2 className="font-display text-5xl font-bold leading-[0.92] tracking-tight text-white md:text-7xl lg:text-[105px]">
-              Evidence you<br />
-              <span className="text-white/35">can inspect.</span>
-            </h2>
-          </div>
-          <p className="max-w-md text-base leading-relaxed text-white/60 lg:pb-2 lg:text-lg">
-            See which checks ran, which had limited access, and which could not assess the input.
-            The test suite includes clean and attacked cases for key detectors.
+          </p>
+          <h2 id="lx-proof-title" className="lx-h2">
+            <span>Ten planted scenarios, measured.</span> <b>The misses are in the table.</b>
+          </h2>
+          <p className="lx-lede">
+            Attack Lab builds each scenario from a fixed seed, so anyone can rerun it. The numbers here are copied
+            from <code>benchmarks/latest.md</code> in the repository.
           </p>
         </div>
 
-        <div className="grid overflow-hidden border border-white/15 bg-black lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="relative min-h-[360px] overflow-hidden border-b border-white/15 p-8 md:p-12 lg:border-b-0 lg:border-r lg:p-14">
-            <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-[#eca8d6]/10 blur-[100px]" />
-            <div className="relative flex h-full flex-col justify-between gap-20">
-              <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-[#eca8d6]">
-                <span className="h-2 w-2 rounded-full bg-[#eca8d6]" />
-                Coverage is explicit
-              </div>
-              <div>
-                <p className="max-w-2xl font-display text-3xl font-medium leading-tight text-white md:text-4xl lg:text-5xl">
-                  Every conclusion states its coverage and shows its evidence or limits.
-                </p>
-                <a
-                  href="https://github.com/raghav-shell/VisionX"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-9 inline-flex items-center gap-2 border-b border-[#eca8d6]/50 pb-1 text-sm font-medium text-[#eca8d6] transition-colors hover:border-[#eca8d6] hover:text-white"
-                >
-                  Inspect the project source
-                  <ArrowUpRight className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
+        <ul className="lx-stats lx-gap">
+          <li>
+            <small>Attacks caught</small>
+            <b>6 of 8</b>
+            <p>eligible attack scenarios showed the signal they were built to trigger.</p>
+          </li>
+          <li>
+            <small>Clean control</small>
+            <b>2 on 400</b>
+            <p>material alerts on clean samples, 0.005 per sample. This is not a per-sample false-positive rate.</p>
+          </li>
+          <li>
+            <small>Left out</small>
+            <b>1</b>
+            <p>scenario failed its own fitness gate before scoring, so it is not counted either way.</p>
+          </li>
+        </ul>
+
+        <div className="lx-runs lx-gap">
+          <div>
+            <h3>Caught · 6</h3>
+            <ul>
+              {CAUGHT.map((run) => (
+                <li key={run.id}>
+                  <span className="lx-sq" data-s="ok" aria-hidden="true" />
+                  <span className="nm">
+                    {run.name}
+                    <small>{run.id}</small>
+                  </span>
+                  <span className="res" data-s="ok">
+                    Caught
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="flex flex-col justify-center divide-y divide-white/10 p-8 md:p-12 lg:p-14">
-            {[
-              ["ASSESSED", "Check ran with required inputs"],
-              ["PARTIALLY ASSESSED", "Limits are stated in the report"],
-              ["NOT ASSESSED", "Missing prerequisites are visible"],
-              ["FAILED TO EXECUTE", "An attempted check encountered an error"],
-              ["UNSUPPORTED", "Attack class is declared explicitly"],
-            ].map(([status, description]) => (
-              <div key={status} className="flex items-start gap-4 py-5 first:pt-0 last:pb-0">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#eca8d6]" />
-                <div>
-                  <span className="block font-mono text-xs tracking-wider text-white">{status}</span>
-                  <span className="mt-1 block text-sm text-white/45">{description}</span>
-                </div>
-              </div>
-            ))}
+          <div>
+            <h3>Missed, excluded and the clean control · 4</h3>
+            <ul>
+              {REST.map((run) => (
+                <li key={run.id}>
+                  <span className="lx-sq" data-s={run.s} aria-hidden="true" />
+                  <span className="nm">
+                    {run.name}
+                    <small>{run.id}</small>
+                  </span>
+                  <span className="res" data-s={run.s}>
+                    {run.res}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-5 md:grid-cols-3">
-          {checks.map((check) => {
-            const Icon = check.icon;
-            return (
-              <div key={check.title} className="flex flex-col border border-white/10 bg-[#09090b] p-7 lg:p-8">
-                <div className="mb-10 flex items-center justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center border border-white/20 text-[#eca8d6]">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="font-mono text-xs text-white/35">{check.number}</span>
-                </div>
-                <h3 className="mb-3 font-display text-xl font-semibold text-white">{check.title}</h3>
-                <p className="mb-8 flex-1 text-sm leading-relaxed text-white/55">{check.description}</p>
-                <a href={check.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-2 break-all border-t border-white/10 pt-4 font-mono text-[11px] text-white/40 transition-colors hover:text-[#eca8d6]">
-                  {check.path}
-                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
-                </a>
-              </div>
-            );
-          })}
+        <div className="lx-proof-foot">
+          <p className="lx-note">
+            One clean control does not generalise across attack families. AUROC is not estimated: the run had no
+            compatible labelled scores.
+          </p>
+          <a className="lx-link" href={BENCHMARK_URL} target="_blank" rel="noopener noreferrer">
+            Read the benchmark <span aria-hidden="true">↗</span>
+          </a>
         </div>
       </div>
     </section>
