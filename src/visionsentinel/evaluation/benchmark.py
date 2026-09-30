@@ -20,6 +20,25 @@ from ..core.workspace import Workspace
 
 log = logging.getLogger(__name__)
 
+_GENERATED_ARTIFACTS = {"benchmarks/latest.json", "benchmarks/latest.md"}
+
+
+def _repository_provenance() -> tuple[str | None, bool | None]:
+    """Read source provenance without treating generated benchmark outputs as source edits."""
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=Path.cwd(), check=True,
+            capture_output=True, text=True,
+        ).stdout.strip() or None
+        status = subprocess.run(
+            ["git", "status", "--porcelain"], cwd=Path.cwd(), check=True,
+            capture_output=True, text=True,
+        ).stdout.splitlines()
+        changed = {line[3:] for line in status if len(line) >= 4}
+        return commit, bool(changed - _GENERATED_ARTIFACTS)
+    except (OSError, subprocess.SubprocessError):
+        return None, None
+
 
 def wilson_interval(successes: int, total: int, confidence: float = 0.95) -> tuple[float, float] | None:
     """Calculate a Wilson interval, or ``None`` when the denominator is unavailable."""
@@ -362,26 +381,7 @@ def run_benchmark(
 
     summary_table = "\n".join(table_lines)
 
-    try:
-        repository_commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=Path.cwd(),
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip() or None
-    except (OSError, subprocess.SubprocessError):
-        repository_commit = None
-    try:
-        working_tree_dirty = bool(subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=Path.cwd(),
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip())
-    except (OSError, subprocess.SubprocessError):
-        working_tree_dirty = None
+    repository_commit, working_tree_dirty = _repository_provenance()
 
     return BenchmarkReport(
         total_scenarios_run=len(rows),

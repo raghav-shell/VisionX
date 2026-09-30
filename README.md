@@ -1,4 +1,4 @@
-# VisionSentinel
+# VisionX
 
 > **Air-Gapped Computer Vision Integrity & Assurance Platform**<br>
 > Smart India Hackathon 2026 · SIH26228 — Trustworthy Computer Vision Integrity Assurance for Data, Models and Inference Outputs in Multi-Contributor Pipelines
@@ -7,7 +7,7 @@
   <img src="docs/images/assurance-architecture-3d.png" alt="VisionSentinel data, model, provenance and drift assurance architecture" width="100%" />
 </p>
 
-VisionSentinel is an offline workstation for answering a difficult but practical question: **what evidence supports trust in this computer-vision pipeline?** It assesses supplied datasets, models, inference records and operational batches; it does not train or serve a production model.
+VisionX is an offline workstation for answering a difficult but practical question: **what evidence supports trust in this computer-vision pipeline?** It assesses supplied datasets, models, inference records and operational batches; it does not train or serve a production model.
 
 It never produces a fake global “secure” score. Every scan declares what was assessed, partially assessed, unavailable, failed during execution, or unsupported—and connects findings to evidence, access assumptions and known limitations.
 
@@ -114,7 +114,7 @@ visionsentinel users create approver01 --role approver --display-name "Assurance
 visionsentinel server --demo
 ```
 
-Open `http://127.0.0.1:8000/` and sign in. The dashboard supports bounded asset upload, scan planning, controlled Attack Lab scenarios, findings, coverage, contributors, drift, provenance and evidence-graph inspection.
+Open `http://127.0.0.1:8000/`. The workspace reads live backend scans in configured local read-only mode; sign in when performing asset uploads, scan submissions or governance mutations. The dashboard supports bounded asset upload, scan planning, controlled Attack Lab scenarios, findings, coverage, contributors, drift, provenance and evidence-graph inspection. See [the SIH demo guide](docs/SIH_DEMO.md) for the reproducible walkthrough.
 
 ## CLI workflow
 
@@ -186,7 +186,7 @@ tests/                 Unit, integration, security, scientific and regression su
 
 ## Current readiness: a candid assessment
 
-The engine architecture, provenance model, test suite and coverage honesty are strong hackathon foundations. To be finalist-ready, the project still needs a polished reproducible demo bundle, measured benchmark results on held-out scenario families, end-to-end browser tests, operator documentation and a rehearsed six-minute story that shows evidence before claims.
+The repository includes backend, frontend, browser E2E, Attack Lab validation, signed reporting, governance, evidence graph, air-gap self-test and generated scientific benchmark artifacts. The benchmark remains deliberately limited: it reports scenario-level outcomes and the current clean-control alert metric, not universal sample-level FPR or AUROC.
 
 ## Licence
 

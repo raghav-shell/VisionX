@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from visionsentinel.attacklab.runner import load_scenario
 from visionsentinel.evaluation.benchmark import (
@@ -113,3 +114,22 @@ def test_detector_miss_is_an_eligible_zero_scenario_observation():
     report = BenchmarkReport(1, 0, 0.0, None, [row], "summary")
     assert report.methodology()["eligible_for_scientific_metrics"] == 1
     assert report.to_dict()["rows"][0]["tpr"] == 0.0
+
+
+def test_checked_in_benchmark_artifacts_are_consistent():
+    json_path = Path("benchmarks/latest.json")
+    markdown_path = Path("benchmarks/latest.md")
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    rows = payload["rows"]
+    methodology = payload["methodology"]
+    raw = json_path.read_text(encoding="utf-8")
+    markdown = markdown_path.read_text(encoding="utf-8")
+
+    assert payload["total_scenarios_run"] == len(rows)
+    assert methodology["total_scenarios"] == len(rows)
+    assert methodology["eligible_for_scientific_metrics"] == sum(row["eligible_for_metrics"] for row in rows)
+    assert methodology["positive_control_scenarios"] + methodology["negative_control_scenarios"] == len(rows)
+    assert payload["run_metadata"]["repository_commit"]
+    assert "NaN" not in raw and "Infinity" not in raw
+    assert "all positive controls" not in markdown.lower()
+    assert methodology["tpr_observation_unit"]
