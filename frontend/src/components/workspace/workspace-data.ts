@@ -17,6 +17,12 @@ export interface WorkspaceScan {
   report_digest?: string | null; source: "imported" | "server";
 }
 
+/** Engine prose for display: a spaced em dash reads as a comma, a bare one as a hyphen. Ids, hashes and data are never passed through this. */
+const EM_DASH = String.fromCharCode(0x2014);
+export function prose(text: string): string {
+  return text.split(` ${EM_DASH} `).join(", ").split(EM_DASH).join("-");
+}
+
 export const emptyWorkspaceScan: WorkspaceScan = {
   scan_id: "", name: "No assessment selected", profile: "", budget: "", status: "", created_at: "", completed_at: null,
   findings: [], coverage: { rows: [], total: 0, assessed: 0, partial: 0, not_assessed: 0, failed: 0, unsupported: 0 },
