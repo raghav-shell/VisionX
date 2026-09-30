@@ -1,0 +1,71 @@
+/* Hi-Vis Monochrome: the one visual system for the landing page and the workspace.
+   Night by default, paper as the light counterpart. One accent: lime means
+   "you can act" or "this is the evidence". Everything else is ink on ground.
+   Status hues carry state only (verified, running, held, failed). */
+
+:root,
+.hv-night {
+  --hv-bg: #070707;
+  --hv-surface: #111111;
+  --hv-sunken: #000000;
+  --hv-raised: #181818;
+  --hv-ink: #f7f7f4;
+  --hv-ink-2: #b8b8b2;
+  --hv-muted: #9a9a95;
+  --hv-line: rgba(247, 247, 244, 0.12);
+  --hv-line-strong: rgba(247, 247, 244, 0.24);
+  --hv-lime: #d4f24a;
+  --hv-lime-hover: #c3e236;
+  --hv-lime-ink: #050505;
+  --hv-lime-soft: rgba(212, 242, 74, 0.12);
+  --hv-ok: #4cc38a;
+  --hv-info: #8fb7d4;
+  --hv-held: #ffb224;
+  --hv-bad: #ff5a4f;
+  --hv-radius: 2px;
+  --hv-font-sans: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --hv-font-mono: var(--font-martian), "Martian Mono", ui-monospace, "Cascadia Mono", monospace;
+  --hv-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hv-paper {
+  --hv-bg: #faf9f6;
+  --hv-surface: #ffffff;
+  --hv-sunken: #f2f1ec;
+  --hv-raised: #ffffff;
+  --hv-ink: #141413;
+  --hv-ink-2: #5d5c58;
+  --hv-muted: #74726d;
+  --hv-line: rgba(20, 20, 19, 0.12);
+  --hv-line-strong: rgba(20, 20, 19, 0.24);
+  /* On paper, lime is a marker behind ink, never text on its own. */
+  --hv-lime: #d4f24a;
+  --hv-lime-hover: #c3e236;
+  --hv-lime-ink: #050505;
+  --hv-lime-soft: rgba(212, 242, 74, 0.35);
+  --hv-ok: #0b7434;
+  --hv-info: #08689f;
+  --hv-held: #9a4f04;
+  --hv-bad: #b91c1c;
+}
+
+/* A mono label: ids, hashes, section markers. */
+.hv-label {
+  font-family: var(--hv-font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hv-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
