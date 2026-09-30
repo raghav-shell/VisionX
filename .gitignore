@@ -39,6 +39,7 @@ apps/dashboard/playwright-report/
 .vscode/
 *.swp
 .DS_Store
+:memory:.ses
 
 # Local secrets
 *.pem
