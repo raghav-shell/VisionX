@@ -86,7 +86,25 @@ class ScenarioRunResult:
     details: dict[str, Any] = field(default_factory=dict)
     scan_result: ScanResult | None = None
 
+    def validate_invariants(self) -> None:
+        """Fail loudly if a producer emits an impossible scientific outcome."""
+        status = self.evaluation_status
+        if status is ScenarioEvaluationStatus.INVALID_MANIFEST:
+            assert not self.manifest_valid and not self.scan_executed
+        elif status is ScenarioEvaluationStatus.GENERATION_FAILED:
+            assert self.manifest_valid and not self.generation_succeeded and not self.scan_executed
+        elif status is ScenarioEvaluationStatus.FITNESS_FAILED:
+            assert self.manifest_valid and self.generation_succeeded and not self.passed_fitness
+            assert not self.scan_executed
+        elif status is ScenarioEvaluationStatus.EXECUTION_ERROR:
+            assert self.manifest_valid and self.generation_succeeded and self.passed_fitness
+            assert not self.scan_executed and self.scan_result is None
+        else:
+            assert self.manifest_valid and self.generation_succeeded and self.passed_fitness
+            assert self.scan_executed and self.scan_result is not None
+
     def to_dict(self) -> dict[str, Any]:
+        self.validate_invariants()
         return {
             "scenario_id": self.scenario_id,
             "title": self.title,

@@ -1,7 +1,7 @@
 {
   "total_scenarios_run": 10,
   "passed_scenarios": 7,
-  "mean_tpr": 1.0,
+  "mean_tpr": 0.75,
   "mean_fpr": 0.005,
   "rows": [
     {
@@ -54,12 +54,12 @@
       "scenario_id": "duplicate_flood",
       "evaluation_tier": "evaluation",
       "total_samples": 1,
-      "true_positives": 1,
+      "true_positives": 0,
       "false_positives": 0,
-      "tpr": 1.0,
+      "tpr": 0.0,
       "tpr_ci": [
-        0.2065,
-        1.0
+        0.0,
+        0.7935
       ],
       "fpr": null,
       "fpr_ci": null,
@@ -198,12 +198,12 @@
       "scenario_id": "semantic_shift",
       "evaluation_tier": "evaluation",
       "total_samples": 1,
-      "true_positives": 1,
+      "true_positives": 0,
       "false_positives": 0,
-      "tpr": 1.0,
+      "tpr": 0.0,
       "tpr_ci": [
-        0.2065,
-        1.0
+        0.0,
+        0.7935
       ],
       "fpr": null,
       "fpr_ci": null,
@@ -239,7 +239,7 @@
       "notes": "affected samples (0) < required minimum (8); expected truth tag 'systematic_mislabel' absent from generated ground truth"
     }
   ],
-  "summary_table": "ATTACK CLASS                   | SCENARIO ID               | TIER         | TPR (SCENARIO)  | ALERTS/CLEAN SAMPLE  | FITNESS  | DISPOSITION \n-----------------------------------------------------------------------------------------------------------------------------\nclean_control                  | clean_baseline            | evaluation   | not estimated   | 0.0050               | PASSED   | REVIEW      \noperational_covariate_shift    | drift_illumination        | evaluation   | 1.00            | not estimated        | PASSED   | REVIEW      \nduplicate_flood                | duplicate_flood           | evaluation   | 1.00            | not estimated        | PASSED   | QUARANTINE  \nlabel_flip                     | label_flip_targeted       | evaluation   | 1.00            | not estimated        | PASSED   | REVIEW      \nrecord_modification            | ledger_tamper             | evaluation   | 1.00            | not estimated        | PASSED   | QUARANTINE  \nmodel_substitution             | model_swap                | evaluation   | 1.00            | not estimated        | PASSED   | QUARANTINE  \nmodel_weight_tampering         | modified_weights          | evaluation   | 1.00            | not estimated        | PASSED   | QUARANTINE  \nlocalized_trigger              | patch_poison              | evaluation   | 1.00            | not estimated        | PASSED   | REVIEW      \noperational_semantic_shift     | semantic_shift            | evaluation   | 1.00            | not estimated        | PASSED   | ACCEPT      \nsystematic_mislabel            | systematic_mislabel       | evaluation   | not estimated   | not estimated        | FAIL     |             ",
+  "summary_table": "ATTACK CLASS                   | SCENARIO ID               | TIER         | TPR (SCENARIO)  | ALERTS/CLEAN SAMPLE  | FITNESS  | DISPOSITION \n-----------------------------------------------------------------------------------------------------------------------------\nclean_control                  | clean_baseline            | evaluation   | not estimated   | 0.0050               | PASSED   | REVIEW      \noperational_covariate_shift    | drift_illumination        | evaluation   | 1.00            | not estimated        | PASSED   | REVIEW      \nduplicate_flood                | duplicate_flood           | evaluation   | 0.00            | not estimated        | PASSED   | QUARANTINE  \nlabel_flip                     | label_flip_targeted       | evaluation   | 1.00            | not estimated        | PASSED   | REVIEW      \nrecord_modification            | ledger_tamper             | evaluation   | 1.00            | not estimated        | PASSED   | QUARANTINE  \nmodel_substitution             | model_swap                | evaluation   | 1.00            | not estimated        | PASSED   | QUARANTINE  \nmodel_weight_tampering         | modified_weights          | evaluation   | 1.00            | not estimated        | PASSED   | QUARANTINE  \nlocalized_trigger              | patch_poison              | evaluation   | 1.00            | not estimated        | PASSED   | REVIEW      \noperational_semantic_shift     | semantic_shift            | evaluation   | 0.00            | not estimated        | PASSED   | ACCEPT      \nsystematic_mislabel            | systematic_mislabel       | evaluation   | not estimated   | not estimated        | FAIL     |             ",
   "tier_counts": {
     "evaluation": 10
   },
@@ -248,8 +248,12 @@
     "clean_baseline"
   ],
   "methodology": {
+    "total_scenarios": 10,
     "positive_control_scenarios": 9,
     "negative_control_scenarios": 1,
+    "calibration_scenarios": 0,
+    "evaluation_scenarios": 10,
+    "held_out_scenarios": 0,
     "evaluation_tier_counts": {
       "evaluation": 10
     },
@@ -265,11 +269,12 @@
     "false_positive_metric": "material_alerts_per_clean_sample",
     "false_positive_definition": "material detector findings divided by clean-control samples; not a sample-classification FPR",
     "confidence_interval": "Wilson interval only when the numerator and denominator share the declared observation unit",
-    "auroc_definition": "not estimated without compatible labelled continuous score vectors containing both classes"
+    "auroc_definition": "not estimated because this report contains no compatible labelled continuous score vectors",
+    "auroc_available": false
   },
   "run_metadata": {
     "profile": "selftest",
-    "repository_commit": "03a2cd8468407ee37600ba79b8ac055e446ba217",
+    "repository_commit": "206e7e1e98dae95b0f9b573ec95f2a7b08965e4c",
     "working_tree_dirty": true
   }
 }

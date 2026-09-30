@@ -12,6 +12,7 @@ from visionsentinel.evaluation.benchmark import (
     wilson_interval,
     write_benchmark_artifacts,
 )
+from visionsentinel.contracts import ScenarioEvaluationStatus
 
 
 def test_clean_baseline_is_declared_as_a_negative_control():
@@ -84,3 +85,31 @@ def test_methodology_is_derived_from_report_rows():
     assert methodology["negative_control_scenarios"] == 1
     assert methodology["eligible_for_scientific_metrics"] == 2
     assert methodology["tpr_observation_unit"] == "scenario"
+    assert methodology["total_scenarios"] == 2
+    assert methodology["auroc_available"] is False
+    assert "Only one negative-control scenario" in report.markdown()
+
+
+def test_detector_miss_is_an_eligible_zero_scenario_observation():
+    row = FamilyEvaluationRow(
+        attack_family="positive",
+        scenario_id="miss",
+        evaluation_tier="evaluation",
+        total_samples=1,
+        true_positives=0,
+        false_positives=0,
+        tpr=0.0,
+        tpr_ci=wilson_interval(0, 1),
+        fpr=None,
+        fpr_ci=None,
+        auroc=None,
+        auroc_ci=None,
+        overall_disposition="REVIEW",
+        passed_fitness=True,
+        evaluation_status=ScenarioEvaluationStatus.DETECTOR_MISS.value,
+        eligible_for_metrics=True,
+        acceptance_passed=False,
+    )
+    report = BenchmarkReport(1, 0, 0.0, None, [row], "summary")
+    assert report.methodology()["eligible_for_scientific_metrics"] == 1
+    assert report.to_dict()["rows"][0]["tpr"] == 0.0

@@ -261,3 +261,13 @@ class ScenarioEvaluationStatus(StrEnum):
     DETECTOR_MISS = "detector_miss"
     INVALID_MANIFEST = "invalid_manifest"
     EXECUTION_ERROR = "execution_error"
+
+    @property
+    def scientifically_observable(self) -> bool:
+        """Whether this outcome is a valid completed experiment observation.
+
+        Generation, validation, and execution failures do not enter scientific
+        metric denominators. A detector miss is still an observation: the
+        pipeline ran and produced a negative scientific result.
+        """
+        return self in {self.DETECTOR_SUCCESS, self.DETECTOR_MISS}

@@ -101,14 +101,8 @@ def metric_eligible(
     control_valid: bool = True,
 ) -> bool:
     """Return the single eligibility decision used by all benchmark metrics."""
-    invalid_statuses = {
-        ScenarioEvaluationStatus.INVALID_MANIFEST,
-        ScenarioEvaluationStatus.GENERATION_FAILED,
-        ScenarioEvaluationStatus.FITNESS_FAILED,
-        ScenarioEvaluationStatus.EXECUTION_ERROR,
-    }
     return (
-        status not in invalid_statuses
+        status.scientifically_observable
         and passed_fitness
         and ground_truth_valid
         and scan_executed
@@ -139,8 +133,12 @@ class BenchmarkReport:
         for row in self.rows:
             tier_counts[row.evaluation_tier] = tier_counts.get(row.evaluation_tier, 0) + 1
         return {
+            "total_scenarios": len(self.rows),
             "positive_control_scenarios": positive,
             "negative_control_scenarios": negative,
+            "calibration_scenarios": sum(row.evaluation_tier == "calibration" for row in self.rows),
+            "evaluation_scenarios": sum(row.evaluation_tier == "evaluation" for row in self.rows),
+            "held_out_scenarios": sum(row.evaluation_tier == "held_out" for row in self.rows),
             "evaluation_tier_counts": tier_counts,
             "eligible_for_scientific_metrics": eligible,
             "excluded_from_scientific_metrics": len(self.rows) - eligible,
@@ -150,7 +148,8 @@ class BenchmarkReport:
             "false_positive_metric": "material_alerts_per_clean_sample",
             "false_positive_definition": "material detector findings divided by clean-control samples; not a sample-classification FPR",
             "confidence_interval": "Wilson interval only when the numerator and denominator share the declared observation unit",
-            "auroc_definition": "not estimated without compatible labelled continuous score vectors containing both classes",
+            "auroc_definition": "not estimated because this report contains no compatible labelled continuous score vectors",
+            "auroc_available": any(row.auroc is not None for row in self.rows),
         }
 
     def markdown(self) -> str:
@@ -170,7 +169,14 @@ class BenchmarkReport:
             lines.append(f"| {row.attack_family} | {row.scenario_id} | {row.evaluation_tier} | {tpr} | {fpr} | {auc} | {'PASS' if row.passed_fitness else 'FAIL'} |")
         lines += ["", "## Outcome counts", "", "| Outcome | Scenarios |", "|---|---:|"]
         lines.extend(f"| {status} | {count} |" for status, count in sorted(method["outcome_counts"].items()))
-        lines += ["", "## Limits", "", "AUROC remains not estimated until compatible labelled continuous score vectors are supplied. Clean-control alert rates are not interchangeable with conventional sample-level classification FPR."]
+        limits = ["Clean-control alert rates are not interchangeable with conventional sample-level classification FPR."]
+        if not method["auroc_available"]:
+            limits.insert(0, "AUROC is not estimated because this run supplied no compatible labelled continuous score vectors containing both classes.")
+        if method["negative_control_scenarios"] == 0:
+            limits.append("No negative-control scenario was executed, so the clean-control alert metric is not estimated.")
+        elif method["negative_control_scenarios"] == 1:
+            limits.append("Only one negative-control scenario was executed; its alert measurement does not generalize across attack families.")
+        lines += ["", "## Limits", "", *limits]
         return "\n".join(lines) + "\n"
 
     def to_dict(self) -> dict[str, Any]:
@@ -251,7 +257,13 @@ def run_benchmark(
                 finding for finding in result.scan_result.findings
                 if finding.severity.rank >= Severity.MEDIUM.rank
             ]
-            tp = 0 if is_negative else int(result.detected_expected_signals)
+            # A positive-control observation is a true positive only when the
+            # complete manifest-declared expectation succeeded. A valid miss
+            # remains eligible, but contributes zero rather than being turned
+            # into a false perfect score.
+            tp = 0 if is_negative else int(
+                result.evaluation_status is ScenarioEvaluationStatus.DETECTOR_SUCCESS
+            )
             fp = len(false_positive_findings) if is_negative else 0
             tpr = float(tp) if not is_negative else None
             fpr = round(float(fp) / negative_samples, 4) if is_negative else None

@@ -96,6 +96,7 @@ class ScanCompletePayload(BaseModel):
 class ScanStreamUnavailablePayload(BaseModel):
     scan_id: str
     code: Literal["scan_unavailable"] = SCAN_UNAVAILABLE_CODE
+    message: str = "The scan is no longer available; the event stream has ended."
 
 
 def _result_or_error(scan_id: str, state: AppState) -> ScanResult:
