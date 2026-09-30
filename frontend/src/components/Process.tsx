@@ -1,185 +1,283 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
+
+/*
+ * How it works, told with the recorded demo run. The tree is the pipeline:
+ * four contributors are its branches and the dataset is its trunk. When the
+ * figure is reached, one scan pass checks each branch, Charlie's branch locks,
+ * the finding traces out to the readout, and the readout settles REVIEW and
+ * then the second signature. Every figure below comes from that run.
+ *
+ * The whole sequence is CSS on one clock (globals.css, "the contributor tree"):
+ * each piece carries its start time as --t. This component only arms it and
+ * starts it. Without JavaScript, under reduced motion, or when the figure is
+ * already on screen at load, nothing is armed and the finished frame shows.
+ */
+
+type Pin = {
+  id: string;
+  x: number;
+  y: number;
+  t: number;
+  kind?: "data" | "flag";
+  dir?: "up" | "down" | "left";
+  align?: "start" | "end";
+  len?: number;
+  name?: string;
+  note?: string;
+};
+
+// Positions are percentages of the tree image; t is ms after the run starts.
+// The scan climbs from 96% to 4% of the height between 400 and 2200 ms, so a
+// branch is checked at the moment the line crosses it.
+const PINS: Pin[] = [
+  { id: "data", kind: "data", x: 35, y: 70, t: 100, dir: "left", len: 20, name: "Dataset", note: "400 images" },
+  { id: "alpha", x: 21, y: 43, t: 1440, dir: "down", align: "start", name: "Alpha", note: "No pattern" },
+  { id: "delta", x: 86, y: 30, t: 1690, dir: "down", align: "end", name: "Delta", note: "No pattern" },
+  { id: "bravo", x: 38, y: 15, t: 1985, dir: "up", align: "end", len: 10, name: "Bravo", note: "No pattern" },
+  { id: "charlie", kind: "flag", x: 62.75, y: 16.1, t: 2350 },
+];
+
+const STEPS = [
+  {
+    n: "01",
+    t: 100,
+    title: "Import",
+    body: "Load a dataset, a candidate model or a signed inference ledger. Every sample keeps the name of the contributor who sent it.",
+    run: "400 images from Alpha, Bravo, Charlie and Delta",
+  },
+  {
+    n: "02",
+    t: 400,
+    title: "Run the detectors",
+    body: "Pick a profile. VisionX works out which of its 23 detectors your inputs allow, then runs them on this machine.",
+    run: "Labels checked against image content, per contributor",
+  },
+  {
+    n: "03",
+    t: 2350,
+    title: "Read the evidence",
+    body: "A finding opens to its detector, the samples it hit and the evidence, with the limits of the check written out. Coverage lists what did not run.",
+    run: "Charlie: 5 of 33. Everyone else: 0 of 46",
+  },
+  {
+    n: "04",
+    t: 3850,
+    title: "Sign it off",
+    body: "The policy proposes ACCEPT, REVIEW or QUARANTINE. Changing that takes a request and a second person's approval.",
+    run: "REVIEW, then analyst01 asks and approver01 decides",
+  },
+];
+
+const at = (ms: number) => ({ "--t": `${ms}ms` }) as React.CSSProperties;
 
 export default function Process() {
-  const [activeStep, setActiveStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
+  const root = useRef<HTMLElement>(null);
+  const tree = useRef<HTMLDivElement>(null);
 
-  const steps = [
-    {
-      number: "01",
-      title: "Ingest",
-      subtitle: "the supplied assets",
-      description:
-        "Load a dataset, model, or inference ledger locally. VisionX checks file limits and probes which analyses the supplied assets can support.",
-      accent: "#eca8d6",
-    },
-    {
-      number: "02",
-      title: "Assess",
-      subtitle: "with explicit coverage",
-      description:
-        "Run the applicable data, model, provenance, and drift checks. Findings link to evidence; unavailable checks explain what inputs are missing.",
-      accent: "#c597eb",
-    },
-    {
-      number: "03",
-      title: "Report",
-      subtitle: "findings and limits",
-      description:
-        "Export the results, coverage, and evidence. Optionally sign a report manifest or verify a supplied inference ledger against trusted keys and anchors.",
-      accent: "#9bb2ff",
-    },
-  ];
-
-  // IntersectionObserver for smooth entry reveal
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
+    const el = root.current;
+    const fig = tree.current;
+    if (!el || !fig) return;
+    if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
+    if (typeof IntersectionObserver === "undefined") return;
+    el.dataset.motion = "";
+    const box = fig.getBoundingClientRect();
+    if (box.top < window.innerHeight && box.bottom > 0) return;
+    el.dataset.play = "armed";
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          el.dataset.play = "on";
+          io.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.45 },
     );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
+    io.observe(fig);
+    return () => io.disconnect();
   }, []);
 
-  // Auto-advance tabs
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % steps.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [steps.length]);
+  const replay = () => {
+    const el = root.current;
+    if (!el) return;
+    el.dataset.play = "armed";
+    void el.offsetWidth; // let the armed frame apply so the animations start over
+    el.dataset.play = "on";
+  };
 
   return (
-    <section
-      ref={sectionRef}
-      id="process"
-      className="relative py-32 lg:py-44 bg-[#030305] text-white overflow-hidden border-t border-white/[0.06]"
-    >
-      {/* Background ambient glow */}
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full bg-[#eca8d6]/[0.03] blur-[140px] pointer-events-none" />
-
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12">
-        {/* Header Grid: Stacked Typography + Living Tree Visual */}
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-end mb-20 lg:mb-28">
-          {/* Left: Stacked Headings */}
-          <div className="overflow-hidden pb-4 lg:pb-24">
-            <div
-              className={`transition-all duration-1000 ${
-                isVisible ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"
-              }`}
-            >
-              <span className="inline-flex items-center gap-3 text-sm font-mono text-white/40 mb-8 uppercase tracking-widest">
-                <span className="w-12 h-px bg-white/20" />
-                Assurance Process
-              </span>
-            </div>
-
-            <h2
-              className={`text-6xl md:text-7xl lg:text-[120px] font-display font-bold tracking-tight leading-[0.88] transition-all duration-1000 delay-100 ${
-                isVisible ? "translate-y-0 opacity-100" : "translate-y-16 opacity-0"
-              }`}
-            >
-              <span className="block text-white">Ingest.</span>
-              <span className="block text-white/35">Assess.</span>
-              <span className="block text-white/15">Report.</span>
-            </h2>
-          </div>
-
-          {/* Right: Living Ethereal Bonsai Tree Graphic with Continuous Motion */}
-          <div
-            className={`relative h-[360px] lg:h-[600px] overflow-hidden transition-all duration-1000 delay-200 ${
-              isVisible ? "translate-y-0 opacity-100" : "translate-y-16 opacity-0"
-            }`}
-          >
-            {/* Ambient backlight glow pulse */}
-            <div
-              className="absolute bottom-6 right-1/4 w-80 h-80 rounded-full blur-[100px] pointer-events-none transition-all duration-700 animate-aura-pulse"
-              style={{
-                backgroundColor: steps[activeStep].accent + "26",
-              }}
-            />
-
-            {/* Tree Image with Living Organic Breathing Float */}
-            <img
-              src="/images/tree.png"
-              alt="Ethereal bonsai tree"
-              aria-hidden="true"
-              className="absolute bottom-0 left-0 w-full h-full object-contain object-bottom select-none pointer-events-none animate-tree-float"
-            />
-
-            {/* Gradient Scrim for seamless blend */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#030305] via-transparent to-transparent pointer-events-none" />
-          </div>
+    <section ref={root} id="demo" className="lx-section" aria-labelledby="lx-demo-title">
+      <div className="lx-shell">
+        <div className="lx-head">
+          <p className="lx-eyebrow">
+            <span>
+              <span className="n">01</span> · How it works
+            </span>
+          </p>
+          <h2 id="lx-demo-title" className="lx-h2">
+            <span>Charlie relabelled armoured vehicles as civilian.</span> <b>VisionX caught it.</b>
+          </h2>
+          <p className="lx-lede">
+            This is the recorded demo run, Attack Lab&apos;s targeted label flip: 400 images from four contributors,
+            about 75 seconds on a laptop CPU. Anything you import goes through the same four steps.
+          </p>
         </div>
 
-        {/* 3 Step Interactive Tab Cards with animated progress bar */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {steps.map((step, idx) => {
-            const isActive = activeStep === idx;
-            return (
-              <button
-                key={step.number}
-                type="button"
-                onClick={() => setActiveStep(idx)}
-                className={`relative text-left p-8 lg:p-12 border rounded-none transition-all duration-500 bg-black ${
-                  isActive
-                    ? "border-white/60 shadow-xl shadow-white/5"
-                    : "border-white/15 hover:border-white/40"
-                }`}
-              >
-                {/* Step Number + Progress Indicator */}
-                <div className="flex items-center gap-4 mb-8">
-                  <span
-                    className={`text-4xl font-display font-bold transition-colors duration-300 ${
-                      isActive ? "text-[#eca8d6]" : "text-white/20"
-                    }`}
-                  >
-                    {step.number}
-                  </span>
-                  <div className="flex-1 h-px bg-white/10 overflow-hidden">
-                    {isActive && (
-                      <div className="h-full bg-[#eca8d6]/60 animate-step-progress" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Step Title & Subtitle */}
-                <h3 className="text-3xl lg:text-4xl font-display font-semibold mb-2 text-white">
-                  {step.title}
-                </h3>
-                <span className="text-lg lg:text-xl text-white/40 font-display block mb-6 font-normal">
-                  {step.subtitle}
+        <div className="lx-demo-grid">
+          <ol className="lx-steps">
+            {STEPS.map((step) => (
+              <li key={step.n} className="lx-step" style={at(step.t)}>
+                <span className="k">
+                  <span className="mk" aria-hidden="true" />
+                  {step.n}
                 </span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                  <p className="run">
+                    <span>Run ›</span>
+                    {step.run}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
 
-                {/* Description */}
-                <p
-                  className={`text-sm lg:text-base text-white/60 leading-relaxed transition-opacity duration-300 ${
-                    isActive ? "opacity-100" : "opacity-50"
-                  }`}
-                >
-                  {step.description}
-                </p>
+          <figure className="lx-stage">
+            <div ref={tree} className="lx-tree">
+              <img
+                src="/images/tree-mono.webp"
+                alt="A bonsai tree drawn as the dataset. Its four branches are the contributors Alpha, Bravo, Charlie and Delta. Alpha, Bravo and Delta are marked as showing no pattern; Charlie's branch is flagged: 5 of 33 relabelled, q 3.8e-04."
+                width={1100}
+                height={1178}
+                loading="lazy"
+                decoding="async"
+              />
 
-                {/* Active bottom neon accent line */}
+              {PINS.map((pin) => (
                 <div
-                  className={`absolute bottom-0 left-0 right-0 h-1 bg-[#eca8d6] transition-transform duration-500 origin-left ${
-                    isActive ? "scale-x-100" : "scale-x-0"
-                  }`}
-                />
+                  key={pin.id}
+                  className="lx-pin"
+                  data-kind={pin.kind}
+                  data-dir={pin.dir}
+                  data-align={pin.align}
+                  aria-hidden="true"
+                  style={{
+                    ...at(pin.t),
+                    ["--x" as string]: `${pin.x}%`,
+                    ["--y" as string]: `${pin.y}%`,
+                    ...(pin.len ? { ["--len" as string]: `${pin.len}px` } : {}),
+                  }}
+                >
+                  <i className="dot" />
+                  {pin.name && (
+                    <>
+                      <i className="lead" />
+                      <span className="tag">
+                        <b>{pin.name}</b>
+                        <span className="st">
+                          <em>{pin.note}</em>
+                          {pin.kind !== "data" && <i className="w">Queued</i>}
+                        </span>
+                      </span>
+                    </>
+                  )}
+                </div>
+              ))}
+
+              <div className="lx-reticle" style={at(2350)} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
+              <span className="lx-ctag" style={at(2350)} aria-hidden="true">
+                Charlie
+              </span>
+              <i className="lx-flag-lead" style={at(2650)} aria-hidden="true" />
+              <p className="lx-flag" style={at(3070)} aria-hidden="true">
+                <b>CHARLIE</b>
+                <span>5/33 RELABELLED</span>
+                <span>q 3.8e-04</span>
+              </p>
+
+              <div className="lx-scanlayer" aria-hidden="true">
+                <div className="lx-scan">
+                  <i />
+                  <span>DATA CHECKS RUNNING</span>
+                </div>
+              </div>
+            </div>
+
+            <figcaption className="lx-stage-cap">
+              <span className="lx-note">Recorded run · targeted label flip · profile selftest · about 75 s, laptop CPU</span>
+              <button type="button" className="lx-replay" onClick={replay}>
+                Replay <span aria-hidden="true">↻</span>
               </button>
-            );
-          })}
+            </figcaption>
+          </figure>
+
+          <div className="lx-readout">
+            <p className="hd">
+              <span>Finding</span>
+              <span>F-7EC600D0C8</span>
+            </p>
+            <div className="lx-findwrap">
+              <p className="lx-wait" style={at(3250)} aria-hidden="true">
+                Detectors running · no findings yet
+              </p>
+              <div className="lx-find" style={at(3250)}>
+                <p className="who">CHARLIE · MEDIUM</p>
+                <p className="t">
+                  Charlie systematically labels <code>armoured_vehicle</code> content as <code>civilian_vehicle</code>
+                </p>
+                <p className="b">
+                  <mark className="lx-mark">5 of 33</mark> of Charlie&apos;s <code>civilian_vehicle</code> labels are on
+                  images the model reads as armoured vehicles. Other contributors: 0 of 46.
+                </p>
+                <dl>
+                  <dt>Detector</dt>
+                  <dd>data.systematic_mislabel</dd>
+                  <dt>Test</dt>
+                  <dd>binomial, q = 3.8e-04</dd>
+                  <dt>Evidence</dt>
+                  <dd>contact sheet, confusion matrix, test statistics</dd>
+                </dl>
+              </div>
+            </div>
+
+            <ol className="lx-flow">
+              <li style={at(3850)}>
+                <span className="lx-sq" data-s="held" />
+                <div className="row">
+                  <span className="k">Policy</span>
+                  <span className="lx-disp">REVIEW</span>
+                </div>
+                <p>Proposed from the evidence. Nobody has signed anything yet.</p>
+              </li>
+              <li style={at(4250)}>
+                <span className="lx-sq" />
+                <div className="row">
+                  <span className="k">Request</span>
+                  <span className="v">analyst01</span>
+                </div>
+                <p>Asks to change the disposition and writes down why.</p>
+              </li>
+              <li style={at(4650)}>
+                <span className="lx-sq" data-s="ok" />
+                <div className="row">
+                  <span className="k">Decision</span>
+                  <span className="v">approver01</span>
+                </div>
+                <p>A second person approves or rejects. Both steps go into the signed audit trail.</p>
+              </li>
+            </ol>
+            <p className="lx-note" style={at(4950)}>
+              If analyst01 tries to approve their own request, the backend refuses and logs the attempt.
+            </p>
+          </div>
         </div>
       </div>
     </section>

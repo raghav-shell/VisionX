@@ -67,7 +67,8 @@ video::-webkit-media-controls-overlay-play-button {
 /* a page without JavaScript all read complete.                           */
 /*                                                                        */
 /* Sections in page order: shell and type · actions · header · hero ·     */
-/* sections · checks · proof · offline · closing · footer · reveal        */
+/* sections · the contributor tree (how it works) · checks · proof ·      */
+/* offline · closing · footer · reveal                                     */
 /* ===================================================================== */
 
 .lx {
@@ -550,6 +551,766 @@ video::-webkit-media-controls-overlay-play-button {
   background: transparent;
   outline: 1px dashed var(--hv-muted);
   outline-offset: -1px;
+}
+
+/* ===================================================================== */
+/* THE CONTRIBUTOR TREE                                                   */
+/* The recorded demo run drawn on the tree: four contributors are its    */
+/* branches, the dataset is its trunk. On reveal, one pass of the scan    */
+/* checks every branch; Charlie's locks; the finding traces out to the    */
+/* readout, which settles REVIEW and then the second signature.           */
+/* Timings (ms from the start) are set inline as --t on each piece.       */
+/* ===================================================================== */
+.lx-demo-grid {
+  display: grid;
+  grid-template-areas: "tree" "readout" "steps";
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(32px, 4vw, 48px);
+  margin-top: clamp(40px, 5vw, 64px);
+}
+.lx-steps {
+  grid-area: steps;
+}
+.lx-stage {
+  grid-area: tree;
+  min-width: 0;
+  margin: 0;
+}
+.lx-readout {
+  grid-area: readout;
+  min-width: 0;
+}
+@media (min-width: 760px) {
+  .lx-demo-grid {
+    grid-template-areas: "tree readout" "steps steps";
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+  }
+  .lx-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+  }
+}
+@media (min-width: 1180px) {
+  .lx-demo-grid {
+    grid-template-areas: "steps tree readout";
+    grid-template-columns: minmax(0, 3.4fr) minmax(0, 5.8fr) minmax(0, 3.2fr);
+  }
+  .lx-steps {
+    display: block;
+  }
+}
+
+/* ---- the four steps ---- */
+.lx-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--hv-line);
+}
+.lx-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 0 12px;
+  padding: 18px 0 20px;
+  border-bottom: 1px solid var(--hv-line);
+}
+.lx-step .k {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  font-family: var(--hv-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--hv-ink);
+}
+.lx-step .mk {
+  --fill: var(--hv-ink);
+  width: 7px;
+  height: 7px;
+  background: var(--fill);
+}
+.lx-step h3 {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+}
+.lx-step p {
+  margin: 6px 0 0;
+  font-size: 0.93rem;
+  line-height: 1.55;
+  color: var(--hv-ink-2);
+}
+.lx-step .run {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  font-family: var(--hv-font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  letter-spacing: 0.03em;
+  color: var(--hv-ink);
+}
+.lx-step .run span {
+  flex: none;
+  color: var(--hv-muted);
+}
+
+/* ---- the tree and its pins ---- */
+.lx-tree {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1100 / 1178;
+}
+.lx-tree > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+.lx-pin {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 0;
+  height: 0;
+  --len: 20px;
+  --fill: var(--hv-ok);
+}
+.lx-pin .dot {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--fill);
+  box-shadow: var(--lx-halo);
+}
+.lx-pin .lead {
+  position: absolute;
+  background: var(--hv-line-strong);
+}
+.lx-pin .tag {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 7px 5px;
+  background: rgba(7, 7, 7, 0.92);
+  box-shadow: inset 0 0 0 1px var(--hv-line-strong);
+  font-family: var(--hv-font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--hv-ink);
+}
+.lx-pin .tag b {
+  font-weight: 600;
+}
+/* The status line: "queued" until the scan reaches the branch. */
+.lx-pin .tag .st {
+  display: grid;
+}
+.lx-pin .tag .st > * {
+  grid-area: 1 / 1;
+  font-style: normal;
+}
+.lx-pin .tag em {
+  color: var(--hv-ok);
+}
+.lx-pin .tag .w {
+  visibility: hidden;
+  color: var(--hv-muted);
+}
+.lx-pin[data-dir="down"] .lead {
+  left: -0.5px;
+  top: 7px;
+  width: 1px;
+  height: var(--len);
+}
+.lx-pin[data-dir="down"] .tag {
+  top: calc(7px + var(--len));
+}
+.lx-pin[data-dir="up"] .lead {
+  left: -0.5px;
+  bottom: 7px;
+  width: 1px;
+  height: var(--len);
+}
+.lx-pin[data-dir="up"] .tag {
+  bottom: calc(7px + var(--len));
+}
+.lx-pin[data-dir="left"] .lead {
+  right: 7px;
+  top: -0.5px;
+  width: var(--len);
+  height: 1px;
+}
+.lx-pin[data-dir="left"] .tag {
+  right: calc(7px + var(--len));
+  top: 0;
+  transform: translateY(-50%);
+}
+.lx-pin[data-align="start"] .tag {
+  left: -10px;
+}
+.lx-pin[data-align="end"] .tag {
+  right: -10px;
+}
+.lx-pin[data-kind="data"] {
+  --fill: var(--hv-ink);
+}
+.lx-pin[data-kind="flag"] {
+  --fill: var(--hv-lime);
+}
+
+/* Charlie: the name tag, the reticle, the lead down to the flag, the flag. */
+.lx-ctag {
+  position: absolute;
+  left: 55.5%;
+  top: 8.5%;
+  padding: 4px 7px 5px;
+  transform: translateY(calc(-100% - 6px));
+  background: rgba(7, 7, 7, 0.92);
+  box-shadow: inset 0 0 0 1px var(--hv-lime);
+  font-family: var(--hv-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--hv-lime);
+}
+.lx-reticle {
+  position: absolute;
+  left: 55.5%;
+  top: 8.5%;
+  width: 14.5%;
+  height: 15.3%;
+  pointer-events: none;
+  transform-origin: center;
+}
+.lx-reticle i {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 0 solid var(--hv-lime);
+}
+.lx-reticle i:nth-child(1) {
+  left: 0;
+  top: 0;
+  border-width: 1.5px 0 0 1.5px;
+}
+.lx-reticle i:nth-child(2) {
+  right: 0;
+  top: 0;
+  border-width: 1.5px 1.5px 0 0;
+}
+.lx-reticle i:nth-child(3) {
+  right: 0;
+  bottom: 0;
+  border-width: 0 1.5px 1.5px 0;
+}
+.lx-reticle i:nth-child(4) {
+  left: 0;
+  bottom: 0;
+  border-width: 0 0 1.5px 1.5px;
+}
+.lx-flag-lead {
+  position: absolute;
+  left: 62.75%;
+  top: 23.8%;
+  width: 1px;
+  height: 26.2%;
+  background: var(--hv-lime);
+  transform-origin: top;
+}
+.lx-flag {
+  position: absolute;
+  left: 60%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 9px 8px;
+  border: 1px solid var(--hv-lime);
+  background: var(--hv-bg);
+  font-family: var(--hv-font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--hv-lime);
+}
+.lx-flag b {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* One pass of the scan, bottom to top, only while the run plays. */
+.lx-scanlayer {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+.lx-scan {
+  position: absolute;
+  inset: 0;
+  transform: translateY(96%);
+}
+.lx-scan i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--hv-lime);
+}
+.lx-scan i::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 1px;
+  height: 44px;
+  background: linear-gradient(to bottom, rgba(212, 242, 74, 0.14), transparent);
+}
+.lx-scan span {
+  position: absolute;
+  right: 0;
+  top: -18px;
+  font-family: var(--hv-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--hv-lime);
+}
+
+.lx-stage-cap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hv-line);
+}
+.lx-replay {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--hv-line-strong);
+  font-family: var(--hv-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hv-ink);
+  cursor: pointer;
+}
+.lx-replay:hover {
+  box-shadow: inset 0 0 0 1px var(--hv-ink-2);
+}
+[data-motion] .lx-replay {
+  display: inline-flex;
+}
+
+/* ---- the readout: finding, then the decision ---- */
+.lx-readout .hd {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  font-family: var(--hv-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hv-muted);
+}
+.lx-findwrap {
+  position: relative;
+}
+.lx-wait {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 16px;
+  box-shadow: inset 0 0 0 1px var(--hv-line);
+  background: repeating-linear-gradient(135deg, rgba(247, 247, 244, 0.03) 0 1px, transparent 1px 9px);
+  font-family: var(--hv-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--hv-muted);
+  pointer-events: none;
+}
+.lx-find {
+  position: relative;
+  padding: 18px 18px 16px;
+  background: var(--hv-surface);
+  box-shadow: inset 0 0 0 1px var(--hv-line);
+}
+.lx-find::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--hv-lime);
+  transform-origin: left;
+}
+.lx-find .who {
+  margin: 0 0 10px;
+  font-family: var(--hv-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--hv-lime);
+}
+.lx-find .t {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.lx-find .b {
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--hv-ink-2);
+}
+/* The number the finding rests on, marked like a highlighter. */
+.lx-mark {
+  padding: 0 3px;
+  background: var(--hv-lime);
+  color: var(--hv-lime-ink);
+  font-weight: 600;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.lx-find dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--hv-line);
+  font-family: var(--hv-font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+}
+.lx-find dt {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--hv-muted);
+}
+.lx-find dd {
+  margin: 0 0 8px;
+  color: var(--hv-ink);
+  overflow-wrap: anywhere;
+}
+.lx-find dd:last-child {
+  margin-bottom: 0;
+}
+.lx-find .t code {
+  font-weight: 500;
+}
+.lx-flow {
+  margin: 0;
+  padding: 0 0 0 1px;
+  list-style: none;
+}
+.lx-flow li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 0 14px;
+  padding-top: 22px;
+}
+.lx-flow li::before {
+  content: "";
+  position: absolute;
+  left: 5.5px;
+  top: 0;
+  width: 1px;
+  height: 22px;
+  background: var(--hv-line-strong);
+  transform-origin: top;
+}
+.lx-flow .lx-sq {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+}
+.lx-flow .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.lx-flow .k {
+  font-family: var(--hv-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hv-muted);
+}
+.lx-flow .v {
+  font-family: var(--hv-font-mono);
+  font-size: 12px;
+  color: var(--hv-ink);
+}
+.lx-flow p {
+  grid-column: 2;
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--hv-ink-2);
+}
+.lx-disp {
+  padding: 3px 8px;
+  border: 1px solid var(--hv-held);
+  font-family: var(--hv-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--hv-held);
+}
+.lx-readout .lx-note {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hv-line);
+}
+
+/* ---- the run: armed (before), then on (playing once) ---- */
+[data-play="armed"] .lx-pin .dot,
+[data-play="armed"] .lx-step .mk {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 1px var(--hv-ink-2),
+    var(--lx-halo);
+}
+[data-play="armed"] .lx-pin:not([data-kind="data"]) .tag em,
+[data-play="armed"] .lx-reticle,
+[data-play="armed"] .lx-flag,
+[data-play="armed"] .lx-find,
+[data-play="armed"] .lx-flow .lx-disp,
+[data-play="armed"] .lx-flow p,
+[data-play="armed"] .lx-readout .lx-note {
+  opacity: 0;
+}
+[data-play="armed"] .lx-flow .lx-sq {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--hv-muted);
+}
+[data-play="armed"] .lx-flag-lead,
+[data-play="armed"] .lx-flow li::before {
+  transform: scaleY(0);
+}
+[data-play="armed"] .lx-find::before {
+  transform: scaleX(0);
+}
+[data-play="armed"] .lx-ctag {
+  color: var(--hv-ink);
+  box-shadow: inset 0 0 0 1px var(--hv-line-strong);
+}
+
+[data-play] .lx-pin .tag .w {
+  visibility: visible;
+}
+[data-play="armed"] .lx-wait,
+[data-play="on"] .lx-wait {
+  display: flex;
+}
+[data-play="on"] .lx-pin .tag .w,
+[data-play="on"] .lx-wait {
+  animation: lx-tick-out var(--lx-tick) linear var(--t) both;
+}
+[data-play="on"] .lx-scanlayer {
+  display: block;
+}
+[data-play="on"] .lx-scan {
+  animation:
+    lx-scan 1800ms linear 400ms both,
+    lx-fade-out 160ms linear 2200ms forwards;
+}
+[data-play="on"] .lx-pin .dot,
+[data-play="on"] .lx-step .mk {
+  animation: lx-dot var(--lx-tick) linear var(--t) both;
+}
+[data-play="on"] .lx-pin:not([data-kind="data"]) .tag em,
+[data-play="on"] .lx-flag,
+[data-play="on"] .lx-flow .lx-disp,
+[data-play="on"] .lx-flow p,
+[data-play="on"] .lx-readout .lx-note {
+  animation: lx-tick var(--lx-tick) linear var(--t) both;
+}
+[data-play="on"] .lx-ctag {
+  animation: lx-tag-lime var(--lx-tick) linear var(--t) both;
+}
+[data-play="on"] .lx-reticle {
+  animation: lx-lock var(--lx-lock) var(--lx-lock-ease) var(--t) both;
+}
+[data-play="on"] .lx-flag-lead {
+  animation: lx-grow-y var(--lx-trace) var(--lx-trace-ease) var(--t) both;
+}
+[data-play="on"] .lx-find {
+  animation: lx-tick var(--lx-tick) linear var(--t) both;
+}
+[data-play="on"] .lx-find::before {
+  animation: lx-grow-x var(--lx-trace) var(--lx-trace-ease) var(--t) both;
+}
+[data-play="on"] .lx-flow li::before {
+  animation: lx-grow-y 150ms var(--lx-trace-ease) calc(var(--t) - 150ms) both;
+}
+[data-play="on"] .lx-flow .lx-sq {
+  animation: lx-sq var(--lx-tick) linear var(--t) both;
+}
+
+@keyframes lx-scan {
+  from {
+    transform: translateY(96%);
+  }
+  to {
+    transform: translateY(4%);
+  }
+}
+@keyframes lx-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+/* Hard steps written as keyframes rather than steps(): a stepped timing
+   function can settle one step short when float rounding leaves the final
+   progress at 0.9999, which froze a tick at half opacity. */
+@keyframes lx-tick {
+  0%,
+  33% {
+    opacity: 0;
+  }
+  34%,
+  66% {
+    opacity: 0.5;
+  }
+  67%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes lx-tick-out {
+  0%,
+  33% {
+    opacity: 1;
+  }
+  34%,
+  66% {
+    opacity: 0.5;
+  }
+  67%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes lx-dot {
+  0%,
+  49% {
+    background: transparent;
+    box-shadow:
+      inset 0 0 0 1px var(--hv-ink-2),
+      var(--lx-halo);
+  }
+  50%,
+  100% {
+    background: var(--fill);
+    box-shadow: var(--lx-halo);
+  }
+}
+@keyframes lx-sq {
+  0%,
+  49% {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--hv-muted);
+  }
+  50%,
+  100% {
+    background: var(--sqc);
+    box-shadow: none;
+  }
+}
+@keyframes lx-tag-lime {
+  0%,
+  49% {
+    color: var(--hv-ink);
+    box-shadow: inset 0 0 0 1px var(--hv-line-strong);
+  }
+  50%,
+  100% {
+    color: var(--hv-lime);
+    box-shadow: inset 0 0 0 1px var(--hv-lime);
+  }
+}
+@keyframes lx-lock {
+  from {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lx-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes lx-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .lx-pin .tag,
+  .lx-ctag,
+  .lx-flag {
+    font-size: 9px;
+  }
+  .lx-pin .tag {
+    padding: 3px 6px 4px;
+  }
+  .lx-flag {
+    padding: 6px 7px;
+  }
+  .lx-scan span {
+    font-size: 8.5px;
+  }
 }
 
 /* ===================================================================== */
