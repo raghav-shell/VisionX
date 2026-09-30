@@ -190,6 +190,17 @@
 .vx-scan-link { width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--radius); background: none; color: var(--muted); text-align: left; }
 .vx-scan-link:hover { background: var(--surface-hover); }
 .vx-scan-link--active { border-color: var(--line-strong); background: var(--surface); }
+/* A scan row holds the open button and, for server scans, a delete button. */
+.vx-scan-row { display: flex; align-items: stretch; border: 1px solid transparent; border-radius: var(--radius); }
+.vx-scan-row--active { border-color: var(--line-strong); background: var(--surface); }
+.vx-scan-row .vx-scan-link { flex: 1 1 auto; min-width: 0; border: 0; }
+.vx-scan-row--active .vx-scan-link { background: transparent; }
+.vx-scan-delete { flex: 0 0 36px; display: grid; place-items: center; border: 0; border-radius: var(--radius); background: none; color: var(--muted); opacity: 0; cursor: pointer; }
+.vx-scan-row:hover .vx-scan-delete, .vx-scan-delete:focus-visible { opacity: 1; }
+.vx-scan-delete:hover { color: var(--rose); background: var(--rose-soft); }
+.vx-danger-action { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid color-mix(in srgb, var(--rose) 45%, var(--line)); border-radius: var(--radius); background: none; color: var(--rose); font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+.vx-danger-action:hover { background: var(--rose-soft); }
+.vx-section-subtitle { margin: 6px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 .vx-scan-dot { width: 7px; height: 7px; flex: none; margin-top: 5px; background: var(--muted); }
 .vx-scan-dot--rose { background: var(--rose); }
 .vx-scan-dot--amber { background: var(--amber); }

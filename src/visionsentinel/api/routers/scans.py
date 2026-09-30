@@ -4,21 +4,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import desc, func, select
+from sqlalchemy import delete, desc, func, select
 
-from ...contracts import Layer, Role, ScanEvent as ScanEventContract, ScanResult, ScanStatus
+from ...contracts import JobStatus, Layer, Role, ScanEvent as ScanEventContract, ScanResult, ScanStatus
 from ...engine.request import ScanRequest
 from ...engine.registry import default_registry
 from ...provenance.keys import public_bytes
 from ...reporting import verify_manifest
 from ...reporting.compare import compare_scans
-from ...storage import Scan, ScanEvent
+from ...storage import Job, Scan, ScanEvent
 from ..assets import AssetCompatibilityError, AssetNotFoundError, AssetResolver, AssetUnavailableError
 from ..deps import Principal, get_state, mutation, require
 from ..state import AppState
@@ -133,6 +134,16 @@ def _scan_summary(scan: Scan) -> dict:
     }
 
 
+def _owned_workspace_path(value: str | None, workspace: Path) -> Path | None:
+    if not value:
+        return None
+    path = Path(value).resolve()
+    root = workspace.resolve()
+    if path == root or not path.is_relative_to(root):
+        raise HTTPException(status.HTTP_409_CONFLICT, "scan artifacts are outside the workspace and cannot be deleted")
+    return path
+
+
 @router.get("", dependencies=[Depends(require(Role.VIEWER))])
 def list_scans(
     limit: int = Query(default=50, ge=1, le=200),
@@ -199,6 +210,49 @@ def get_scan(scan_id: str, state: AppState = Depends(get_state)) -> dict:
             summary["reproduction"] = res.reproduction.model_dump(mode="json") if res.reproduction else None
             summary["sections_available"] = list(res.sections.keys())
         return summary
+
+
+@router.delete("/{scan_id}")
+def delete_scan(
+    scan_id: str,
+    principal: Principal = Depends(mutation(Role.ADMIN, allow_direct_demo=True, direct_demo_role=Role.ANALYST)),
+    state: AppState = Depends(get_state),
+) -> dict:
+    """Remove a completed server assessment and its generated report artifacts.
+
+    The operation is deliberately administrator-only and is never available through
+    the localhost direct-demo principal. Active work is rejected so a worker cannot
+    recreate a scan after the request removes it.
+    """
+    with state.runner.lifecycle_lock:
+        with state.db.session() as s:
+            scan = s.get(Scan, scan_id)
+            if scan is None:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} not found")
+            try:
+                scan_status = ScanStatus(scan.status)
+            except ValueError as exc:
+                raise HTTPException(status.HTTP_409_CONFLICT, f"scan {scan_id!r} has an unknown lifecycle state") from exc
+            if not scan_status.terminal or state.runner.has_active_work("scan", scan_id):
+                raise HTTPException(status.HTTP_409_CONFLICT, "active assessments cannot be deleted")
+
+            jobs = s.scalars(select(Job).where(Job.scan_id == scan_id)).all()
+            if any(job.status in JobStatus.active_values() for job in jobs):
+                raise HTTPException(status.HTTP_409_CONFLICT, "assessment jobs are still active")
+
+            result_path = _owned_workspace_path(scan.result_path, state.workspace.root)
+            report_dir = _owned_workspace_path(scan.report_dir, state.workspace.root)
+            if result_path and result_path.is_file():
+                result_path.unlink()
+            if report_dir and report_dir.is_dir():
+                shutil.rmtree(report_dir)
+
+            s.execute(delete(Job).where(Job.scan_id == scan_id))
+            s.delete(scan)
+
+        state.audit.record(principal.username, "delete_scan", scan_id,
+                           old=scan_status.value, new="DELETED")
+    return {"deleted": scan_id}
 
 
 @router.get("/{scan_id}/events", dependencies=[Depends(require(Role.VIEWER))])

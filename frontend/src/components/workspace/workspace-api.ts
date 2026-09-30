@@ -58,6 +58,7 @@ export async function uploadServerAsset(file: File, kind: string, csrf: string):
 }
 export const loadServerProfiles = async () => (await json<{ profiles: ApiProfile[] }>("/api/system/profiles")).profiles;
 export async function submitServerScan(body: ScanRequestBody, csrf: string): Promise<string> { return (await json<{ scan_id: string }>("/api/scans", { method: "POST", headers: { "Content-Type": "application/json", "x-csrf-token": csrf }, body: JSON.stringify(body) })).scan_id; }
+export const deleteServerScan = (scanId: string, csrf: string) => json<{ deleted: string }>(`/api/scans/${encodeURIComponent(scanId)}`, { method: "DELETE", headers: { "x-csrf-token": csrf } });
 
 export const loadFinding = (id: string) => json<ApiFindingDetail>(`/api/findings/${encodeURIComponent(id)}`);
 export const loadFindingHistory = (id: string) => json<{ finding_id: string; total: number; events: ApiHistoryEvent[] }>(`/api/findings/${encodeURIComponent(id)}/history`);

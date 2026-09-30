@@ -219,6 +219,36 @@ def test_scan_event_stream_stops_immediately_on_disconnect(api_client):
     assert request.calls == 1
 
 
+def test_scan_deletion_is_admin_only_and_removes_completed_assessment(api_client):
+    from visionsentinel.contracts import Role
+    from visionsentinel.governance.identity import create_user
+
+    scan_id = "SCN-DELETE-COMPLETED"
+    with api_client.app.state.vs.db.session() as session:
+        session.add(Scan(id=scan_id, name="completed", status=ScanStatus.SEALED.value,
+                         profile="baseline", request={}))
+
+    analyst_login = api_client.post(
+        "/api/auth/login",
+        json={"username": "analyst", "password": "analystpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    analyst_headers = {"Origin": "http://testserver", "X-CSRF-Token": analyst_login.json()["csrf"]}
+    assert api_client.delete(f"/api/scans/{scan_id}", headers=analyst_headers).status_code == 403
+
+    create_user(api_client.app.state.vs.db, "admin", "adminpassword", Role.ADMIN, "Platform Admin")
+    admin_login = api_client.post(
+        "/api/auth/login",
+        json={"username": "admin", "password": "adminpassword"},
+        headers={"Origin": "http://testserver"},
+    )
+    admin_headers = {"Origin": "http://testserver", "X-CSRF-Token": admin_login.json()["csrf"]}
+    deleted = api_client.delete(f"/api/scans/{scan_id}", headers=admin_headers)
+    assert deleted.status_code == 200
+    assert deleted.json() == {"deleted": scan_id}
+    assert api_client.get(f"/api/scans/{scan_id}", headers=admin_headers).status_code == 404
+
+
 def test_scan_event_stream_polls_at_centralized_interval(api_client, monkeypatch):
     with api_client.app.state.vs.db.session() as session:
         session.add(Scan(id="SCN-SSE-POLL", name="poll", status=ScanStatus.RUNNING.value,
