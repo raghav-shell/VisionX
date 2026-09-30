@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from ipaddress import ip_address
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from fastapi import Depends, HTTPException, Request, status
@@ -79,7 +80,18 @@ def viewer_or_demo(request: Request, state: AppState = Depends(get_state)) -> Pr
 
 def _same_origin(request: Request, state: AppState) -> set[str]:
     host = request.headers.get("host", "")
-    return {f"http://{host}", f"https://{host}", *state.settings.extra_origins}
+    origins = {f"http://{host}", f"https://{host}", *state.settings.extra_origins}
+    if state.settings.direct_demo:
+        origin = request.headers.get("origin", "").rstrip("/")
+        parsed = urlsplit(origin)
+        hostname = parsed.hostname or ""
+        try:
+            loopback_origin = ip_address(hostname).is_loopback
+        except ValueError:
+            loopback_origin = hostname == "localhost"
+        if parsed.scheme in {"http", "https"} and loopback_origin:
+            origins.add(origin)
+    return origins
 
 
 def require(role: Role):
@@ -94,7 +106,7 @@ def require(role: Role):
     return dep
 
 
-def mutation(role: Role, *, allow_direct_demo: bool = False):
+def mutation(role: Role, *, allow_direct_demo: bool = False, direct_demo_role: Role | None = None):
     """Authenticated, role-checked, same-origin, CSRF-protected and rate-limited state change."""
 
     def dep(request: Request, state: AppState = Depends(get_state)) -> Principal:
@@ -112,7 +124,8 @@ def mutation(role: Role, *, allow_direct_demo: bool = False):
         if not state.limiter.allow(f"mut:{principal.username}:{client_key(request)}",
                                    state.settings.mutations_per_minute):
             raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "rate limit exceeded")
-        if principal.role.rank < role.rank:
+        direct_role_allowed = direct and direct_demo_role is not None and principal.role == direct_demo_role
+        if principal.role.rank < role.rank and not direct_role_allowed:
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"requires role {role.value} or higher")
         return principal
     return dep

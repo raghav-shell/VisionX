@@ -297,9 +297,15 @@
 .vx-workspace .vx-sidebar-divider { background: var(--line); margin: 23px 10px 20px; }
 .vx-workspace .vx-nav-heading button { color: var(--muted); }
 .vx-workspace .vx-nav-heading button:hover { background: var(--surface-hover); color: var(--ink); }
-.vx-workspace .vx-scan-link { padding: 11px 10px; color: var(--muted); }
+.vx-workspace .vx-scan-row { display: flex; align-items: stretch; margin: 2px 0; border: 1px solid transparent; border-radius: 7px; }
+.vx-workspace .vx-scan-row--active { background: var(--surface); border-color: var(--line); box-shadow: 0 1px 3px #172a1b0d; }
+.vx-workspace .vx-scan-link { width: auto; min-width: 0; flex: 1 1 auto; padding: 11px 10px; color: var(--muted); border: 0; border-radius: 6px; }
 .vx-workspace .vx-scan-link:hover { background: var(--surface-hover); }
-.vx-workspace .vx-scan-link--active { background: var(--surface); border-color: var(--line); box-shadow: 0 1px 3px #172a1b0d; }
+.vx-workspace .vx-scan-row--active .vx-scan-link { background: transparent; }
+.vx-workspace .vx-scan-delete { flex: 0 0 44px; min-height: 44px; align-self: center; margin-right: 2px; padding: 10px; border: 0; border-radius: 6px; background: transparent; color: var(--faint); cursor: pointer; opacity: .72; }
+.vx-workspace .vx-scan-row:hover .vx-scan-delete,
+.vx-workspace .vx-scan-delete:focus-visible { opacity: 1; }
+.vx-workspace .vx-scan-delete:hover { background: color-mix(in srgb, var(--rose) 12%, transparent); color: var(--rose); }
 .vx-workspace .vx-scan-link-text strong { color: var(--ink); font-size: 12px; }
 .vx-workspace .vx-scan-link-text small { color: var(--faint); font-size: 10px; }
 .vx-workspace .vx-scan-dot { background: var(--faint); box-shadow: none; }
@@ -477,6 +483,8 @@
 .vx-workspace .vx-inspector-bullet::before { background: var(--accent); }
 .vx-workspace .vx-copy-action { color: var(--accent); }
 .vx-workspace .vx-copy-action:hover { color: var(--ink); }
+.vx-workspace .vx-danger-action { display: inline-flex; align-items: center; margin-top: 2px; padding: 9px 12px; border: 1px solid color-mix(in srgb, var(--rose) 38%, var(--line)); border-radius: 8px; background: color-mix(in srgb, var(--rose) 8%, transparent); color: var(--rose); font-size: 12px; font-weight: 650; cursor: pointer; }
+.vx-workspace .vx-danger-action:hover { background: color-mix(in srgb, var(--rose) 14%, transparent); }
 .vx-workspace .vx-inspector-disclaimer svg { color: var(--accent); }
 
 .vx-workspace .vx-toast,
@@ -511,6 +519,48 @@
 .vx-workspace .vx-command-preview code { color: var(--ink-soft); }
 .vx-workspace .vx-new-note { color: var(--muted); }
 .vx-workspace .vx-form-error { background: var(--rose-soft); border-color: var(--rose-line); color: var(--rose) !important; }
+
+/* Attack Lab: keep the experiment readable and make backend metadata useful. */
+.vx-workspace .vx-workflow-panel { overflow: hidden; }
+.vx-workspace .vx-workflow-panel .vx-section-title { align-items: flex-start; padding-bottom: 18px; }
+.vx-workspace .vx-workflow-panel .vx-section-title > svg { color: var(--accent); margin-top: 3px; }
+.vx-workspace .vx-section-subtitle { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.vx-workspace .vx-workflow-body { gap: 18px; padding: 0 25px 25px; }
+.vx-workspace .vx-workflow-fields { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(220px, .75fr); gap: 14px; }
+.vx-workspace .vx-workflow-body label { color: var(--ink-soft); font-size: 12px; font-weight: 600; }
+.vx-workspace .vx-workflow-select { position: relative; margin-top: 7px; }
+.vx-workspace .vx-workflow-select select { appearance: none; width: 100%; min-height: 44px; padding: 0 40px 0 13px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 13px; box-shadow: 0 1px 2px #15251b08; }
+.vx-workspace .vx-workflow-select select:hover { border-color: var(--accent); }
+.vx-workspace .vx-workflow-select svg { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
+.vx-workspace .vx-workflow-summary { padding: 19px 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+.vx-workspace .vx-workflow-summary-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.vx-workspace .vx-workflow-summary-head > div { display: grid; gap: 8px; min-width: 0; }
+.vx-workspace .vx-workflow-summary-head .vx-eyebrow { color: var(--accent); }
+.vx-workspace .vx-workflow-summary strong { color: var(--ink); font-size: 15px; line-height: 1.35; }
+.vx-workspace .vx-scenario-id { flex: none; padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--faint); font: 600 10px "JetBrains Mono", monospace; }
+.vx-workspace .vx-workflow-summary p { max-width: 760px; margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.vx-workspace .vx-scenario-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; margin: 17px 0 0; padding-top: 16px; border-top: 1px solid var(--line); }
+.vx-workspace .vx-scenario-details > div { min-width: 0; }
+.vx-workspace .vx-scenario-details dt { margin: 0 0 4px; color: var(--faint); font: 600 10px "JetBrains Mono", monospace; letter-spacing: .04em; text-transform: uppercase; }
+.vx-workspace .vx-scenario-details dd { margin: 0; overflow-wrap: anywhere; color: var(--ink-soft); font-size: 12px; line-height: 1.45; }
+.vx-workspace .vx-workflow-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 15px 14px 17px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.vx-workspace .vx-workflow-actions > div { display: grid; gap: 4px; min-width: 0; }
+.vx-workspace .vx-workflow-actions strong { color: var(--ink); font-size: 12px; }
+.vx-workspace .vx-workflow-actions span { color: var(--muted); font-size: 11px; }
+.vx-workspace .vx-workflow-actions .vx-button { flex: none; min-height: 39px; padding: 0 17px; }
+.vx-workspace .vx-workflow-panel .vx-job-progress { background: var(--surface-soft); border-color: var(--line); }
+.vx-workspace .vx-workflow-panel .vx-job-head strong,
+.vx-workspace .vx-workflow-panel .vx-job-progress li { color: var(--ink); }
+.vx-workspace .vx-workflow-panel .vx-job-head,
+.vx-workspace .vx-workflow-panel .vx-job-progress li small { color: var(--muted); }
+
+@media (max-width: 650px) {
+  .vx-workspace .vx-workflow-fields,
+  .vx-workspace .vx-scenario-details { grid-template-columns: 1fr; }
+  .vx-workspace .vx-workflow-actions { align-items: stretch; flex-direction: column; }
+  .vx-workspace .vx-workflow-actions .vx-button { width: 100%; }
+  .vx-workspace .vx-scenario-id { max-width: 42%; overflow: hidden; text-overflow: ellipsis; }
+}
 
 @media (max-width: 1190px) {
   .vx-workspace .vx-inspector--overlay { width: min(390px, calc(100vw - 22px)); }

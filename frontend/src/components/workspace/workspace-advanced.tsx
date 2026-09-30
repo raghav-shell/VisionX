@@ -1,11 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, Check, LoaderCircle, Network, Play, ShieldCheck, Upload, X } from "lucide-react";
+import { Activity, ArrowRight, Check, ChevronDown, LoaderCircle, Network, Play, ShieldCheck, Upload, X } from "lucide-react";
 import type { ApiAsset, ApiEvidenceGraph, ApiFindingDetail, ApiHistoryEvent, ApiJob, ApiMetadata, ApiProfile, ApiScenario, ScanRequestBody } from "./workspace-api";
 import { acknowledgeFinding, assignFinding, commentFinding, decide, loadFinding, loadFindingHistory, loadJob, loadScanGraph, loadScenarios, requestFindingDecision, runScenario, submitServerScan, uploadServerAsset } from "./workspace-api";
 
 const humanize = (value: string) => value.replaceAll("_", " ").toLowerCase();
+
+function formatScenarioValue(value: unknown): string {
+  if (value === null || value === undefined) return "Not declared";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "string") return value.replaceAll("_", " ");
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map(formatScenarioValue).join(", ");
+  if (typeof value === "object") return Object.entries(value as Record<string, unknown>).map(([key, nested]) => `${humanize(key)}: ${formatScenarioValue(nested)}`).join(" · ");
+  return String(value);
+}
+
+function ScenarioSummary({ scenario }: { scenario: ApiScenario }) {
+  const details = Object.entries(scenario).filter(([key]) => !["scenario_id", "title", "description"].includes(key));
+  return <div className="vx-workflow-summary">
+    <div className="vx-workflow-summary-head"><div><span className="vx-eyebrow">SELECTED SCENARIO</span><strong>{scenario.title}</strong></div><span className="vx-scenario-id">{scenario.scenario_id}</span></div>
+    {scenario.description && <p>{scenario.description}</p>}
+    {details.length > 0 && <dl className="vx-scenario-details">{details.map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{formatScenarioValue(value)}</dd></div>)}</dl>}
+  </div>;
+}
 
 export function AdvancedAssessment({ onClose, onRequireAuth, directDemo, csrf, metadata, assets, profiles, onQueued, onAssetUploaded }: { onClose: () => void; onRequireAuth: () => void; directDemo: boolean; csrf: string | null; metadata: ApiMetadata | null; assets: ApiAsset[]; profiles: ApiProfile[]; onQueued: (scanId: string) => void; onAssetUploaded: (asset: ApiAsset) => void }) {
   const [name, setName] = useState("");
@@ -68,7 +87,9 @@ export function AttackLabView({ csrf, directDemo, profiles, metadata, onOpenScan
   useEffect(() => { if (!job || job.terminal || !metadata) return; let cancelled = false; const timer = window.setTimeout(() => { void loadJob(job.id).then(next => { if (!cancelled) setJob(next); }).catch(() => undefined); }, metadata.job_poll_interval_ms); return () => { cancelled = true; window.clearTimeout(timer); }; }, [job, metadata]);
   const scenario = useMemo(() => scenarios.find(item => item.scenario_id === selected), [scenarios, selected]);
   const start = async () => { if ((!csrf && !directDemo) || !selected || !profile) return; try { setError(""); const queued = await runScenario(selected, profile, csrf ?? ""); setJob(await loadJob(queued.job_id)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not start the scenario."); } };
-  return <section className="vx-panel vx-workflow-panel"><div className="vx-section-title"><div><span>CONTROLLED EXPERIMENTS</span><h2>Attack Lab</h2></div><Activity size={18} /></div><div className="vx-workflow-body"><label>Scenario<select value={selected} onChange={event => setSelected(event.target.value)}>{scenarios.map(item => <option key={item.scenario_id} value={item.scenario_id}>{item.title}</option>)}</select></label>{scenario && <div className="vx-workflow-summary"><strong>{scenario.title}</strong><p>{scenario.description ?? "Scenario metadata supplied by the backend."}</p><small>{Object.entries(scenario).filter(([key]) => !["scenario_id", "title", "description"].includes(key)).map(([key, value]) => `${humanize(key)}: ${String(value)}`).join(" · ")}</small></div>}<label>Profile<select value={profile} onChange={event => setProfile(event.target.value)}>{profiles.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label><button className="vx-button vx-button--primary" disabled={(!csrf && !directDemo) || !selected || !profile || Boolean(job && !job.terminal)} onClick={() => void start()}><Play size={14} /> {job && !job.terminal ? "Running…" : "Run scenario"}</button>{error && <p className="vx-form-error" role="alert">{error}</p>}{job && <JobProgress job={job} onOpenScan={onOpenScan} />}</div></section>;
+  const selectScenario = (value: string) => { setSelected(value); setJob(null); setError(""); };
+  const selectProfile = (value: string) => { setProfile(value); setJob(null); setError(""); };
+  return <section className="vx-panel vx-workflow-panel"><div className="vx-section-title"><div><span>CONTROLLED EXPERIMENTS</span><h2>Attack Lab</h2><p className="vx-section-subtitle">Run a declared experiment against registered assets and follow its evidence-backed result.</p></div><Activity size={19} /></div><div className="vx-workflow-body"><div className="vx-workflow-fields"><label>Scenario<div className="vx-workflow-select"><select value={selected} onChange={event => selectScenario(event.target.value)} aria-label="Attack Lab scenario">{scenarios.map(item => <option key={item.scenario_id} value={item.scenario_id}>{item.title}</option>)}</select><ChevronDown size={16} aria-hidden="true" /></div></label><label>Profile<div className="vx-workflow-select"><select value={profile} onChange={event => selectProfile(event.target.value)} aria-label="Attack Lab profile">{profiles.map(item => <option key={item.name} value={item.name}>{item.name} · {item.budget}</option>)}</select><ChevronDown size={16} aria-hidden="true" /></div></label></div>{scenario && <ScenarioSummary scenario={scenario} />}<div className="vx-workflow-actions"><div><strong>Ready to run</strong><span>{directDemo ? "Local demo analyst mode" : csrf ? "Authenticated VisionX session" : "Sign in required"}</span></div><button className="vx-button vx-button--primary" disabled={(!csrf && !directDemo) || !selected || !profile || Boolean(job && !job.terminal)} onClick={() => void start()}><Play size={14} /> {job && !job.terminal ? "Running…" : "Run scenario"}</button></div>{error && <p className="vx-form-error" role="alert">{error}</p>}{job && <JobProgress job={job} onOpenScan={onOpenScan} />}</div></section>;
 }
 
 function JobProgress({ job, onOpenScan }: { job: ApiJob; onOpenScan: (scanId: string) => void }) {

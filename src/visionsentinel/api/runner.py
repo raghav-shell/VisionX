@@ -141,6 +141,17 @@ class JobRunner:
         if not self._accepting:
             raise RunnerUnavailableError("background work is unavailable during application shutdown")
 
+    def has_active_work(self, work_type: str, work_id: str) -> bool:
+        """Return whether a tracked worker still owns the requested persisted work."""
+        with self._lifecycle_lock:
+            return any(kind == work_type and identifier == work_id and not future.done()
+                       for future, (kind, identifier) in self._futures.items())
+
+    @property
+    def lifecycle_lock(self) -> threading.RLock:
+        """Serialize destructive lifecycle operations with new submissions."""
+        return self._lifecycle_lock
+
     def _submit_tracked(self, work_type: str, work_id: str, fn: Callable[..., object], *args: object) -> Future[object]:
         future = self.pool.submit(fn, *args)
         self._futures[future] = (work_type, work_id)

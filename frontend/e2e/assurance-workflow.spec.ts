@@ -9,6 +9,13 @@ type ScenarioJob = {
 
 async function login(page: import("@playwright/test").Page, username: string, password: string) {
   await page.goto("/workspace");
+  const directDemo = page.getByRole("button", { name: /local demo · analyst/i });
+  try {
+    await directDemo.waitFor({ state: "visible", timeout: 10_000 });
+    return;
+  } catch {
+    // Normal authentication mode keeps the sign-in flow below.
+  }
   await page.getByRole("button", { name: /sign in to server/i }).click();
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password").fill(password);
@@ -69,6 +76,14 @@ test("assessment dialog registers an empty required asset role and selects it", 
   await page.getByRole("button", { name: "Register dataset" }).click();
   await expect(page.getByRole("combobox", { name: "dataset" })).toHaveValue("DAT-E2E0001");
   await expect(page.getByText(/no active compatible assets registered/i)).toHaveCount(0);
+});
+
+test("Attack Lab keeps its runner context separate from the selected assessment", async ({ page }) => {
+  await login(page, "analyst", "analystpassword");
+  await page.getByRole("button", { name: "Attack Lab", exact: true }).click();
+  await expect(page.getByText("Independent scenario runner")).toBeVisible();
+  await expect(page.getByText("Runner", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Assessment details" })).toHaveCount(0);
 });
 
 test("analyst can upload, run, inspect, request and audit a governed scan", async ({ page, context }) => {

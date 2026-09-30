@@ -7,8 +7,9 @@ from starlette.testclient import TestClient
 from visionsentinel.api.app import create_app
 from visionsentinel.api.assets import register
 from visionsentinel.api.settings import Settings
-from visionsentinel.contracts import AssetKind
+from visionsentinel.contracts import AssetKind, ScanStatus
 from visionsentinel.core.workspace import Workspace
+from visionsentinel.storage import Scan
 
 
 def _app(tmp_path: Path, *, direct_demo: bool, client: tuple[str, int] = ("127.0.0.1", 50000)) -> TestClient:
@@ -45,12 +46,30 @@ def test_direct_demo_allows_loopback_assessment_and_reports_principal(tmp_path: 
     assert queued.status_code == 202
 
 
+def test_direct_demo_accepts_localhost_frontend_origin(tmp_path: Path) -> None:
+    with _app(tmp_path, direct_demo=True) as client:
+        response = client.post("/api/scans", headers={"Origin": "http://localhost:3000"},
+                               json={"name": "localhost demo", "profile": "baseline", "dataset": "DATASET-DEMO"})
+    assert response.status_code == 202
+
+
 def test_direct_demo_cannot_use_admin_or_approval_mutations(tmp_path: Path) -> None:
     with _app(tmp_path, direct_demo=True) as client:
         admin = client.get("/api/admin/users")
         approve = client.post("/api/governance/decisions/unknown/approve", json={"justification": "demo"})
     assert admin.status_code == 401
     assert approve.status_code == 401
+
+
+def test_direct_demo_can_delete_a_completed_local_assessment(tmp_path: Path) -> None:
+    with _app(tmp_path, direct_demo=True) as client:
+        with client.app.state.vs.db.session() as session:
+            session.add(Scan(id="SCN-DIRECT-DEMO-DELETE", name="demo assessment",
+                             status=ScanStatus.SEALED.value, profile="baseline", request={}))
+        response = client.delete("/api/scans/SCN-DIRECT-DEMO-DELETE",
+                                 headers={"Origin": "http://127.0.0.1:3000"})
+    assert response.status_code == 200
+    assert response.json() == {"deleted": "SCN-DIRECT-DEMO-DELETE"}
 
 
 def test_direct_demo_rejects_non_loopback_client(tmp_path: Path) -> None:
