@@ -31,13 +31,13 @@ def create_app(
     settings = settings or Settings.from_env()
     ws = workspace or Workspace.default()
     app_state = AppState.create(settings, ws)
-    recover_interrupted_work(app_state)
     runner = JobRunner(app_state)
     app_state.runner = runner
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         try:
+            recover_interrupted_work(app_state)
             yield
         finally:
             runner.shutdown()

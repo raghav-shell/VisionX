@@ -74,3 +74,55 @@ def test_app_lifespan_owns_runner_shutdown_and_database_disposal(tmp_path):
         assert client.get("/api/system/info").status_code == 200
     assert runner_calls == ["shutdown"]
     assert db_calls == ["dispose"]
+
+
+def test_app_construction_does_not_recover_persisted_work_until_lifespan(tmp_path):
+    from visionsentinel.api.app import create_app
+
+    workspace = Workspace(tmp_path / "startup-boundary").ensure()
+    seed = AppState.create(Settings(allowed_hosts=["testserver"]), workspace)
+    with seed.db.session() as session:
+        session.add(Scan(id="SCN-STARTUP", name="interrupted", status=ScanStatus.RUNNING.value,
+                         profile="baseline", request={}))
+        session.add(Job(id="JOB-STARTUP", kind="test", subject="subject", status=JobStatus.RUNNING.value,
+                        steps=[]))
+    seed.db.dispose()
+
+    app = create_app(Settings(allowed_hosts=["testserver"]), workspace)
+    with app.state.vs.db.session() as session:
+        assert session.get(Scan, "SCN-STARTUP").status == ScanStatus.RUNNING.value
+        assert session.get(Job, "JOB-STARTUP").status == JobStatus.RUNNING.value
+
+    app.state.vs.db.dispose()
+
+
+def test_app_lifespan_recovers_active_work_before_serving_and_is_idempotent(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from visionsentinel.api.app import create_app
+
+    workspace = Workspace(tmp_path / "startup-recovery").ensure()
+    seed = AppState.create(Settings(allowed_hosts=["testserver"]), workspace)
+    with seed.db.session() as session:
+        session.add(Scan(id="SCN-LIFESPAN", name="interrupted", status=ScanStatus.RUNNING.value,
+                         profile="baseline", request={}))
+        session.add(Scan(id="SCN-TERMINAL", name="sealed", status=ScanStatus.SEALED.value,
+                         profile="baseline", request={}))
+        session.add(Job(id="JOB-LIFESPAN", kind="test", subject="subject", status=JobStatus.RUNNING.value,
+                        steps=[]))
+        session.add(Job(id="JOB-TERMINAL", kind="test", subject="subject", status=JobStatus.COMPLETED.value,
+                        steps=[]))
+    seed.db.dispose()
+
+    app = create_app(Settings(allowed_hosts=["testserver"]), workspace)
+    with TestClient(app, base_url="http://testserver") as client:
+        assert client.get("/api/system/info").status_code == 200
+    with TestClient(app, base_url="http://testserver") as client:
+        assert client.get("/api/system/info").status_code == 200
+
+    with app.state.vs.db.session() as session:
+        assert session.get(Scan, "SCN-LIFESPAN").status == ScanStatus.FAILED.value
+        assert session.get(Job, "JOB-LIFESPAN").status == JobStatus.FAILED.value
+        assert session.get(Scan, "SCN-TERMINAL").status == ScanStatus.SEALED.value
+        assert session.get(Job, "JOB-TERMINAL").status == JobStatus.COMPLETED.value
+        assert session.query(ScanEvent).filter(ScanEvent.scan_id == "SCN-LIFESPAN").count() == 1

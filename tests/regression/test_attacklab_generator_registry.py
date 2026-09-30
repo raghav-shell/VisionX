@@ -6,6 +6,7 @@ from visionsentinel.attacklab.runner import (
     GENERATOR_REGISTRY,
     ScenarioManifest,
     list_scenarios,
+    validate_scenarios,
 )
 from visionsentinel.attacklab.synthetic import CLASSES
 from visionsentinel.core.workspace import Workspace
@@ -21,7 +22,12 @@ def test_every_registered_generator_has_an_executable_handler():
 
 
 def test_every_checked_in_manifest_resolves_to_an_executable_generator():
-    for manifest in list_scenarios(Path("scenarios")):
+    scenarios_dir = Path("scenarios")
+    manifest_paths = sorted(scenarios_dir.glob("*.yaml"))
+    discovered = list_scenarios(scenarios_dir)
+    validated = validate_scenarios(scenarios_dir)
+    assert len(manifest_paths) == len(discovered) == len(validated)
+    for manifest in validated:
         spec = GENERATOR_REGISTRY[manifest.attack["type"]]
         assert callable(spec.handler)
 
