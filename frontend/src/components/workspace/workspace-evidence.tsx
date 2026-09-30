@@ -9,7 +9,7 @@ const isScalar = (value: unknown): value is Scalar =>
 
 function formatScalar(value: Scalar): string {
   if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
-  return value === null ? "—" : String(value);
+  return value === null ? "-" : String(value);
 }
 
 /** A confusion matrix or any other table shaped as { columns: string[], rows: unknown[][] }. */
@@ -22,6 +22,9 @@ function asTable(data: Record<string, unknown>): { columns: string[]; rows: Scal
 }
 
 function EvidenceTable({ columns, rows }: { columns: string[]; rows: Scalar[][] }) {
+  // In a confusion matrix, a non-zero count where a row's class meets a different class column is the evidence.
+  const classes = new Set(rows.map(row => String(row[0])));
+  const confusion = (row: Scalar[], cellIndex: number) => typeof row[cellIndex] === "number" && (row[cellIndex] as number) > 0 && classes.has(columns[cellIndex]) && columns[cellIndex] !== String(row[0]);
   return (
     <div className="vx-evidence-table-wrap">
       <table className="vx-evidence-table">
@@ -29,7 +32,7 @@ function EvidenceTable({ columns, rows }: { columns: string[]; rows: Scalar[][] 
         <tbody>{rows.map((row, index) => (
           <tr key={index}>{row.map((cell, cellIndex) => cellIndex === 0
             ? <th key={cellIndex} scope="row">{formatScalar(cell)}</th>
-            : <td key={cellIndex} data-zero={cell === 0 || undefined}>{formatScalar(cell)}</td>)}</tr>
+            : <td key={cellIndex} data-zero={cell === 0 || undefined} data-confusion={confusion(row, cellIndex) || undefined}>{formatScalar(cell)}</td>)}</tr>
         ))}</tbody>
       </table>
     </div>
