@@ -4,25 +4,34 @@
 
 # VisionX
 
-### Computer vision you can audit.
+**Computer vision you can audit.**
 
-**Offline integrity assurance for data, models, and inference records.**
+An offline assurance workspace for computer-vision pipelines. Inspect the data, check the model, trace inference records, and bring the evidence into a governed human decision.
 
 [![Quality workflow](https://github.com/raghav-shell/VisionX/actions/workflows/quality.yml/badge.svg)](https://github.com/raghav-shell/VisionX/actions/workflows/quality.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-4f7d73)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB)](pyproject.toml)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![Next.js 16 · React 19](https://img.shields.io/badge/Next.js_16-React_19-111111)](frontend/package.json)
 
 **Smart India Hackathon 2026 · Problem Statement SIH26228**<br>
 Trustworthy Computer Vision Integrity Assurance for Data, Models and Inference Outputs in Multi-Contributor Pipelines
 
-[Product tour](#product-tour) · [Quick start](#quick-start) · [Judge walkthrough](#six-minute-judge-walkthrough) · [Evaluation](#evaluation-and-reproducibility) · [Team](#contributors)
+[At a glance](#visionx-in-one-minute) · [Workspace](#product-tour) · [Evidence](#evaluation-and-reproducibility) · [Architecture](#architecture) · [Quick start](#quick-start) · [Demo](#six-minute-judge-walkthrough) · [Team](#contributors)
 
 </div>
 
-![VisionX landing page with the computer vision assurance introduction](docs/images/screenshots/landing.png)
+<p align="center">
+  <a href="docs/images/screenshots/landing.png"><img src="docs/images/screenshots/landing.png" alt="VisionX landing page: Computer vision you can audit, against the illuminated tree visual" width="100%" /></a>
+  <br><sub><b>The VisionX experience.</b> Actual frontend capture. Landing-page demo figures are illustrative; measured results appear in <a href="#evaluation-and-reproducibility">Evaluation</a>.</sub>
+</p>
 
-*Actual frontend capture. Landing-page demo figures are illustrative; measured scenario results are documented in [Evaluation](#evaluation-and-reproducibility).*
+## VisionX in one minute
+
+- **Inspect the hand-off.** Assess supplied datasets, candidate models, inference ledgers, and operational batches before relying on them.
+- **Follow the evidence.** Each finding connects to its detector, affected assets, supporting observations, and limitations.
+- **See what was checked.** Capability negotiation records what can run; coverage exposes partial, unavailable, failed, and unsupported checks.
+- **Keep decisions accountable.** Reviewers record dispositions and justifications; sensitive changes require independent approval.
+- **Work locally.** Analysis, evidence, and reports can stay on the operator's workstation after dependencies are provisioned.
 
 ## The problem
 
@@ -36,6 +45,9 @@ VisionX brings dataset analysis, model integrity checks, inference provenance, a
 
 The platform assesses supplied assets; it does not train or serve production models. Its underlying Python package and primary CLI are named **VisionSentinel**; `visionx` is also available as a CLI alias.
 
+<details>
+<summary><strong>Explore the five assurance layers</strong></summary>
+
 | Assurance layer | What VisionX examines | What the reviewer receives |
 | :--- | :--- | :--- |
 | **Data integrity** | Duplicates, inconsistent labels, annotation geometry, metadata, outliers, and trigger-like patterns | Linked findings, affected samples, contributor analysis, and supporting evidence |
@@ -44,37 +56,37 @@ The platform assesses supplied assets; it does not train or serve production mod
 | **Operational drift** | Changes in image statistics and semantic distributions | KS, PSI, and Wasserstein statistics with bounded interpretation |
 | **Human governance** | Disposition requests, reviewer roles, and sensitive changes | Independent approval where required and a signed audit trail |
 
-### What makes the approach distinctive
-
-- **Coverage is part of the result.** Missing inputs, restricted access, and execution failures remain visible alongside successful checks.
-- **Capabilities are negotiated before execution.** Each detector declares its requirements; the engine probes the supplied assets and persists a plan.
-- **Findings remain connected to evidence.** Content-addressed evidence, detector outcomes, and report digests make an assessment inspectable.
-- **Human decisions remain accountable.** Sensitive changes use approval separation instead of allowing one person to both request and approve them.
-- **The workflow is designed for local operation.** Assets, analysis, evidence, and reports can remain on the operator's workstation after dependencies are provisioned.
+</details>
 
 Potential applications include supplier model acceptance, multi-team dataset review, restricted research environments, and inspection of operational CV batches. These are intended use cases, not claims of deployed customer systems.
 
 ## Product tour
 
-These screenshots show the actual frontend reviewing a report generated from the shipped **Targeted Label Flip Attack** scenario with the `selftest` profile. The report was opened locally through **Open report**; the screenshots do not imply a live authenticated backend session. See [capture notes](docs/images/screenshots/README.md) for provenance.
+A contributor has changed labels in a training dataset. The **Targeted Label Flip Attack** scenario lets a reviewer follow the resulting assessment from triage to evidence and coverage.
 
-### 1. Understand the assessment at a glance
+### 01 · What needs attention?
 
-The overview brings findings, detector execution, evidence counts, and coverage gaps into one triage view.
+<p align="center">
+  <a href="docs/images/screenshots/workspace-overview.png"><img src="docs/images/screenshots/workspace-overview.png" alt="VisionX assessment overview: nine findings, a review disposition, detector execution, and explicit coverage states" width="100%" /></a>
+  <br><sub><b>Assessment overview.</b> Findings, detector outcomes, and assessment gaps share one review surface. This generated scenario produced nine findings and a REVIEW disposition.</sub>
+</p>
 
-![VisionX assessment overview in light mode with label-flip findings and explicit coverage states](docs/images/screenshots/workspace-overview.png)
+<table>
+<tr>
+<td width="50%" valign="top">
+<h3>02 · What supports the finding?</h3>
+<a href="docs/images/screenshots/finding-evidence.png"><img src="docs/images/screenshots/finding-evidence.png" alt="Dark-theme findings view with the label-consistency evidence inspector open" width="100%" /></a>
+<br><sub><b>Evidence inspector.</b> Read the observation, detector, affected sample, and supporting evidence alongside the finding.</sub>
+</td>
+<td width="50%" valign="top">
+<h3>03 · What remains unknown?</h3>
+<a href="docs/images/screenshots/coverage-matrix.png"><img src="docs/images/screenshots/coverage-matrix.png" alt="Light-theme coverage matrix showing assessed and partially assessed attack classes" width="100%" /></a>
+<br><sub><b>Coverage matrix.</b> Inspect the exact assessment boundary, including checks that need more access or evidence.</sub>
+</td>
+</tr>
+</table>
 
-### 2. Inspect the reason behind a finding
-
-The findings view connects each observation to its detector, severity, disposition, and evidence. The inspector exposes the reasoning and affected sample rather than leaving the reviewer with a bare score.
-
-![VisionX findings in dark mode with a label-consistency finding and its evidence inspector](docs/images/screenshots/finding-evidence.png)
-
-### 3. See the exact assessment boundary
-
-The coverage matrix distinguishes a completed assessment from partial, unavailable, failed, and unsupported checks.
-
-![VisionX coverage matrix showing assessed and partially assessed attack classes](docs/images/screenshots/coverage-matrix.png)
+<sub>Real frontend screenshots, captured with a generated <code>selftest</code> report opened locally through <b>Open report</b>. They show local review, not an authenticated backend session. Select an image for full resolution. <a href="docs/images/screenshots/README.md">Capture notes →</a></sub>
 
 <details>
 <summary><strong>How to interpret the five coverage states</strong></summary>
@@ -88,6 +100,65 @@ The coverage matrix distinguishes a completed assessment from partial, unavailab
 | `UNSUPPORTED` | The platform explicitly makes no coverage claim for this attack class. |
 
 An assessed class is not a guarantee that every possible attack in that class will be detected. Coverage describes the checks performed and their prerequisites.
+
+</details>
+
+## Evaluation and reproducibility
+
+The checked-in [benchmark report](benchmarks/latest.md) and [machine-readable results](benchmarks/latest.json) provide the current evidence. They contain **10 controlled scenarios: 9 positive controls and 1 clean control**, with **1 scenario excluded by its fitness gate**.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<sub>CONTROLLED EVALUATION</sub><br>
+<strong>10 reproducible scenarios</strong><br><br>
+Nine positive controls and one clean control. One positive scenario was excluded by its fitness gate.<br><br>
+<a href="scenarios/">Inspect the scenario manifests →</a>
+</td>
+<td width="50%" valign="top">
+<sub>EXPECTED-SIGNAL DETECTION</sub><br>
+<strong>6 of 8 eligible positive scenarios</strong><br><br>
+Scenario-level TPR: <b>0.75</b>. Duplicate-flood and semantic-shift controls missed their expected signals.<br><br>
+<a href="benchmarks/latest.md">Read the benchmark →</a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<sub>CLEAN CONTROL</sub><br>
+<strong>2 material alerts / 400 samples</strong><br><br>
+<b>0.005 alerts per clean sample</b> under the declared protocol. This is not a sample-classification false-positive rate.<br><br>
+<a href="docs/evaluation.md">Understand the measurement →</a>
+</td>
+<td width="50%" valign="top">
+<sub>INSPECTABLE RESULTS</sub><br>
+<strong>Outcomes and exclusions published</strong><br><br>
+The systematic-mislabel scenario failed fitness validation. AUROC is not estimated because compatible labeled scores were unavailable.<br><br>
+<a href="benchmarks/latest.json">Open the result data →</a>
+</td>
+</tr>
+</table>
+
+Successful positive controls cover targeted label flipping, localized patch poisoning, model substitution, weight perturbation, ledger tampering, and illumination drift. These are results on the shipped controlled scenarios, not a general accuracy claim for arbitrary datasets or attacks. The clean-control measurement is **not a conventional sample-level false-positive rate**.
+
+<details>
+<summary><strong>Reproduce the evaluation and run the checks</strong></summary>
+
+Run from the repository root:
+
+```bash
+make profiles
+make detectors
+visionsentinel attacklab validate
+make test
+make benchmark
+
+# Requires a built frontend and Playwright Chromium.
+npm --prefix frontend run build
+(cd frontend && npx playwright install chromium)
+make e2e
+```
+
+`make benchmark` regenerates the benchmark artifacts and can return a nonzero status when scenario acceptance checks fail. This preserves misses and invalid runs instead of hiding them. The [evaluation protocol](docs/evaluation.md) defines eligibility, denominators, and unavailable metrics; the [quality workflow](.github/workflows/quality.yml) defines backend, scientific, frontend, and browser checks.
 
 </details>
 
@@ -117,6 +188,9 @@ flowchart TB
 
 The browser uses the FastAPI backend for authenticated operations and can also open a report locally. Background jobs execute assessments, while the workspace exposes activity and results. Evidence, reports, keys, and SQLite state live under `var/` by default; `VISIONSENTINEL_HOME` selects another workspace root.
 
+<details>
+<summary><strong>Technology stack and supported inputs</strong></summary>
+
 | Component | Technologies |
 | :--- | :--- |
 | Review interface | Next.js 16, React 19, TypeScript, Tailwind CSS, Lucide |
@@ -128,6 +202,8 @@ The browser uses the FastAPI backend for authenticated operations and can also o
 | Verification | pytest, Playwright, GitHub Actions |
 
 Dataset loaders support VisionSentinel manifests, COCO, YOLO, Pascal VOC, ImageFolder, and plain image directories. Model checks depend on format, available access, and the selected profile; see the [detector methodology](docs/detector-methodology.md).
+
+</details>
 
 ## Quick start
 
@@ -211,6 +287,9 @@ See the [extended demo guide](docs/SIH_DEMO.md) for the review sequence and shut
 
 ## CLI and portable reports
 
+<details>
+<summary><strong>CLI recipes: assess assets, verify ledgers, inspect profiles</strong></summary>
+
 ```bash
 # Assess supplied assets using a declared policy.
 visionsentinel scan \
@@ -229,6 +308,8 @@ visionsentinel detectors
 visionsentinel selftest --airgap
 ```
 
+</details>
+
 Each scan report bundle contains:
 
 | Artifact | Purpose |
@@ -239,37 +320,6 @@ Each scan report bundle contains:
 | `manifest.json` | File digests and result binding; an Ed25519 signature when a signing key is supplied |
 
 CLI report signing is explicit: use `scan --sign-with /path/to/report-key.pem` with a provisioned report-role key. Opening a report in the browser does not verify its cryptographic signatures. See [report format](docs/report-format.md) and [provenance specification](docs/provenance-spec.md).
-
-## Evaluation and reproducibility
-
-The checked-in [benchmark report](benchmarks/latest.md) and [machine-readable results](benchmarks/latest.json) provide the current evidence. They contain **10 controlled scenarios: 9 positive controls and 1 clean control**, with **1 scenario excluded by its fitness gate**.
-
-| Observation | Checked-in result |
-| :--- | :--- |
-| Expected signal detected in eligible positive controls | **6 of 8 scenarios** — scenario-level TPR of **0.75** |
-| Positive scenarios with expected-signal misses | `duplicate_flood`, `semantic_shift` |
-| Scenario excluded by fitness validation | `systematic_mislabel` |
-| Clean-control material alerts | **2 alerts / 400 samples = 0.005 alerts per clean sample** |
-| AUROC | **Not estimated**; compatible labeled continuous scores were unavailable |
-
-Successful positive controls cover targeted label flipping, localized patch poisoning, model substitution, weight perturbation, ledger tampering, and illumination drift. These are results on the shipped controlled scenarios, not a general accuracy claim for arbitrary datasets or attacks. The clean-control measurement is **not a conventional sample-level false-positive rate**.
-
-Reproduce the evaluation and relevant checks from the repository root:
-
-```bash
-make profiles
-make detectors
-visionsentinel attacklab validate
-make test
-make benchmark
-
-# Requires a built frontend and Playwright Chromium.
-npm --prefix frontend run build
-(cd frontend && npx playwright install chromium)
-make e2e
-```
-
-`make benchmark` regenerates the benchmark artifacts and can return a nonzero status when scenario acceptance checks fail. This preserves misses and invalid runs instead of hiding them. The [evaluation protocol](docs/evaluation.md) defines eligibility, denominators, and unavailable metrics; the [quality workflow](.github/workflows/quality.yml) defines backend, scientific, frontend, and browser checks.
 
 ## Security boundaries and current limitations
 
@@ -295,6 +345,9 @@ The next engineering priorities are:
 
 ## Repository and documentation
 
+<details>
+<summary><strong>Explore the repository structure</strong></summary>
+
 ```text
 frontend/              Landing page and assurance review workspace
 src/visionsentinel/
@@ -316,6 +369,8 @@ benchmarks/            Generated evaluation artifacts
 schemas/               Exported contract schemas
 tests/                 Unit, integration, security, scientific, regression, and E2E
 ```
+
+</details>
 
 | Read next | Purpose |
 | :--- | :--- |
