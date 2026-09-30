@@ -1,63 +1,34 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import Capabilities from "@/components/Capabilities";
 import Process from "@/components/Process";
-import Infrastructure from "@/components/Infrastructure";
-import SignalMetrics from "@/components/SignalMetrics";
-import Security from "@/components/Security";
-import Integrations from "@/components/Integrations";
-import DeveloperSDK from "@/components/DeveloperSDK";
-import InteractiveConsole from "@/components/InteractiveConsole";
+import Capabilities from "@/components/Capabilities";
 import Validation from "@/components/Validation";
+import Security from "@/components/Security";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 
+// The public page: what VisionX is, one recorded attack caught end to end,
+// what it checks, the measured results with their misses, how it stays
+// offline, and a way in.
 export default function Home() {
   return (
-    <main className="relative min-h-screen bg-black text-white selection:bg-[#eca8d6] selection:text-black overflow-x-clip">
+    <main className="lx">
       <Navbar />
       <Hero />
-
-      {/* Each section pops in smoothly as user scrolls down */}
-      <ScrollReveal direction="up">
-        <Capabilities />
-      </ScrollReveal>
-
-      <ScrollReveal direction="up">
+      <ScrollReveal>
         <Process />
       </ScrollReveal>
-
-      <ScrollReveal direction="up">
-        <Infrastructure />
+      <ScrollReveal>
+        <Capabilities />
       </ScrollReveal>
-
-      <ScrollReveal direction="up">
-        <SignalMetrics />
-      </ScrollReveal>
-
-      <ScrollReveal direction="up">
-        <Integrations />
-      </ScrollReveal>
-
-      <ScrollReveal direction="up">
-        <Security />
-      </ScrollReveal>
-
-      <ScrollReveal direction="up">
-        <DeveloperSDK />
-      </ScrollReveal>
-
-      <InteractiveConsole />
-
-      <ScrollReveal direction="up">
+      <ScrollReveal>
         <Validation />
       </ScrollReveal>
-
+      <ScrollReveal>
+        <Security />
+      </ScrollReveal>
       <CTASection />
-
-      <div aria-hidden="true" className="h-[clamp(220px,38svh,500px)] bg-black" />
-
       <Footer />
     </main>
   );

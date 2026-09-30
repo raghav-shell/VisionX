@@ -7,6 +7,8 @@ interface VisionXLogoProps {
   textClassName?: string;
 }
 
+// The mark and a monochrome wordmark. The workspace restyles the wordmark
+// through its `text-white` class, so that class stays.
 export default function VisionXLogo({
   className = "",
   size = 32,
@@ -21,11 +23,11 @@ export default function VisionXLogo({
         aria-hidden="true"
         width={size}
         height={size}
-        className={`shrink-0 transition-transform duration-300 group-hover:scale-[1.04] ${className}`}
+        className={`shrink-0 ${className}`}
       />
       {showText && (
-        <span className={`font-display font-semibold leading-none tracking-[-0.055em] text-white ${textClassName}`}>
-          Vision<span className="text-[#E5B5D7]">X</span>
+        <span className={`font-display font-semibold leading-none tracking-[-0.04em] text-white ${textClassName}`}>
+          VisionX
         </span>
       )}
     </span>
