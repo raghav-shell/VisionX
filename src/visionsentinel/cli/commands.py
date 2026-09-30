@@ -236,9 +236,11 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
     print(heading("VISION SENTINEL — SCIENTIFIC EVALUATION BENCHMARK"))
     print(report.summary_table)
     print()
+    methodology = report.methodology()
     mean_tpr = f"{report.mean_tpr:.2f}" if report.mean_tpr is not None else "not estimated"
-    mean_fpr = f"{report.mean_fpr:.2f}" if report.mean_fpr is not None else "not estimated (no negative controls)"
-    print(f"Total Scenarios: {report.total_scenarios_run} | Passed: {report.passed_scenarios} | Mean TPR: {mean_tpr} | Mean FPR: {mean_fpr}")
+    mean_fpr = f"{report.mean_fpr:.4f}" if report.mean_fpr is not None else "not estimated"
+    print(f"Total Scenarios: {report.total_scenarios_run} | Passed: {report.passed_scenarios} | Mean TPR: {mean_tpr} | Mean alerts/clean sample: {mean_fpr}")
+    print(f"Positive controls: {methodology['positive_control_scenarios']} | Negative controls: {methodology['negative_control_scenarios']} | Eligible: {methodology['eligible_for_scientific_metrics']} | Excluded: {methodology['excluded_from_scientific_metrics']}")
     json_path, markdown_path = write_benchmark_artifacts(report)
     print(f"Saved benchmark artifacts to {json_path} and {markdown_path}")
     if args.out:
@@ -250,6 +252,8 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
 
 def _cmd_attacklab(args: argparse.Namespace) -> int:
     from ..attacklab.runner import list_scenarios, load_scenario, run_scenario, validate_scenarios
+    from ..contracts import ScenarioEvaluationStatus
+    from .main import EXIT_FINDINGS, EXIT_OK, EXIT_USAGE
 
     if args.action == "list":
         scenarios = list_scenarios()
@@ -269,10 +273,14 @@ def _cmd_attacklab(args: argparse.Namespace) -> int:
     manifest = load_scenario(args.scenario)
     print(heading(f"RUNNING SCENARIO: {manifest.title} ({manifest.scenario_id})"))
     res = run_scenario(manifest, workspace=Workspace.default(), profile=args.profile)
-    status_tag = state("PASS" if res.detected_expected_signals else "FAIL")
+    status_tag = state(res.evaluation_status.value.upper())
     print(f"Detection Status: {status_tag} | Disposition: {state(res.overall_disposition)} | Findings: {res.findings_count}")
     print(f"Report Digest: {res.report_digest}")
-    return 0 if res.detected_expected_signals else 1
+    if res.evaluation_status is ScenarioEvaluationStatus.DETECTOR_SUCCESS:
+        return EXIT_OK
+    if res.evaluation_status is ScenarioEvaluationStatus.INVALID_MANIFEST:
+        return EXIT_USAGE
+    return EXIT_FINDINGS
 
 
 def _cmd_assets(args: argparse.Namespace) -> int:

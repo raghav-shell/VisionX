@@ -9,14 +9,31 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 
 from ... import __version__
-from ...contracts import ATTACK_CLASSES, CAPABILITY_INFO, Role, ScanStatus
+from ...contracts import (
+    ATTACK_CLASSES,
+    CAPABILITY_INFO,
+    AssetKind,
+    AssetLifecycle,
+    Availability,
+    CoverageState,
+    Disposition,
+    ExecutionState,
+    JobStatus,
+    Role,
+    SCAN_ASSET_INPUTS,
+    ScenarioEvaluationStatus,
+    ScanStatus,
+    Severity,
+)
 from ...core.profiles import list_profiles, load_profile
+from ...governance import CRYPTO_CLASSES, REASON_CODES
 from ...engine.registry import default_registry
 from ...provenance.trust import load_trust_root
 from ...provenance.verifier import verify_ledger
 from ...storage import Scan
 from ..deps import get_state, require
 from ..state import AppState
+from . import scans
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 _SANDBOX: dict = {}
@@ -64,6 +81,44 @@ def sandbox_status() -> dict:
 def info(state: AppState = Depends(get_state)) -> dict:
     """Unauthenticated minimal information for the VisionX workspace."""
     return {"product": "VisionX", "version": __version__, "demo_mode": state.settings.demo_mode}
+
+
+@router.get("/metadata", dependencies=[Depends(require(Role.VIEWER))])
+def metadata_contract() -> dict:
+    """Expose the live vocabulary used by the browser workspace.
+
+    This is assembled from the same contracts consumed by the engine and
+    governance service. The frontend must not maintain a second vocabulary.
+    """
+    return {
+        "asset_kinds": [{"value": kind.value, "label": kind.value.replace("_", " ")} for kind in AssetKind],
+        "asset_lifecycles": [lifecycle.value for lifecycle in AssetLifecycle],
+        "asset_inputs": [
+            {"field": spec.field, "compatible_kinds": sorted(kind.value for kind in spec.kinds)}
+            for spec in SCAN_ASSET_INPUTS
+        ],
+        "statuses": {
+            "scan": [item.value for item in ScanStatus],
+            "job": [item.value for item in JobStatus],
+            "availability": [item.value for item in Availability],
+            "execution": [item.value for item in ExecutionState],
+            "coverage": [item.value for item in CoverageState],
+            "scenario_evaluation": [item.value for item in ScenarioEvaluationStatus],
+            "disposition": [item.value for item in Disposition],
+            "severity": [item.value for item in Severity],
+        },
+        "roles": [{"value": role.value, "rank": role.rank} for role in Role],
+        "governance": {
+            "reason_codes": list(REASON_CODES),
+            "protected_attack_classes": sorted(CRYPTO_CLASSES),
+        },
+        "scan_events": {
+            "event": scans.SCAN_EVENT_NAME,
+            "complete": scans.SCAN_COMPLETE_EVENT_NAME,
+            "unavailable": scans.SCAN_UNAVAILABLE_EVENT_NAME,
+        },
+        "job_poll_interval_ms": int(scans.SCAN_EVENTS_POLL_INTERVAL_SECONDS * 2 * 1000),
+    }
 
 
 @router.get("/status", dependencies=[Depends(require(Role.VIEWER))])

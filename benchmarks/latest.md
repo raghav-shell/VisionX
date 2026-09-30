@@ -2,23 +2,36 @@
 
 ## Protocol
 
-Calibration and held-out families are reported separately. A false-positive rate or AUROC is only reported when a negative-control denominator and score vector were supplied; it is never assumed to be zero.
+Positive-control scenarios: 9. Negative-control scenarios: 1.
+Eligible for scientific metrics: 9; excluded: 1.
+Evaluation tiers: evaluation=10.
+TPR unit: scenario; valid positive-control scenarios detecting their manifest-declared expected signal.
+Reported clean-control metric: material_alerts_per_clean_sample; material detector findings divided by clean-control samples; not a sample-classification FPR.
+Unavailable metrics are reported as not estimated, never as zero or one.
 
 ## Scenario results
 
-| Family | Scenario | Tier | TPR (95% CI) | FPR (95% CI) | AUROC (95% CI) | Fitness |
+| Family | Scenario | Tier | TPR (scenario) | Material alerts / clean sample | AUROC | Fitness |
 |---|---|---|---|---|---|---|
-| clean_control | clean_baseline | evaluation | 0.000 [0.000, 0.000] | 0.003 [0.000, 0.014] | not estimated | PASS |
-| operational_covariate_shift | drift_illumination | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
-| duplicate_flood | duplicate_flood | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
-| label_flip | label_flip_targeted | evaluation | 1.000 [0.206, 1.000] | not estimated | not estimated | PASS |
-| record_modification | ledger_tamper | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
-| model_substitution | model_swap | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
-| model_weight_tampering | modified_weights | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
-| localized_trigger | patch_poison | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
-| operational_semantic_shift | semantic_shift | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | PASS |
-| systematic_mislabel | systematic_mislabel | evaluation | 0.000 [0.000, 0.793] | not estimated | not estimated | FAIL |
+| clean_control | clean_baseline | evaluation | not eligible | 0.005 | not estimated | PASS |
+| operational_covariate_shift | drift_illumination | evaluation | 1.000 | not estimated | not estimated | PASS |
+| duplicate_flood | duplicate_flood | evaluation | 1.000 | not estimated | not estimated | PASS |
+| label_flip | label_flip_targeted | evaluation | 1.000 | not estimated | not estimated | PASS |
+| record_modification | ledger_tamper | evaluation | 1.000 | not estimated | not estimated | PASS |
+| model_substitution | model_swap | evaluation | 1.000 | not estimated | not estimated | PASS |
+| model_weight_tampering | modified_weights | evaluation | 1.000 | not estimated | not estimated | PASS |
+| localized_trigger | patch_poison | evaluation | 1.000 | not estimated | not estimated | PASS |
+| operational_semantic_shift | semantic_shift | evaluation | 1.000 | not estimated | not estimated | PASS |
+| systematic_mislabel | systematic_mislabel | evaluation | not eligible | not estimated | not estimated | FAIL |
+
+## Outcome counts
+
+| Outcome | Scenarios |
+|---|---:|
+| detector_miss | 3 |
+| detector_success | 6 |
+| fitness_failed | 1 |
 
 ## Limits
 
-The current shipped attack scenarios are positive controls. Add adjudicated clean / benign-shift controls for each detector before quoting FPR or AUROC in a competition claim.
+AUROC remains not estimated until compatible labelled continuous score vectors are supplied. Clean-control alert rates are not interchangeable with conventional sample-level classification FPR.

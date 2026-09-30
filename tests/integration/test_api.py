@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import asyncio
 import json
 import time
 
@@ -10,6 +11,7 @@ import pytest
 from starlette.testclient import TestClient
 
 from visionsentinel.api.app import create_app
+from visionsentinel.api.routers import scans as scans_router
 from visionsentinel.api.settings import Settings
 from visionsentinel.core.workspace import Workspace
 from visionsentinel.storage import Scan, ScanEvent
@@ -43,6 +45,24 @@ def test_api_unauthenticated_info(api_client):
     data = res.json()
     assert data["product"] == "VisionX"
     assert "version" in data
+
+
+def test_workspace_metadata_uses_live_contracts(api_client):
+    response = api_client.get("/api/system/metadata", headers={"X-VisionX-Demo": "1"})
+    assert response.status_code == 200
+    metadata = response.json()
+    from visionsentinel.contracts import SCAN_ASSET_INPUTS, AssetKind, Disposition, JobStatus, Role, ScanStatus
+    from visionsentinel.governance import REASON_CODES
+
+    assert {item["value"] for item in metadata["asset_kinds"]} == {item.value for item in AssetKind}
+    assert [(item["field"], tuple(item["compatible_kinds"])) for item in metadata["asset_inputs"]] == [
+        (item.field, tuple(sorted(kind.value for kind in item.kinds))) for item in SCAN_ASSET_INPUTS
+    ]
+    assert metadata["statuses"]["scan"] == [item.value for item in ScanStatus]
+    assert metadata["statuses"]["job"] == [item.value for item in JobStatus]
+    assert metadata["statuses"]["disposition"] == [item.value for item in Disposition]
+    assert metadata["governance"]["reason_codes"] == list(REASON_CODES)
+    assert metadata["roles"] == [{"value": item.value, "rank": item.rank} for item in Role]
 
 
 def test_demo_header_allows_read_only_workspace_access(api_client):
@@ -114,6 +134,109 @@ def test_scan_event_stream_uses_persisted_contract_and_terminal_status(api_clien
     with api_client.stream("GET", "/api/scans/SCN-SSE-FAILED/events", headers=headers) as response:
         assert '"status":"FAILED"' in response.read().decode()
     assert api_client.get("/api/scans/SCN-SSE-MISSING/events", headers=headers).status_code == 404
+
+
+def test_scan_event_stream_reconnect_and_malformed_last_event_id(api_client):
+    with api_client.app.state.vs.db.session() as session:
+        session.add(Scan(id="SCN-SSE-RECONNECT", name="reconnect", status=ScanStatus.SEALED.value,
+                         profile="baseline", request={}))
+        session.add_all([
+            ScanEvent(scan_id="SCN-SSE-RECONNECT", seq=1, t_ms=1, level="stage", message="one"),
+            ScanEvent(scan_id="SCN-SSE-RECONNECT", seq=2, t_ms=2, level="info", message="two"),
+        ])
+
+    headers = {"X-VisionX-Demo": "1", "Last-Event-ID": "not-an-id"}
+    with api_client.stream("GET", "/api/scans/SCN-SSE-RECONNECT/events", headers=headers) as response:
+        malformed_body = response.read().decode()
+    assert malformed_body.index('"seq":1') < malformed_body.index('"seq":2')
+    assert malformed_body.count("event: scan_complete") == 1
+
+    headers["Last-Event-ID"] = "3"
+    with api_client.stream("GET", "/api/scans/SCN-SSE-RECONNECT/events", headers=headers) as response:
+        reconnected_body = response.read().decode()
+    assert reconnected_body == ""
+
+
+def test_scan_event_stream_ends_safely_when_scan_disappears(api_client):
+    scan_id = "SCN-SSE-DISAPPEARS"
+    with api_client.app.state.vs.db.session() as session:
+        session.add(Scan(id=scan_id, name="disappears", status=ScanStatus.RUNNING.value,
+                         profile="baseline", request={}))
+        session.add(ScanEvent(scan_id=scan_id, seq=1, t_ms=1, level="stage", message="planned"))
+
+    class RequestStub:
+        headers = {"last-event-id": "0"}
+        calls = 0
+
+        async def is_disconnected(self):
+            self.calls += 1
+            if self.calls == 2:
+                with api_client.app.state.vs.db.session() as session:
+                    session.delete(session.get(Scan, scan_id))
+            return False
+
+    async def collect():
+        response = await scans_router.scan_events_stream(scan_id, RequestStub(), api_client.app.state.vs)
+        return [chunk async for chunk in response.body_iterator]
+
+    body = "".join(asyncio.run(collect()))
+    assert body.index('"seq":1') < body.index("event: scan_unavailable")
+    assert body.count("event: scan_unavailable") == 1
+    assert "database" not in body.lower()
+    assert "sql" not in body.lower()
+
+
+def test_scan_event_stream_stops_immediately_on_disconnect(api_client):
+    with api_client.app.state.vs.db.session() as session:
+        session.add(Scan(id="SCN-SSE-DISCONNECT", name="disconnect", status=ScanStatus.RUNNING.value,
+                         profile="baseline", request={}))
+
+    class DisconnectingRequest:
+        headers = {"last-event-id": "0"}
+        calls = 0
+
+        async def is_disconnected(self):
+            self.calls += 1
+            return True
+
+    request = DisconnectingRequest()
+
+    async def collect():
+        response = await scans_router.scan_events_stream("SCN-SSE-DISCONNECT", request, api_client.app.state.vs)
+        return [chunk async for chunk in response.body_iterator]
+
+    assert asyncio.run(collect()) == []
+    assert request.calls == 1
+
+
+def test_scan_event_stream_polls_at_centralized_interval(api_client, monkeypatch):
+    with api_client.app.state.vs.db.session() as session:
+        session.add(Scan(id="SCN-SSE-POLL", name="poll", status=ScanStatus.RUNNING.value,
+                         profile="baseline", request={}))
+
+    intervals = []
+
+    async def sleep(interval):
+        intervals.append(interval)
+
+    monkeypatch.setattr(scans_router.asyncio, "sleep", sleep)
+
+    class DisconnectAfterPoll:
+        headers = {"last-event-id": "0"}
+        calls = 0
+
+        async def is_disconnected(self):
+            self.calls += 1
+            return self.calls > 2
+
+    request = DisconnectAfterPoll()
+
+    async def collect():
+        response = await scans_router.scan_events_stream("SCN-SSE-POLL", request, api_client.app.state.vs)
+        return [chunk async for chunk in response.body_iterator]
+
+    assert asyncio.run(collect()) == []
+    assert intervals == [scans_router.SCAN_EVENTS_POLL_INTERVAL_SECONDS]
 
 
 def test_api_auth_flow_and_rbac(api_client):

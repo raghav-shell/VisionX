@@ -8,16 +8,18 @@ import {
   ChevronDown, ChevronRight, CircleAlert, CircleDashed, Clipboard, Clock3,
   Database, FileJson2, FileSearch2, FileText, Fingerprint, FolderOpen,
   GitBranch, Layers3, LockKeyhole, Menu, PanelRightClose, PanelRightOpen,
+  Network, FlaskConical,
   Moon, Plus, Search, Shield, ShieldAlert, SlidersHorizontal, Sun, Terminal, X,
 } from "lucide-react";
 import VisionXLogo from "../VisionXLogo";
 import { emptyWorkspaceScan, parseReport } from "./workspace-data";
 import type { CoverageRecord, CoverageState, Disposition, FindingRecord, WorkspaceScan } from "./workspace-data";
-import { currentSession, discoverApi, loadServerAssets, loadServerProfiles, loadServerScans, login, logout, submitServerScan } from "./workspace-api";
-import type { ApiAsset, ApiProfile, ApiSession } from "./workspace-api";
+import { currentSession, discoverApi, loadMetadata, loadServerAssets, loadServerProfiles, loadServerScans, login, logout, subscribeToScan, submitServerScan } from "./workspace-api";
+import type { ApiAsset, ApiMetadata, ApiProfile, ApiSession, ScanRequestBody } from "./workspace-api";
+import { AdvancedAssessment, AttackLabView, EvidenceGraph, GovernancePanel } from "./workspace-advanced";
 import "./workspace.css";
 
-type View = "overview" | "findings" | "coverage" | "detectors" | "evidence" | "assets" | "provenance" | "activity";
+type View = "overview" | "findings" | "coverage" | "detectors" | "evidence" | "assets" | "provenance" | "activity" | "graph" | "attacklab";
 type Inspector = { kind: "scan" } | { kind: "finding"; id: string } | { kind: "coverage"; id: string } | { kind: "execution"; id: string } | { kind: "asset"; id: string };
 
 const navigation: { id: View; label: string; icon: typeof Layers3 }[] = [
@@ -29,6 +31,8 @@ const navigation: { id: View; label: string; icon: typeof Layers3 }[] = [
   { id: "assets", label: "Assets", icon: Database },
   { id: "provenance", label: "Provenance", icon: GitBranch },
   { id: "activity", label: "Activity", icon: Clock3 },
+  { id: "graph", label: "Evidence graph", icon: Network },
+  { id: "attacklab", label: "Attack Lab", icon: FlaskConical },
 ];
 
 const tone: Record<string, string> = {
@@ -60,6 +64,8 @@ export default function WorkspaceStudio() {
   const [imported, setImported] = useState<WorkspaceScan[]>([]);
   const [serverScans, setServerScans] = useState<WorkspaceScan[]>([]);
   const [serverProfiles, setServerProfiles] = useState<ApiProfile[]>([]);
+  const [serverAssets, setServerAssets] = useState<ApiAsset[]>([]);
+  const [metadata, setMetadata] = useState<ApiMetadata | null>(null);
   const [apiState, setApiState] = useState<"checking" | "unavailable" | "signed-out" | "connected">("checking");
   const [session, setSession] = useState<ApiSession | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -67,6 +73,7 @@ export default function WorkspaceStudio() {
   const [selectedId, setSelectedId] = useState("");
   const [view, setView] = useState<View>("overview");
   const [inspector, setInspector] = useState<Inspector | null>({ kind: "scan" });
+  const [governanceFindingId, setGovernanceFindingId] = useState("");
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorOverlay, setInspectorOverlay] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -79,6 +86,7 @@ export default function WorkspaceStudio() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const fileRef = useRef<HTMLInputElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
+  const authEpoch = useRef(0);
   const scan = scans.find(item => item.scan_id === selectedId) ?? scans[0] ?? emptyWorkspaceScan;
 
   useEffect(() => {
@@ -99,16 +107,19 @@ export default function WorkspaceStudio() {
 
   useEffect(() => {
     let cancelled = false;
+    const epoch = authEpoch.current;
     void (async () => {
       if (!await discoverApi()) { if (!cancelled) setApiState("unavailable"); return; }
       try {
         const active = await currentSession();
-        if (cancelled) return;
+        if (cancelled || epoch !== authEpoch.current) return;
         if (!active) { setApiState("signed-out"); return; }
         setSession(active);
         setApiState("connected");
         const next = await refreshServer();
         void loadServerProfiles().then(setServerProfiles).catch(() => setServerProfiles([]));
+        void loadServerAssets().then(setServerAssets).catch(() => setServerAssets([]));
+        void loadMetadata().then(setMetadata).catch(() => setMetadata(null));
         if (!cancelled && next.length) setSelectedId(next[0].scan_id);
       } catch { if (!cancelled) setApiState("signed-out"); }
     })();
@@ -116,18 +127,26 @@ export default function WorkspaceStudio() {
   }, [refreshServer]);
 
   useEffect(() => {
-    if (apiState !== "connected") return;
-    const interval = window.setInterval(() => { void refreshServer().catch(() => {}); }, 10000);
-    return () => window.clearInterval(interval);
-  }, [apiState, refreshServer]);
+    if (apiState !== "connected" || !metadata || !selectedId || scan.source !== "server") return;
+    const stream = subscribeToScan(selectedId, metadata, {
+      event: event => { if (typeof event.message === "string") setNotice(event.message); },
+      complete: () => { void refreshServer().catch(() => {}); },
+      unavailable: () => { setNotice("The backend ended the live scan stream."); },
+      error: () => { /* EventSource reconnects with Last-Event-ID; terminal refresh is authoritative. */ },
+    });
+    return () => stream.close();
+  }, [apiState, metadata, refreshServer, scan.source, selectedId]);
 
   const signIn = async (username: string, password: string) => {
     const active = await login(username, password);
+    authEpoch.current += 1;
     setSession(active);
     setApiState("connected");
     setLoginOpen(false);
     const next = await refreshServer();
     void loadServerProfiles().then(setServerProfiles).catch(() => setServerProfiles([]));
+    void loadServerAssets().then(setServerAssets).catch(() => setServerAssets([]));
+    void loadMetadata().then(setMetadata).catch(() => setMetadata(null));
     if (next.length) selectScan(next[0].scan_id);
     setNotice(`Connected as ${active.user.display_name || active.user.username}.`);
   };
@@ -136,7 +155,7 @@ export default function WorkspaceStudio() {
     try { await logout(session.csrf); setSession(null); setServerScans([]); setApiState("signed-out"); selectScan(""); setNotice("Signed out of the local server."); }
     catch (error) { setNotice(error instanceof Error ? error.message : "Could not sign out."); }
   };
-  const queueServerScan = async (body: { name: string; profile: string; dataset?: string; model?: string }) => {
+  const queueServerScan = async (body: ScanRequestBody) => {
     if (!session) throw new Error("Sign in to the local server first.");
     const id = await submitServerScan(body, session.csrf);
     setNewScanOpen(false);
@@ -159,7 +178,7 @@ export default function WorkspaceStudio() {
 
   const selectScan = (id: string) => { setSelectedId(id); setView("overview"); setInspector({ kind: "scan" }); setFindingFilter("ALL"); setCoverageFilter("ALL"); setMobileOpen(false); setPaletteOpen(false); setInspectorOverlay(false); };
   const selectView = (next: View) => { setView(next); setMobileOpen(false); setPaletteOpen(false); setInspectorOverlay(false); if (next === "overview") setInspector({ kind: "scan" }); };
-  const openInspector = (target: Inspector) => { setInspector(target); setInspectorOpen(true); setInspectorOverlay(true); };
+  const openInspector = (target: Inspector) => { setInspector(target); if (target.kind === "finding") setGovernanceFindingId(target.id); setInspectorOpen(true); setInspectorOverlay(true); };
   const copy = async (value: string, message = "Copied to clipboard") => { try { await navigator.clipboard.writeText(value); setNotice(message); } catch { setNotice("Clipboard unavailable in this browser."); } };
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -199,7 +218,7 @@ export default function WorkspaceStudio() {
       </aside>
 
       <div className="vx-body">
-        <header className="vx-topbar"><div className="vx-topbar-left"><button className="vx-mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><span className="vx-topbar-crumb">Vision assurance</span><ChevronRight size={14} /><strong>{navigation.find(item => item.id === view)?.label}</strong><span className="vx-topbar-separator" /><span className="vx-topbar-scan">{scan.name}</span></div><div className="vx-topbar-actions"><button className="vx-topbar-local vx-connection-button" onClick={() => { if (apiState === "signed-out") setLoginOpen(true); else if (apiState === "connected") void refreshServer().then(() => setNotice("Server scans refreshed.")).catch(() => setNotice("Could not refresh server scans.")); }}><span /> {apiState === "connected" ? "Server connected" : apiState === "signed-out" ? "Sign in to server" : "Local only"}</button><button className="vx-theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} aria-pressed={theme === "dark"} title={theme === "light" ? "Dark mode" : "Light mode"}>{theme === "light" ? <Moon size={17} /> : <Sun size={17} />}</button><button className="vx-icon-button" title={inspectorOpen ? "Hide details" : "Show details"} aria-label={inspectorOpen ? "Hide details" : "Show details"} onClick={() => setInspectorOpen(current => !current)}>{inspectorOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}</button><button className="vx-button vx-button--quiet vx-import-top" onClick={() => fileRef.current?.click()}><FolderOpen size={15} /> Open report</button><button className="vx-button vx-button--primary" onClick={() => setNewScanOpen(true)}><Plus size={16} /> New assessment</button></div></header>
+        <header className="vx-topbar"><div className="vx-topbar-left"><button className="vx-mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><span className="vx-topbar-crumb">Vision assurance</span><ChevronRight size={14} /><strong>{navigation.find(item => item.id === view)?.label}</strong><span className="vx-topbar-separator" /><span className="vx-topbar-scan">{scan.name}</span></div><div className="vx-topbar-actions"><button className="vx-topbar-local vx-connection-button" onClick={() => { if (apiState === "signed-out") setLoginOpen(true); else if (apiState === "connected") void refreshServer().then(() => setNotice("Server scans refreshed.")).catch(() => setNotice("Could not refresh server scans.")); }}><span /> {apiState === "connected" ? "Server connected" : apiState === "signed-out" ? "Sign in to server" : "Local only"}</button><button className="vx-theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} aria-pressed={theme === "dark"} title={theme === "light" ? "Dark mode" : "Light mode"}>{theme === "light" ? <Moon size={17} /> : <Sun size={17} />}</button><button className="vx-icon-button" title={inspectorOpen ? "Hide details" : "Show details"} aria-label={inspectorOpen ? "Hide details" : "Show details"} onClick={() => setInspectorOpen(current => !current)}>{inspectorOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}</button><button className="vx-button vx-button--quiet vx-import-top" onClick={() => fileRef.current?.click()}><FolderOpen size={15} /> Open report</button><button className="vx-button vx-button--primary" onClick={() => { if (apiState === "connected") setNewScanOpen(true); else setLoginOpen(true); }}><Plus size={16} /> New assessment</button></div></header>
         <div className="vx-content-row">
           <div className="vx-main-scroll" ref={mainRef}>
             <div className="vx-page">
@@ -211,7 +230,7 @@ export default function WorkspaceStudio() {
                 <div className="vx-overview-grid vx-overview-grid--lower"><section className="vx-panel"><SectionTitle eyebrow="EXECUTION PLAN" title="Detector outcomes" action={<button className="vx-text-action" onClick={() => selectView("detectors")}>All checks <ArrowRight size={14} /></button>} /><div className="vx-compact-list">{scan.executions.slice(0, 5).map(item => <button key={item.detector_id} className="vx-compact-row" onClick={() => openInspector({ kind: "execution", id: item.detector_id })}><span className={`vx-state-symbol vx-state-symbol--${tone[item.state] ?? "muted"}`}>{item.state === "COMPLETED" ? <Check size={13} /> : item.state === "ERROR" ? <X size={13} /> : <CircleDashed size={13} />}</span><span><strong>{item.title}</strong><small>{item.detector_id}</small></span><Badge value={item.state} /></button>)}</div></section><section className="vx-panel"><SectionTitle eyebrow="NEXT STEP" title="Keep the decision grounded" /><div className="vx-next-step"><div className="vx-next-icon"><GitBranch size={20} /></div><h3>Review gaps before disposition</h3><p>{scan.coverage.total - scan.coverage.assessed} attack classes are not fully assessed. Inspect their reasons and the additional evidence needed before making a decision.</p><button className="vx-button vx-button--outline" onClick={() => selectView("coverage")}>Inspect coverage gaps <ArrowRight size={15} /></button></div></section></div>
               </>}
 
-              {view === "findings" && <section className="vx-panel vx-table-panel"><div className="vx-table-toolbar"><div><h2>Findings <span>{scan.findings.length}</span></h2><p>Evidence-first observations and policy dispositions</p></div><div className="vx-segmented">{["ALL", "QUARANTINE", "REVIEW", "ACCEPT"].map(item => <button key={item} className={findingFilter === item ? "active" : ""} onClick={() => setFindingFilter(item)}>{item === "ALL" ? "All" : label(item)}</button>)}</div></div>{filteredFindings.length ? <div className="vx-table-wrap"><table className="vx-table"><thead><tr><th>Finding</th><th>Detector</th><th>Severity</th><th>Disposition</th><th>Evidence</th><th /></tr></thead><tbody>{filteredFindings.map(item => <tr key={item.id} onClick={() => openInspector({ kind: "finding", id: item.id })}><td><div className="vx-table-primary">{item.title}</div><div className="vx-table-secondary">{item.id} · {item.attack_class}</div></td><td className="vx-mono">{item.detector_id}</td><td><Badge value={item.severity} /></td><td><Badge value={item.recommended_disposition} /></td><td>{item.evidence.length} record{item.evidence.length === 1 ? "" : "s"}</td><td><RowArrow /></td></tr>)}</tbody></table></div> : <Empty title="No findings match this view" text="Choose another disposition to see the remaining findings." />}</section>}
+              {view === "findings" && <>{<section className="vx-panel vx-table-panel"><div className="vx-table-toolbar"><div><h2>Findings <span>{scan.findings.length}</span></h2><p>Evidence-first observations and policy dispositions</p></div><div className="vx-segmented">{["ALL", "QUARANTINE", "REVIEW", "ACCEPT"].map(item => <button key={item} className={findingFilter === item ? "active" : ""} onClick={() => setFindingFilter(item)}>{item === "ALL" ? "All" : label(item)}</button>)}</div></div>{filteredFindings.length ? <div className="vx-table-wrap"><table className="vx-table"><thead><tr><th>Finding</th><th>Detector</th><th>Severity</th><th>Disposition</th><th>Evidence</th><th /></tr></thead><tbody>{filteredFindings.map(item => <tr key={item.id} onClick={() => openInspector({ kind: "finding", id: item.id })}><td><div className="vx-table-primary">{item.title}</div><div className="vx-table-secondary">{item.id} · {item.attack_class}</div></td><td className="vx-mono">{item.detector_id}</td><td><Badge value={item.severity} /></td><td><Badge value={item.recommended_disposition} /></td><td>{item.evidence.length} record{item.evidence.length === 1 ? "" : "s"}</td><td><RowArrow /></td></tr>)}</tbody></table></div> : <Empty title="No findings match this view" text="Choose another disposition to see the remaining findings." />}</section>}{scan.source === "server" && governanceFindingId && <GovernancePanel findingId={governanceFindingId} session={session} metadata={metadata} onNotice={setNotice} />}</>}
 
               {view === "coverage" && <><div className="vx-coverage-intro vx-panel"><div><span className="vx-eyebrow">ASSESSMENT BOUNDARY</span><h2>{scan.coverage.assessed} of {scan.coverage.total} classes fully assessed</h2><p>Unassessed and unsupported classes remain visible. A missing check is never represented as a pass.</p></div><CoverageBar scan={scan} /></div><section className="vx-panel vx-table-panel"><div className="vx-table-toolbar"><div><h2>Coverage matrix</h2><p>Computed from the plan and completed executions</p></div><select value={coverageFilter} onChange={event => setCoverageFilter(event.target.value)} aria-label="Filter coverage state" className="vx-select"><option value="ALL">All states</option>{(["ASSESSED", "PARTIALLY_ASSESSED", "NOT_ASSESSED", "FAILED_TO_EXECUTE", "UNSUPPORTED"] as CoverageState[]).map(item => <option key={item} value={item}>{label(item)}</option>)}</select></div>{filteredCoverage.length ? <div className="vx-table-wrap"><table className="vx-table"><thead><tr><th>Attack class</th><th>Layer</th><th>Assessment state</th><th>Detectors</th><th /></tr></thead><tbody>{filteredCoverage.map(item => <tr key={item.attack_class} onClick={() => openInspector({ kind: "coverage", id: item.attack_class })}><td><div className="vx-table-primary">{item.title}</div><div className="vx-table-secondary vx-mono">{item.attack_class}</div></td><td>{label(item.layer)}</td><td><Badge value={item.state} /></td><td className="vx-mono">{item.detectors.length ? item.detectors.join(", ") : "—"}</td><td><RowArrow /></td></tr>)}</tbody></table></div> : <Empty title="No classes match" text="Try another coverage state." />}</section></>}
 
@@ -224,6 +243,8 @@ export default function WorkspaceStudio() {
               {view === "provenance" && <><div className="vx-provenance-intro vx-panel"><span className="vx-provenance-mark"><GitBranch size={23} /></span><div><span className="vx-eyebrow">CHAIN OF CUSTODY</span><h2>Evidence has a history</h2><p>Ledger checks bind inference records to inputs, model identity, and a trust root. This view reflects the imported scan result; independent signature verification remains a CLI task.</p></div></div><div className="vx-overview-grid"><section className="vx-panel"><SectionTitle eyebrow="PROVENANCE COVERAGE" title="What was assessed" />{scan.coverage.rows.filter(row => row.layer === "PROVENANCE").length ? <div className="vx-compact-list">{scan.coverage.rows.filter(row => row.layer === "PROVENANCE").map(row => <button key={row.attack_class} className="vx-compact-row" onClick={() => openInspector({ kind: "coverage", id: row.attack_class })}><span className={`vx-state-symbol vx-state-symbol--${tone[row.state] ?? "muted"}`}><GitBranch size={13} /></span><span><strong>{row.title}</strong><small>{row.attack_class}</small></span><Badge value={row.state} /></button>)}</div> : <Empty title="No provenance classes" text="This report has no provenance coverage rows." />}</section><section className="vx-panel"><SectionTitle eyebrow="TRUST INPUTS" title="Supplied assets" />{scan.assets.filter(asset => ["INFERENCE_LEDGER", "TRUST_ROOT"].includes(asset.role)).length ? <div className="vx-compact-list">{scan.assets.filter(asset => ["INFERENCE_LEDGER", "TRUST_ROOT"].includes(asset.role)).map(asset => <button className="vx-compact-row" key={asset.asset_id} onClick={() => openInspector({ kind: "asset", id: asset.asset_id })}><span className="vx-state-symbol"><FileJson2 size={13} /></span><span><strong>{asset.name}</strong><small>{label(asset.role)}</small></span><RowArrow /></button>)}</div> : <Empty title="No ledger or trust root supplied" text="Add these inputs to a CLI scan to assess record integrity and binding." />}</section></div><section className="vx-panel"><SectionTitle eyebrow="DETECTOR EXECUTION" title="Ledger checks" />{scan.executions.filter(item => item.layer === "PROVENANCE").length ? <div className="vx-compact-list">{scan.executions.filter(item => item.layer === "PROVENANCE").map(item => <button className="vx-compact-row" key={item.detector_id} onClick={() => openInspector({ kind: "execution", id: item.detector_id })}><span className={`vx-state-symbol vx-state-symbol--${tone[item.state] ?? "muted"}`}><GitBranch size={13} /></span><span><strong>{item.title}</strong><small>{item.reasons?.join(" ") || item.detector_id}</small></span><Badge value={item.state} /></button>)}</div> : <Empty title="No provenance execution records" text="This assessment did not plan a provenance detector." />}</section></>}
 
               {view === "activity" && <section className="vx-panel vx-activity-panel"><SectionTitle eyebrow="EXECUTION TRACE" title="Assessment activity" /><p className="vx-panel-description">Events recorded by the engine for this scan. Times are relative to scan start.</p>{scan.events.length ? <div className="vx-timeline">{scan.events.map(event => <div className="vx-timeline-item" key={`${event.seq}-${event.t_ms}`}><span className={`vx-timeline-point vx-timeline-point--${event.level}`} /><span className="vx-mono vx-timeline-time">+{(event.t_ms / 1000).toFixed(2)}s</span><div><strong>{event.message}</strong>{event.detector_id && <small>{event.detector_id}</small>}</div></div>)}</div> : <Empty title="No events recorded" text="The imported scan result does not include an event trace." />}</section>}
+              {view === "graph" && <EvidenceGraph scanId={scan.scan_id} />}
+              {view === "attacklab" && <AttackLabView csrf={session?.csrf ?? null} profiles={serverProfiles} metadata={metadata} onOpenScan={id => { void refreshServer().then(() => selectScan(id)); }} />}
               <div className="vx-page-foot"><span>VisionX · offline assurance review</span><span>{scan.source === "server" ? "VisionX backend result" : "Local report · never uploaded"}</span></div>
             </div>
           </div>
@@ -234,7 +255,7 @@ export default function WorkspaceStudio() {
 
     {notice && <div className="vx-toast" role="status"><CheckCircle2 size={17} />{notice}<button aria-label="Dismiss" onClick={() => setNotice("")}><X size={14} /></button></div>}
     {paletteOpen && <div className="vx-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setPaletteOpen(false); }}><div className="vx-palette" role="dialog" aria-modal="true" aria-label="Search workspace"><div className="vx-palette-search"><Search size={19} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Search views and assessments..." /><kbd>ESC</kbd></div><div className="vx-palette-results"><span className="vx-eyebrow">VIEWS</span>{navigation.filter(item => item.label.toLowerCase().includes(query.toLowerCase())).map(item => <button key={item.id} onClick={() => { selectView(item.id); setQuery(""); }}><item.icon size={17} />{item.label}<ArrowRight size={14} /></button>)}<span className="vx-eyebrow">ASSESSMENTS</span>{scans.filter(item => `${item.name} ${item.scan_id}`.toLowerCase().includes(query.toLowerCase())).map(item => <button key={item.scan_id} onClick={() => { selectScan(item.scan_id); setQuery(""); }}><FileText size={17} />{item.name}<ArrowRight size={14} /></button>)}<button onClick={() => { setPaletteOpen(false); fileRef.current?.click(); }}><FolderOpen size={17} />Open report.json<ArrowRight size={14} /></button></div></div></div>}
-    {newScanOpen && <NewAssessment onClose={() => setNewScanOpen(false)} copy={copy} session={session} profiles={serverProfiles} onQueue={queueServerScan} />}
+    {newScanOpen && <AdvancedAssessment onClose={() => setNewScanOpen(false)} csrf={session?.csrf ?? null} metadata={metadata} assets={serverAssets} profiles={serverProfiles} onQueued={id => { setNewScanOpen(false); void refreshServer().then(next => { if (next.some(item => item.scan_id === id)) selectScan(id); }); setNotice(`Assessment ${id} queued on the VisionX backend.`); }} />}
     {loginOpen && <ServerLogin onClose={() => setLoginOpen(false)} onLogin={signIn} />}
   </div>;
 }
@@ -248,6 +269,8 @@ const descriptions: Record<View, string> = {
   assets: "Inspect the model, datasets, references, and other inputs used for this assessment.",
   provenance: "Review ledger coverage, trust inputs, and cryptographic detector outcomes.",
   activity: "Trace how the assessment progressed from probing to report generation.",
+  graph: "Navigate the evidence relationships returned by the sealed scan.",
+  attacklab: "Run declared controlled experiments and follow their linked jobs and scans.",
 };
 
 function Metric({ label: title, value, note, icon, accent }: { label: string; value: string; note: string; icon: ReactNode; accent: string }) { return <div className="vx-metric"><div className="vx-metric-top"><span>{title}</span><span className={`vx-metric-icon vx-metric-icon--${accent}`}>{icon}</span></div><strong>{value}</strong><small>{note}</small></div>; }

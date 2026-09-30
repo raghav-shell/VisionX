@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import io
 import logging
+import re
 import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -627,16 +628,56 @@ GENERATOR_REGISTRY: dict[str, GeneratorSpec] = {
 }
 
 
+def _safe_failure_note(phase: str, error: Exception) -> str:
+    """Return bounded diagnostics suitable for API, CLI, and benchmark output."""
+    detail = " ".join(str(error).split())
+    detail = re.sub(r"(?:[A-Za-z]:)?/(?:[^\s/]+/)+[^\s]*", "[path]", detail)
+    return f"{phase} failed: {type(error).__name__}: {detail[:240]}"
+
+
 def _generation_failure(manifest: ScenarioManifest, error: Exception) -> ScenarioRunResult:
-    message = f"generation failed: {type(error).__name__}: {error}"
+    message = _safe_failure_note("generation", error)
     return ScenarioRunResult(
         scenario_id=manifest.scenario_id, title=manifest.title, attack_class=manifest.attack_class,
-        passed_fitness=False, detected_expected_signals=False, scan_id="", overall_disposition="ERROR",
+        passed_fitness=False, detected_expected_signals=False, scan_id="", overall_disposition="",
         findings_count=0, critical_count=0, review_count=0, detected_detectors=[], missing_detectors=[],
         fitness_notes=[message], report_digest="", manifest_valid=True, generation_succeeded=False,
         ground_truth_valid=False, scan_executed=False, finding_expectation_satisfied=False,
         policy_expectation_satisfied=False, evaluation_status=ScenarioEvaluationStatus.GENERATION_FAILED,
         evaluation_notes=[message], details={"error": message}, scan_result=None,
+    )
+
+
+def _invalid_manifest_result(manifest: ScenarioManifest, errors: list[str]) -> ScenarioRunResult:
+    notes = [f"manifest validation failed: {'; '.join(errors)}"]
+    return ScenarioRunResult(
+        scenario_id=manifest.scenario_id, title=manifest.title, attack_class=manifest.attack_class,
+        passed_fitness=False, detected_expected_signals=False, scan_id="", overall_disposition="",
+        findings_count=0, critical_count=0, review_count=0, detected_detectors=[], missing_detectors=[],
+        fitness_notes=notes, report_digest="", manifest_valid=False, generation_succeeded=False,
+        ground_truth_valid=False, scan_executed=False, finding_expectation_satisfied=False,
+        policy_expectation_satisfied=False, evaluation_status=ScenarioEvaluationStatus.INVALID_MANIFEST,
+        evaluation_notes=notes, details={}, scan_result=None,
+    )
+
+
+def _execution_failure(
+    manifest: ScenarioManifest,
+    error: Exception,
+    *,
+    fitness_notes: list[str],
+    ground_truth_valid: bool,
+    details: dict[str, Any],
+) -> ScenarioRunResult:
+    message = _safe_failure_note("scan execution", error)
+    return ScenarioRunResult(
+        scenario_id=manifest.scenario_id, title=manifest.title, attack_class=manifest.attack_class,
+        passed_fitness=True, detected_expected_signals=False, scan_id="", overall_disposition="",
+        findings_count=0, critical_count=0, review_count=0, detected_detectors=[], missing_detectors=[],
+        fitness_notes=fitness_notes, report_digest="", manifest_valid=True, generation_succeeded=True,
+        ground_truth_valid=ground_truth_valid, scan_executed=False, finding_expectation_satisfied=False,
+        policy_expectation_satisfied=False, evaluation_status=ScenarioEvaluationStatus.EXECUTION_ERROR,
+        evaluation_notes=[message], details=details, scan_result=None,
     )
 
 
@@ -649,7 +690,7 @@ def run_scenario(
     """Execute a controlled attack scenario, evaluate fitness gates, run scan and report detection performance."""
     manifest_errors = validate_manifest(manifest)
     if manifest_errors:
-        raise ValueError("invalid scenario manifest: " + "; ".join(manifest_errors))
+        return _invalid_manifest_result(manifest, manifest_errors)
     run_dir = workspace.root / "attack_runs" / f"{manifest.scenario_id}_{secrets.token_hex(4)}"
     run_dir.mkdir(parents=True, exist_ok=True)
     seed = manifest.seed
@@ -668,12 +709,12 @@ def run_scenario(
     spec = GENERATOR_REGISTRY.get(generator_type)
     model_details: dict[str, Any] = {}
     if spec is None:
-        raise ValueError(f"unsupported attack generator {generator_type!r}")
+        return _generation_failure(manifest, ValueError(f"unsupported attack generator {generator_type!r}"))
     try:
         generated_records, affected_ids, model_details = spec.handler(manifest, workspace, run_dir, scan_req, rng)
     except Exception as exc:
         generation_error = exc
-        model_details = {"error": f"{type(exc).__name__}: {exc}"}
+        model_details = {"error": _safe_failure_note("generation", exc)}
 
     if generation_error is not None:
         return _generation_failure(manifest, generation_error)
@@ -696,8 +737,29 @@ def run_scenario(
         passed_fitness = False
         fitness_notes.append(f"expected truth tag {expected_truth!r} absent from generated ground truth")
 
+    if not passed_fitness:
+        return ScenarioRunResult(
+            scenario_id=manifest.scenario_id, title=manifest.title, attack_class=manifest.attack_class,
+            passed_fitness=False, detected_expected_signals=False, scan_id="", overall_disposition="",
+            findings_count=0, critical_count=0, review_count=0, detected_detectors=[], missing_detectors=[],
+            fitness_notes=fitness_notes, report_digest="", manifest_valid=True, generation_succeeded=True,
+            ground_truth_valid=ground_truth_valid, scan_executed=False, finding_expectation_satisfied=False,
+            policy_expectation_satisfied=False, evaluation_status=ScenarioEvaluationStatus.FITNESS_FAILED,
+            evaluation_notes=fitness_notes, details=model_details, scan_result=None,
+        )
+
     # Execute Scan
-    scan_result: ScanResult = run_scan(scan_req, workspace=workspace)
+    try:
+        scan_result: ScanResult = run_scan(scan_req, workspace=workspace)
+    except Exception as exc:
+        log.exception("Attack Lab scan execution failed for %s", manifest.scenario_id)
+        return _execution_failure(
+            manifest,
+            exc,
+            fitness_notes=fitness_notes,
+            ground_truth_valid=ground_truth_valid,
+            details=model_details,
+        )
 
     # Check detector responses against expectations declared by the manifest.
     detected_detectors = [e.detector_id for e in scan_result.executions if e.findings > 0]
@@ -717,11 +779,7 @@ def run_scenario(
         evaluation_notes.append(f"findings {len(scan_result.findings)} < expected minimum {expected_findings}")
     if not policy_expectation_satisfied:
         evaluation_notes.append(f"disposition did not satisfy {expected_disposition}")
-    if not passed_fitness:
-        evaluation_status = ScenarioEvaluationStatus.FITNESS_FAILED
-    elif not ground_truth_valid:
-        evaluation_status = ScenarioEvaluationStatus.GENERATION_FAILED
-    elif detected_expected_signals and finding_expectation_satisfied and policy_expectation_satisfied:
+    if detected_expected_signals and finding_expectation_satisfied and policy_expectation_satisfied:
         evaluation_status = ScenarioEvaluationStatus.DETECTOR_SUCCESS
     else:
         evaluation_status = ScenarioEvaluationStatus.DETECTOR_MISS
@@ -733,7 +791,7 @@ def run_scenario(
         passed_fitness=passed_fitness,
         detected_expected_signals=detected_expected_signals,
         scan_id=scan_result.scan_id,
-        overall_disposition=scan_result.summary.overall_disposition.value if scan_result.summary else "REVIEW",
+        overall_disposition=scan_result.summary.overall_disposition.value if scan_result.summary else "",
         findings_count=len(scan_result.findings),
         critical_count=sum(1 for f in scan_result.findings if f.severity == Severity.CRITICAL),
         review_count=sum(1 for f in scan_result.findings if f.recommended_disposition == Disposition.REVIEW),

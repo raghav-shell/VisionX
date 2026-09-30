@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 
 from ...contracts import Layer, Role, ScanEvent as ScanEventContract, ScanResult, ScanStatus
 from ...engine.request import ScanRequest
@@ -26,6 +26,11 @@ from ..state import AppState
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
+SCAN_EVENTS_POLL_INTERVAL_SECONDS = 0.5
+SCAN_EVENT_NAME = "scan_event"
+SCAN_COMPLETE_EVENT_NAME = "scan_complete"
+SCAN_UNAVAILABLE_CODE = "scan_unavailable"
+SCAN_UNAVAILABLE_EVENT_NAME = SCAN_UNAVAILABLE_CODE
 
 
 def is_terminal_scan_status(value: str | ScanStatus) -> bool:
@@ -86,6 +91,11 @@ class ReportVerifyBody(BaseModel):
 class ScanCompletePayload(BaseModel):
     scan_id: str
     status: ScanStatus
+
+
+class ScanStreamUnavailablePayload(BaseModel):
+    scan_id: str
+    code: Literal["scan_unavailable"] = SCAN_UNAVAILABLE_CODE
 
 
 def _result_or_error(scan_id: str, state: AppState) -> ScanResult:
@@ -199,38 +209,72 @@ async def scan_events_stream(scan_id: str, request: Request, state: AppState = D
             raise HTTPException(status.HTTP_404_NOT_FOUND, f"scan {scan_id!r} not found")
 
     try:
-        last_seq = max(0, int(request.headers.get("last-event-id", "0")))
-    except ValueError:
+        last_seq = max(0, int(request.headers.get("last-event-id", "0").strip()))
+    except (AttributeError, ValueError, TypeError):
         last_seq = 0
 
     async def event_generator():
         nonlocal last_seq
+        stream_ended = False
+
+        async def disconnected() -> bool:
+            return await request.is_disconnected()
+
+        async def unavailable() -> str:
+            nonlocal stream_ended
+            stream_ended = True
+            payload = ScanStreamUnavailablePayload(scan_id=scan_id).model_dump_json()
+            return f"event: {SCAN_UNAVAILABLE_EVENT_NAME}\ndata: {payload}\n\n"
+
         while True:
-            if await request.is_disconnected():
+            if await disconnected():
                 break
+            try:
+                with state.db.session() as s:
+                    events = (
+                        s.query(ScanEvent)
+                        .filter(ScanEvent.scan_id == scan_id, ScanEvent.seq > last_seq)
+                        .order_by(ScanEvent.seq.asc())
+                        .all()
+                    )
+                    max_seq = s.query(func.max(ScanEvent.seq)).filter(ScanEvent.scan_id == scan_id).scalar() or 0
 
-            with state.db.session() as s:
-                events = (
-                    s.query(ScanEvent)
-                    .filter(ScanEvent.scan_id == scan_id, ScanEvent.seq > last_seq)
-                    .order_by(ScanEvent.seq.asc())
-                    .all()
-                )
-                current_scan = s.get(Scan, scan_id)
-                current_status = current_scan.status if current_scan else None
+                for ev in events:
+                    if await disconnected():
+                        return
+                    last_seq = ev.seq
+                    data = ScanEventContract(seq=ev.seq, t_ms=ev.t_ms, level=ev.level,
+                                             message=ev.message, detector_id=ev.detector_id).model_dump_json()
+                    yield f"id: {ev.seq}\nevent: {SCAN_EVENT_NAME}\ndata: {data}\n\n"
 
-            for ev in events:
-                last_seq = ev.seq
-                data = ScanEventContract(seq=ev.seq, t_ms=ev.t_ms, level=ev.level,
-                                         message=ev.message, detector_id=ev.detector_id).model_dump_json()
-                yield f"id: {ev.seq}\nevent: scan_event\ndata: {data}\n\n"
+                if await disconnected():
+                    return
 
-            if current_status is not None and is_terminal_scan_status(current_status):
-                final_data = ScanCompletePayload(scan_id=scan_id, status=ScanStatus(current_status)).model_dump_json()
-                yield f"event: scan_complete\ndata: {final_data}\n\n"
-                break
+                with state.db.session() as s:
+                    current_scan = s.get(Scan, scan_id)
 
-            await asyncio.sleep(0.5)
+                if current_scan is None:
+                    if not stream_ended:
+                        yield await unavailable()
+                    return
+
+                if is_terminal_scan_status(current_scan.status):
+                    terminal_event_id = max_seq + 1
+                    if last_seq < terminal_event_id and not stream_ended:
+                        final_data = ScanCompletePayload(
+                            scan_id=scan_id, status=ScanStatus(current_scan.status)
+                        ).model_dump_json()
+                        yield f"id: {terminal_event_id}\nevent: {SCAN_COMPLETE_EVENT_NAME}\ndata: {final_data}\n\n"
+                    return
+
+                await asyncio.sleep(SCAN_EVENTS_POLL_INTERVAL_SECONDS)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("scan event stream failed for scan %s", scan_id)
+                if not stream_ended and not await disconnected():
+                    yield await unavailable()
+                return
 
     return StreamingResponse(
         event_generator(),
