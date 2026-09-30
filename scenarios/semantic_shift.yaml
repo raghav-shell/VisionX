@@ -11,6 +11,7 @@ base:
 
 attack:
   type: semantic_shift
+  label: ops_semantic
   class_weights:
     naval_vessel: 4.0
     air_defence: 3.0

@@ -11,6 +11,8 @@ base:
 
 attack:
   type: illumination_shift
+  shift: low_light
+  label: ops_illumination
   brightness_factor: 0.45
   contrast_factor: 0.70
   noise_sigma: 8.0

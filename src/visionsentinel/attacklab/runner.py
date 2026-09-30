@@ -8,7 +8,7 @@ import logging
 import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import yaml
@@ -113,12 +113,6 @@ class ScenarioRunResult:
         }
 
 
-DATASET_ATTACK_TYPES = frozenset({"label_flip_targeted", "label_flip_random", "systematic_mislabel",
-                                  "duplicate_flood", "patch_poison"})
-DRIFT_ATTACK_TYPES = frozenset({"illumination_shift", "semantic_shift"})
-SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset", "model_substitution", "weight_perturbation", "record_edit"}
-
-
 def validate_manifest(manifest: ScenarioManifest, registry=None) -> list[str]:
     """Validate one manifest against the live detector registry and generator contract."""
     from ..engine.registry import default_registry
@@ -126,8 +120,11 @@ def validate_manifest(manifest: ScenarioManifest, registry=None) -> list[str]:
     registry = registry or default_registry()
     errors: list[str] = []
     attack_type = manifest.attack.get("type")
-    if attack_type not in SUPPORTED_ATTACK_TYPES:
+    generator = GENERATOR_REGISTRY.get(attack_type)
+    if generator is None:
         errors.append(f"unsupported attack generator {attack_type!r}")
+    elif not callable(generator.handler):
+        errors.append(f"attack generator {attack_type!r} has no executable handler")
     detector_ids = set(registry.ids())
     for detector_id in manifest.expected.get("expected_detectors", []):
         if detector_id not in detector_ids:
@@ -482,6 +479,154 @@ def _ledger_record_tampering(
     return records, [str(target_sequence)], details
 
 
+GeneratorResult = tuple[list, list[str], dict[str, Any]]
+GeneratorHandler = Callable[[ScenarioManifest, Workspace, Path, ScanRequest, np.random.Generator], GeneratorResult]
+
+
+def _generate_clean_dataset(manifest: ScenarioManifest, workspace: Workspace, run_dir: Path,
+                            scan_req: ScanRequest, rng: np.random.Generator) -> GeneratorResult:
+    del workspace, rng
+    contributors = manifest.base.get("contributors", [])
+    if not contributors:
+        raise ValueError("clean negative controls require declared contributors")
+    records = []
+    for contributor in contributors:
+        profile = ContributorProfile(contributor["name"], contributor["samples"],
+                                     contributor["sensor"], contributor["source"])
+        records.extend(generate_contributor(profile, seed=derive_seed(manifest.seed, "contributor", contributor["name"])))
+    dataset_path = run_dir / "dataset"
+    write_corpus(records, dataset_path, name=f"{manifest.scenario_id}_clean")
+    scan_req.dataset = dataset_path
+    reference_records = generate_clean_set(manifest.base.get("reference_size", len(records)),
+                                            seed=derive_seed(manifest.seed, "reference"), label="ref")
+    reference_path = run_dir / "reference"
+    write_corpus(reference_records, reference_path, name="clean_reference")
+    scan_req.reference_dataset = reference_path
+    return records, [], {}
+
+
+def _generate_dataset_attack(manifest: ScenarioManifest, workspace: Workspace, run_dir: Path,
+                             scan_req: ScanRequest, rng: np.random.Generator) -> GeneratorResult:
+    del workspace
+    base = manifest.base
+    attack = manifest.attack
+    contributors = base.get("contributors", [])
+    if not contributors:
+        raise ValueError("dataset generators require declared contributors")
+    records = []
+    for contributor in contributors:
+        profile = ContributorProfile(contributor["name"], contributor["samples"],
+                                     contributor["sensor"], contributor["source"])
+        records.extend(generate_contributor(profile, seed=derive_seed(manifest.seed, "contributor", contributor["name"])))
+
+    attack_type = attack["type"]
+    if attack_type == "label_flip_targeted":
+        affected_ids = label_flip_targeted(records, source=attack["source_class"], target=attack["target_class"],
+                                           rate=attack["rate"], rng=rng, contributor=attack.get("contributor"))
+    elif attack_type == "label_flip_random":
+        classes = tuple(attack.get("classes", base.get("classes", sorted({record.label for record in records}))))
+        affected_ids = label_flip_random(records, rate=attack["rate"], rng=rng, classes=classes,
+                                         contributor=attack.get("contributor"))
+    elif attack_type == "systematic_mislabel":
+        affected_ids = systematic_mislabel(records, contributor=attack["contributor"], mapping=attack["mapping"],
+                                            fraction=attack["fraction"], rng=rng)
+    elif attack_type == "duplicate_flood":
+        affected_ids = duplicate_flood(records, contributor=attack["contributor"],
+                                       n_sources=attack["clusters"], copies=attack["copies_per_cluster"], rng=rng)
+    elif attack_type == "patch_poison":
+        pattern = trigger_pattern(attack["trigger_kind"], attack["trigger_size"], seed=manifest.seed)
+        candidates = [record for record in records if record.contributor == attack["contributor"]]
+        chosen = rng.choice(len(candidates), size=min(attack["poison_count"], len(candidates)), replace=False)
+        affected_ids = []
+        for index in chosen:
+            record = candidates[int(index)]
+            record.image = stamp(record.image, pattern, attack["position"])
+            record.label = attack["target_class"]
+            record.truth.append("localized_trigger")
+            affected_ids.append(record.id)
+    else:
+        raise ValueError(f"no dataset handler for registered generator {attack_type!r}")
+
+    dataset_path = run_dir / "dataset"
+    write_corpus(records, dataset_path, name=f"{manifest.scenario_id}_attacked")
+    scan_req.dataset = dataset_path
+    reference_records = generate_clean_set(base["reference_size"],
+                                           seed=derive_seed(manifest.seed, "reference"), label="ref")
+    reference_path = run_dir / "reference"
+    write_corpus(reference_records, reference_path, name="clean_reference")
+    scan_req.reference_dataset = reference_path
+    return records, affected_ids, {}
+
+
+def _generate_drift_attack(manifest: ScenarioManifest, workspace: Workspace, run_dir: Path,
+                           scan_req: ScanRequest, rng: np.random.Generator) -> GeneratorResult:
+    del workspace, rng
+    base = manifest.base
+    attack = manifest.attack
+    reference_records = generate_clean_set(base["reference_size"],
+                                           seed=derive_seed(manifest.seed, "reference"), label="ref")
+    attack_type = attack["type"]
+    if attack_type == "illumination_shift":
+        operational_records = operational_batch(base["operational_size"],
+                                                seed=derive_seed(manifest.seed, "operational", "illumination"),
+                                                shift=attack["shift"], label=attack["label"])
+    elif attack_type == "semantic_shift":
+        operational_records = operational_batch(base["operational_size"],
+                                                seed=derive_seed(manifest.seed, "operational", "semantic"),
+                                                class_weights=attack["class_weights"], label=attack["label"])
+    else:
+        raise ValueError(f"no drift handler for registered generator {attack_type!r}")
+    for record in operational_records:
+        record.truth.append(manifest.attack_class)
+    reference_path = run_dir / "reference_drift"
+    operational_path = run_dir / "incoming_drift"
+    write_corpus(reference_records, reference_path, name="clean_reference_drift")
+    write_corpus(operational_records, operational_path, name="incoming_operational_drift")
+    scan_req.reference_dataset = reference_path
+    scan_req.operational_data = operational_path
+    return operational_records, [record.id for record in operational_records], {}
+
+
+@dataclass(frozen=True)
+class GeneratorSpec:
+    attack_type: str
+    family: str
+    handler: GeneratorHandler
+
+
+def _generate_model_substitution(manifest: ScenarioManifest, workspace: Workspace, run_dir: Path,
+                                 scan_req: ScanRequest, rng: np.random.Generator) -> GeneratorResult:
+    del workspace, rng
+    return _model_substitution(manifest, run_dir, scan_req)
+
+
+def _generate_weight_perturbation(manifest: ScenarioManifest, workspace: Workspace, run_dir: Path,
+                                  scan_req: ScanRequest, rng: np.random.Generator) -> GeneratorResult:
+    del workspace, rng
+    return _model_weight_perturbation(manifest, run_dir, scan_req)
+
+
+def _generate_record_edit(manifest: ScenarioManifest, workspace: Workspace, run_dir: Path,
+                          scan_req: ScanRequest, rng: np.random.Generator) -> GeneratorResult:
+    del rng
+    return _ledger_record_tampering(manifest, workspace, run_dir, scan_req)
+
+
+GENERATOR_REGISTRY: dict[str, GeneratorSpec] = {
+    "clean_dataset": GeneratorSpec("clean_dataset", "dataset", _generate_clean_dataset),
+    "label_flip_targeted": GeneratorSpec("label_flip_targeted", "dataset", _generate_dataset_attack),
+    "label_flip_random": GeneratorSpec("label_flip_random", "dataset", _generate_dataset_attack),
+    "systematic_mislabel": GeneratorSpec("systematic_mislabel", "dataset", _generate_dataset_attack),
+    "duplicate_flood": GeneratorSpec("duplicate_flood", "dataset", _generate_dataset_attack),
+    "patch_poison": GeneratorSpec("patch_poison", "dataset", _generate_dataset_attack),
+    "illumination_shift": GeneratorSpec("illumination_shift", "drift", _generate_drift_attack),
+    "semantic_shift": GeneratorSpec("semantic_shift", "drift", _generate_drift_attack),
+    "model_substitution": GeneratorSpec("model_substitution", "model", _generate_model_substitution),
+    "weight_perturbation": GeneratorSpec("weight_perturbation", "model", _generate_weight_perturbation),
+    "record_edit": GeneratorSpec("record_edit", "provenance", _generate_record_edit),
+}
+
+
 def _generation_failure(manifest: ScenarioManifest, error: Exception) -> ScenarioRunResult:
     message = f"generation failed: {type(error).__name__}: {error}"
     return ScenarioRunResult(
@@ -517,148 +662,18 @@ def run_scenario(
     fitness_notes: list[str] = []
     passed_fitness = True
 
-    # 1. Dataset Generation & Attack Injection
+    # 1. Dispatch through the authoritative generator registry.
     generation_error: Exception | None = None
-    if manifest.attack.get("type") == "model_substitution":
-        try:
-            generated_records, affected_ids, model_details = _model_substitution(manifest, run_dir, scan_req)
-        except Exception as exc:
-            generation_error = exc
-            model_details = {"error": f"{type(exc).__name__}: {exc}"}
-    elif manifest.attack.get("type") == "weight_perturbation":
-        try:
-            generated_records, affected_ids, model_details = _model_weight_perturbation(manifest, run_dir, scan_req)
-        except Exception as exc:
-            generation_error = exc
-            model_details = {"error": f"{type(exc).__name__}: {exc}"}
-    elif manifest.attack.get("type") == "record_edit":
-        try:
-            generated_records, affected_ids, model_details = _ledger_record_tampering(
-                manifest, workspace, run_dir, scan_req,
-            )
-        except Exception as exc:
-            generation_error = exc
-            model_details = {"error": f"{type(exc).__name__}: {exc}"}
-    elif manifest.negative_control and manifest.attack.get("type") == "clean_dataset":
-        contrib_confs = manifest.base.get("contributors", [])
-        if not contrib_confs:
-            raise ValueError("clean negative controls require declared contributors")
-        records = []
-        for c in contrib_confs:
-            profile_spec = ContributorProfile(c["name"], c["samples"], c.get("sensor", "EO-A2"), c.get("source", "field"))
-            records.extend(generate_contributor(profile_spec, seed=derive_seed(seed, "contributor", c["name"])))
-        ds_path = run_dir / "dataset"
-        write_corpus(records, ds_path, name=f"{manifest.scenario_id}_clean")
-        scan_req.dataset = ds_path
-        ref_records = generate_clean_set(manifest.base.get("reference_size", len(records)),
-                                         seed=derive_seed(seed, "reference"), label="ref")
-        ref_path = run_dir / "reference"
-        write_corpus(ref_records, ref_path, name="clean_reference")
-        scan_req.reference_dataset = ref_path
-    elif manifest.attack.get("type") in ("label_flip_targeted", "label_flip_random", "systematic_mislabel",
-                                       "duplicate_flood", "patch_poison"):
-        contrib_confs = manifest.base.get("contributors", [
-            {"name": "Alpha", "samples": 80, "sensor": "EO-A2", "source": "f1"},
-            {"name": "Bravo", "samples": 80, "sensor": "EO-B1", "source": "f2"},
-            {"name": "Charlie", "samples": 80, "sensor": "UAV-C3", "source": "f3"},
-            {"name": "Delta", "samples": 80, "sensor": "SAT-D4", "source": "f4"},
-        ])
-        records = []
-        for c in contrib_confs:
-            p = ContributorProfile(
-                name=c["name"],
-                samples=c["samples"],
-                sensor=c.get("sensor", "EO-A2"),
-                source=c.get("source", "field"),
-            )
-            records.extend(generate_contributor(p, seed=derive_seed(seed, "contributor", c["name"])))
-
-        # Apply specific attack
-        att = manifest.attack
-        att_type = att["type"]
-        if att_type == "label_flip_targeted":
-            affected_ids = label_flip_targeted(
-                records,
-                source=att.get("source_class", "armoured_vehicle"),
-                target=att.get("target_class", "civilian_vehicle"),
-                rate=att.get("rate", 0.3),
-                rng=rng,
-                contributor=att.get("contributor"),
-            )
-        elif att_type == "systematic_mislabel":
-            affected_ids = systematic_mislabel(
-                records,
-                contributor=att.get("contributor", "Charlie"),
-                mapping=att.get("mapping", {"air_defence": "civilian_aircraft"}),
-                fraction=att.get("fraction", 0.7),
-                rng=rng,
-            )
-        elif att_type == "duplicate_flood":
-            affected_ids = duplicate_flood(
-                records,
-                contributor=att.get("contributor", "Delta"),
-                n_sources=att.get("clusters", 3),
-                copies=att.get("copies_per_cluster", 8),
-                rng=rng,
-            )
-        elif att_type == "patch_poison":
-            c_name = att.get("contributor", "Delta")
-            t_kind = att.get("trigger_kind", "checker")
-            t_size = att.get("trigger_size", 6)
-            pos = att.get("position", "bottom-right")
-            tgt = att.get("target_class", "naval_vessel")
-            p_count = att.get("poison_count", 20)
-
-            pat = trigger_pattern(t_kind, t_size, seed=seed)
-            cand = [r for r in records if r.contributor == c_name]
-            chosen = rng.choice(len(cand), size=min(p_count, len(cand)), replace=False)
-            for idx in chosen:
-                r = cand[idx]
-                r.image = stamp(r.image, pat, pos)
-                r.label = tgt
-                r.truth.append("localized_trigger")
-                affected_ids.append(r.id)
-
-        ds_path = run_dir / "dataset"
-        generated_records = records
-        write_corpus(records, ds_path, name=f"{manifest.scenario_id}_attacked")
-        scan_req.dataset = ds_path
-
-        # Add clean reference for kNN & OOF
-        ref_records = generate_clean_set(160, seed=derive_seed(seed, "reference"), label="ref")
-        ref_path = run_dir / "reference"
-        write_corpus(ref_records, ref_path, name="clean_reference")
-        scan_req.reference_dataset = ref_path
-
-    # 2. Drift Attack Injection
-    elif manifest.attack.get("type") in ("illumination_shift", "semantic_shift"):
-        ref_records = generate_clean_set(manifest.base.get("reference_size", 120), seed=seed, label="ref")
-        
-        if manifest.attack["type"] == "illumination_shift":
-            op_records = operational_batch(
-                manifest.base.get("operational_size", 120),
-                seed=derive_seed(seed, "operational", "illumination"),
-                shift="low_light",
-                label="ops_illum",
-            )
-        else:
-            op_records = operational_batch(
-                manifest.base.get("operational_size", 120),
-                seed=derive_seed(seed, "operational", "semantic"),
-                class_weights=manifest.attack.get("class_weights", {"naval_vessel": 4.0}),
-                label="ops_sem",
-            )
-
-        ref_path = run_dir / "reference_drift"
-        op_path = run_dir / "incoming_drift"
-        for record in op_records:
-            record.truth.append(manifest.attack_class)
-        affected_ids = [record.id for record in op_records]
-        write_corpus(ref_records, ref_path, name="clean_reference_drift")
-        write_corpus(op_records, op_path, name="incoming_operational_drift")
-        scan_req.reference_dataset = ref_path
-        scan_req.operational_data = op_path
-        generated_records = op_records
+    generator_type = manifest.attack.get("type")
+    spec = GENERATOR_REGISTRY.get(generator_type)
+    model_details: dict[str, Any] = {}
+    if spec is None:
+        raise ValueError(f"unsupported attack generator {generator_type!r}")
+    try:
+        generated_records, affected_ids, model_details = spec.handler(manifest, workspace, run_dir, scan_req, rng)
+    except Exception as exc:
+        generation_error = exc
+        model_details = {"error": f"{type(exc).__name__}: {exc}"}
 
     if generation_error is not None:
         return _generation_failure(manifest, generation_error)

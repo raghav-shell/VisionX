@@ -7,6 +7,7 @@ evaluation_family: evaluation
 
 base:
   dataset_size: 360
+  reference_size: 160
   contributors:
     - name: Alpha
       samples: 90
