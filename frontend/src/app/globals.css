@@ -157,6 +157,10 @@ video::-webkit-media-controls-overlay-play-button {
 .lx-eyebrow .n {
   color: var(--hv-ink);
 }
+/* Keep the brief line to the headline's width so it wraps before the tree. */
+.lx-hero-body > .lx-eyebrow {
+  max-width: 40rem;
+}
 .lx-lede {
   margin: 0;
   max-width: 60ch;
