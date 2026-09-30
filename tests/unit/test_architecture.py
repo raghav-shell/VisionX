@@ -52,7 +52,7 @@ def _top(path: Path) -> str:
 
 
 def _imports(path: Path) -> list[tuple[str, int, ast.AST]]:
-    tree = ast.parse(path.read_text(), filename=str(path))
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     out = []
     pkg_parts = list(path.relative_to(PKG).parts[:-1])
     for node in ast.walk(tree):
@@ -70,7 +70,7 @@ def _imports(path: Path) -> list[tuple[str, int, ast.AST]]:
 
 
 def _is_type_checking_only(path: Path) -> set[int]:
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     lines: set[int] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
@@ -103,7 +103,7 @@ def test_verifier_has_minimal_dependencies():
         if not path.exists():
             pytest.skip("verifier not present yet")
         type_only = _is_type_checking_only(path)
-        module_level = {n.lineno for n in ast.parse(path.read_text()).body}
+        module_level = {n.lineno for n in ast.parse(path.read_text(encoding="utf-8")).body}
         for name, level, node in _imports(path):
             root = name.split(".")[0]
             # only imports executed when the module is imported matter; function-local imports run on demand
@@ -124,7 +124,7 @@ NETWORK_MODULES = {"requests", "httpx", "aiohttp", "urllib3", "http.client", "ur
 
 @pytest.mark.parametrize("path", _modules(), ids=lambda p: str(p.relative_to(PKG)))
 def test_no_shell_execution_network_clients_or_unsafe_deserialisation(path: Path):
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
             for kw in node.keywords:

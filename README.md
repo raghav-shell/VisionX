@@ -473,7 +473,7 @@ The people behind VisionX, with contributions drawn from this repository's Git h
 <img src="docs/images/navigation/build-ship.svg" alt="Demo and platform readiness" width="230" /><br><br>
 <p>Made the evidence visible and the workspace ready to run and present.</p>
 <p align="left"><b>Evidence in the inspector:</b> Flagged images from the local evidence store, confusion matrices as tables, and statistics as labelled values.</p>
-<p align="left"><b>Windows support:</b> Portable ledger locking, memory probing and sandbox limits reported as not applied where the platform lacks them; explicit UTF-8 for every report and manifest.</p>
+<p align="left"><b>Windows support:</b> Portable ledger locking and memory probing, a model sandbox that works over Windows pipes and reports limits it cannot apply, and explicit UTF-8 for every report and manifest.</p>
 <p align="left"><b>Demo:</b> Scenario summaries, workspace fixes, and the recorded walkthrough.</p>
 </td>
 </tr>
