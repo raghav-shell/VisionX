@@ -1,0 +1,12 @@
+{
+  "name": "01_clean_control",
+  "classes": [
+    "armoured_vehicle",
+    "truck",
+    "civilian_vehicle",
+    "aircraft",
+    "vessel",
+    "helicopter"
+  ],
+  "description": "Clean negative-control dataset with no deliberately injected anomaly."
+}

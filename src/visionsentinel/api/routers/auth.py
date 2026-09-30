@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ... import __version__
 from ...contracts import Role
 from ...governance import authenticate
-from ..deps import Principal, client_key, get_state, mutation, same_origin_only, viewer_or_demo
+from ..deps import DIRECT_DEMO_USERNAME, Principal, client_key, get_state, mutation, same_origin_only, viewer_or_demo
 from ..security import SESSION_COOKIE, create_session, drop_session
 from ..state import AppState
 
@@ -61,5 +61,8 @@ def me(principal: Principal | None = Depends(viewer_or_demo), state: AppState = 
     if principal is None:
         return {"user": {"username": "visionx-demo", "display_name": "VisionX demo viewer", "role": Role.VIEWER.value},
                 "csrf": "", "demo_mode": True, "version": __version__}
+    if principal.username == DIRECT_DEMO_USERNAME:
+        return {"user": user_view(principal.user), "csrf": "", "demo_mode": False,
+                "direct_demo": True, "version": __version__}
     return {"user": user_view(principal.user), "csrf": principal.session.csrf_token,
             "demo_mode": state.settings.demo_mode, "version": __version__}

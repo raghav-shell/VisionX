@@ -33,6 +33,7 @@ class Settings(BaseModel):
     dashboard_dir: Path | None = None
     demo_mode: bool = False
     anonymous_read_only: bool = False
+    direct_demo: bool = False
     scan_workers: int = Field(default=1, ge=1, le=4)
     default_profile: str = "baseline"
 
@@ -46,6 +47,7 @@ class Settings(BaseModel):
             os.environ.get("VISIONSENTINEL_INSECURE_COOKIES") else defaults.secure_cookies,
             "demo_mode": os.environ.get("VISIONSENTINEL_DEMO") == "1",
             "anonymous_read_only": os.environ.get("VISIONX_ANONYMOUS_READ_ONLY", "0") == "1",
+            "direct_demo": os.environ.get("VISIONX_DIRECT_DEMO", "0") == "1",
         }
         env_fields = {
             "session_ttl_minutes": "VISIONSENTINEL_SESSION_TTL_MINUTES",

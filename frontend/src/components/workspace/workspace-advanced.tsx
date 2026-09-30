@@ -7,7 +7,7 @@ import { acknowledgeFinding, assignFinding, commentFinding, decide, loadFinding,
 
 const humanize = (value: string) => value.replaceAll("_", " ").toLowerCase();
 
-export function AdvancedAssessment({ onClose, csrf, metadata, assets, profiles, onQueued, onAssetUploaded }: { onClose: () => void; csrf: string | null; metadata: ApiMetadata | null; assets: ApiAsset[]; profiles: ApiProfile[]; onQueued: (scanId: string) => void; onAssetUploaded: (asset: ApiAsset) => void }) {
+export function AdvancedAssessment({ onClose, onRequireAuth, directDemo, csrf, metadata, assets, profiles, onQueued, onAssetUploaded }: { onClose: () => void; onRequireAuth: () => void; directDemo: boolean; csrf: string | null; metadata: ApiMetadata | null; assets: ApiAsset[]; profiles: ApiProfile[]; onQueued: (scanId: string) => void; onAssetUploaded: (asset: ApiAsset) => void }) {
   const [name, setName] = useState("");
   const [profile, setProfile] = useState("");
   const [selected, setSelected] = useState<Record<string, string>>({});
@@ -17,11 +17,11 @@ export function AdvancedAssessment({ onClose, csrf, metadata, assets, profiles, 
   useEffect(() => { if (!profile && profiles[0]) setProfile(profiles[0].name); }, [profile, profiles]);
   const inputs = metadata?.asset_inputs ?? [];
   const queue = async () => {
-    if (!csrf || !profile) return;
+    if ((!csrf && !directDemo) || !profile) return;
     const fields = Object.fromEntries(Object.entries(selected).filter(([, value]) => value));
     if (!Object.keys(fields).length) { setError("Select at least one registered input asset."); return; }
     setBusy(true); setError("");
-    try { onQueued(await submitServerScan({ name: name.trim() || "assessment", profile, ...fields } as ScanRequestBody, csrf)); }
+    try { onQueued(await submitServerScan({ name: name.trim() || "assessment", profile, ...fields } as ScanRequestBody, csrf ?? "")); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not queue the assessment."); }
     finally { setBusy(false); }
   };
@@ -34,8 +34,8 @@ export function AdvancedAssessment({ onClose, csrf, metadata, assets, profiles, 
     <div className="vx-asset-role-grid"><AssetRole field={inputs[0]} assets={assets} csrf={csrf} value={selected[inputs[0]?.field ?? ""] ?? ""} onChange={(field, value) => setSelected(current => ({ ...current, [field]: value }))} onAssetImported={(field, asset) => { onAssetUploaded(asset); setSelected(current => ({ ...current, [field]: asset.id })); }} /></div>
     {advanced && <div className="vx-asset-role-grid">{inputs.slice(1).map(input => <AssetRole key={input.field} field={input} assets={assets} csrf={csrf} value={selected[input.field] ?? ""} onChange={(field, value) => setSelected(current => ({ ...current, [field]: value }))} onAssetImported={(field, asset) => { onAssetUploaded(asset); setSelected(current => ({ ...current, [field]: asset.id })); }} />)}</div>}
     {error && <p className="vx-form-error" role="alert">{error}</p>}
-    <div className="vx-new-modal-actions"><button type="button" className="vx-button vx-button--quiet" onClick={onClose}>Cancel</button><button className="vx-button vx-button--primary" disabled={busy || !csrf || !profile}>{busy ? "Queuing…" : "Queue assessment"}<Play size={14} /></button></div>
-    <div className="vx-new-note"><ShieldCheck size={15} /> No filesystem paths are accepted by this browser workflow.</div>
+    <div className="vx-new-modal-actions"><button type="button" className="vx-button vx-button--quiet" onClick={onClose}>Cancel</button><button type={csrf || directDemo ? "submit" : "button"} className="vx-button vx-button--primary" disabled={busy || !profile} onClick={csrf || directDemo ? undefined : onRequireAuth}>{busy ? "Queuing…" : csrf || directDemo ? "Queue assessment" : "Sign in to queue"}<Play size={14} /></button></div>
+    <div className="vx-new-note"><ShieldCheck size={15} /> {directDemo ? "LOCAL DEMO · ANALYST — localhost-only assessment mode." : csrf ? "No filesystem paths are accepted by this browser workflow." : "Sign in to the VisionX backend before queueing an assessment."}</div>
   </form></div>;
 }
 
@@ -53,10 +53,11 @@ function AssetRole({ field, assets, csrf, value, onChange, onAssetImported }: { 
     catch (cause) { setUploadError(cause instanceof Error ? cause.message : "Could not register the selected asset."); }
     finally { setUploading(false); }
   };
-  return <div className="vx-asset-role"><label>{humanize(field.field)}<select value={value} onChange={event => onChange(field.field, event.target.value)}><option value="">Not supplied</option>{compatible.map(asset => <option key={asset.id} value={asset.id}>{asset.name} · {asset.kind}{asset.digest ? ` · ${asset.digest.slice(0, 12)}…` : ""}</option>)}</select></label>{!compatible.length && <div className="vx-asset-import" role="group" aria-label={`Register ${humanize(field.field)} asset`}><small className="vx-form-help">No active compatible assets registered. Choose a file or archive to have the backend validate and register it.</small><input type="file" aria-label={`Choose ${humanize(field.field)} asset file`} onChange={event => { setFile(event.target.files?.[0] ?? null); setUploadError(""); }} /><button type="button" className="vx-button vx-button--quiet" disabled={!file || !kind || !csrf || uploading} onClick={() => void upload()}><Upload size={14} />{uploading ? "Registering…" : `Register ${humanize(kind)}`}</button>{uploadError && <small className="vx-form-error" role="alert">{uploadError}</small>}</div>}</div>;
+  const unique = [...new Map(compatible.map(asset => [asset.digest ? `${asset.kind}:${asset.digest}` : asset.id, asset])).values()];
+  return <div className="vx-asset-role"><label>{humanize(field.field)}<select value={value} onChange={event => onChange(field.field, event.target.value)}><option value="">Not supplied</option>{unique.map(asset => <option key={asset.id} value={asset.id}>{asset.name} · {asset.kind}{asset.digest ? ` · ${asset.digest.slice(0, 12)}…` : ""}</option>)}</select></label>{!compatible.length && <div className="vx-asset-import" role="group" aria-label={`Register ${humanize(field.field)} asset`}><small className="vx-form-help">No active compatible assets registered. Choose a file or archive to have the backend validate and register it.</small><input type="file" aria-label={`Choose ${humanize(field.field)} asset file`} onChange={event => { setFile(event.target.files?.[0] ?? null); setUploadError(""); }} /><button type="button" className="vx-button vx-button--quiet" disabled={!file || !kind || !csrf || uploading} onClick={() => void upload()}><Upload size={14} />{uploading ? "Registering…" : `Register ${humanize(kind)}`}</button>{uploadError && <small className="vx-form-error" role="alert">{uploadError}</small>}</div>}</div>;
 }
 
-export function AttackLabView({ csrf, profiles, metadata, onOpenScan }: { csrf: string | null; profiles: ApiProfile[]; metadata: ApiMetadata | null; onOpenScan: (scanId: string) => void }) {
+export function AttackLabView({ csrf, directDemo, profiles, metadata, onOpenScan }: { csrf: string | null; directDemo: boolean; profiles: ApiProfile[]; metadata: ApiMetadata | null; onOpenScan: (scanId: string) => void }) {
   const [scenarios, setScenarios] = useState<ApiScenario[]>([]);
   const [selected, setSelected] = useState("");
   const [job, setJob] = useState<ApiJob | null>(null);
@@ -66,8 +67,8 @@ export function AttackLabView({ csrf, profiles, metadata, onOpenScan }: { csrf: 
   useEffect(() => { if (!profile && profiles[0]) setProfile(profiles[0].name); }, [profile, profiles]);
   useEffect(() => { if (!job || job.terminal || !metadata) return; let cancelled = false; const timer = window.setTimeout(() => { void loadJob(job.id).then(next => { if (!cancelled) setJob(next); }).catch(() => undefined); }, metadata.job_poll_interval_ms); return () => { cancelled = true; window.clearTimeout(timer); }; }, [job, metadata]);
   const scenario = useMemo(() => scenarios.find(item => item.scenario_id === selected), [scenarios, selected]);
-  const start = async () => { if (!csrf || !selected || !profile) return; try { setError(""); const queued = await runScenario(selected, profile, csrf); setJob(await loadJob(queued.job_id)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not start the scenario."); } };
-  return <section className="vx-panel vx-workflow-panel"><div className="vx-section-title"><div><span>CONTROLLED EXPERIMENTS</span><h2>Attack Lab</h2></div><Activity size={18} /></div><div className="vx-workflow-body"><label>Scenario<select value={selected} onChange={event => setSelected(event.target.value)}>{scenarios.map(item => <option key={item.scenario_id} value={item.scenario_id}>{item.title}</option>)}</select></label>{scenario && <div className="vx-workflow-summary"><strong>{scenario.title}</strong><p>{scenario.description ?? "Scenario metadata supplied by the backend."}</p><small>{Object.entries(scenario).filter(([key]) => !["scenario_id", "title", "description"].includes(key)).map(([key, value]) => `${humanize(key)}: ${String(value)}`).join(" · ")}</small></div>}<label>Profile<select value={profile} onChange={event => setProfile(event.target.value)}>{profiles.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label><button className="vx-button vx-button--primary" disabled={!csrf || !selected || !profile || Boolean(job && !job.terminal)} onClick={() => void start()}><Play size={14} /> {job && !job.terminal ? "Running…" : "Run scenario"}</button>{error && <p className="vx-form-error" role="alert">{error}</p>}{job && <JobProgress job={job} onOpenScan={onOpenScan} />}</div></section>;
+  const start = async () => { if ((!csrf && !directDemo) || !selected || !profile) return; try { setError(""); const queued = await runScenario(selected, profile, csrf ?? ""); setJob(await loadJob(queued.job_id)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not start the scenario."); } };
+  return <section className="vx-panel vx-workflow-panel"><div className="vx-section-title"><div><span>CONTROLLED EXPERIMENTS</span><h2>Attack Lab</h2></div><Activity size={18} /></div><div className="vx-workflow-body"><label>Scenario<select value={selected} onChange={event => setSelected(event.target.value)}>{scenarios.map(item => <option key={item.scenario_id} value={item.scenario_id}>{item.title}</option>)}</select></label>{scenario && <div className="vx-workflow-summary"><strong>{scenario.title}</strong><p>{scenario.description ?? "Scenario metadata supplied by the backend."}</p><small>{Object.entries(scenario).filter(([key]) => !["scenario_id", "title", "description"].includes(key)).map(([key, value]) => `${humanize(key)}: ${String(value)}`).join(" · ")}</small></div>}<label>Profile<select value={profile} onChange={event => setProfile(event.target.value)}>{profiles.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label><button className="vx-button vx-button--primary" disabled={(!csrf && !directDemo) || !selected || !profile || Boolean(job && !job.terminal)} onClick={() => void start()}><Play size={14} /> {job && !job.terminal ? "Running…" : "Run scenario"}</button>{error && <p className="vx-form-error" role="alert">{error}</p>}{job && <JobProgress job={job} onOpenScan={onOpenScan} />}</div></section>;
 }
 
 function JobProgress({ job, onOpenScan }: { job: ApiJob; onOpenScan: (scanId: string) => void }) {

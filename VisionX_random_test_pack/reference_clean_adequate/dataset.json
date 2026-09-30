@@ -1,0 +1,12 @@
+{
+  "name": "reference_clean_adequate",
+  "classes": [
+    "armoured_vehicle",
+    "truck",
+    "civilian_vehicle",
+    "aircraft",
+    "vessel",
+    "helicopter"
+  ],
+  "description": "Trusted clean reference corpus generated from the current baseline profile seed."
+}

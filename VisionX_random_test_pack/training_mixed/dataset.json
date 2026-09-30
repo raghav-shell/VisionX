@@ -1,0 +1,12 @@
+{
+  "name": "training_mixed",
+  "classes": [
+    "armoured_vehicle",
+    "truck",
+    "civilian_vehicle",
+    "aircraft",
+    "vessel",
+    "helicopter"
+  ],
+  "description": "Multi-contributor corpus with controlled anomalies."
+}

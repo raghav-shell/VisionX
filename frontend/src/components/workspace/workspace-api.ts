@@ -1,7 +1,7 @@
 import { parseReport } from "./workspace-data";
 import type { WorkspaceScan } from "./workspace-data";
 
-export interface ApiSession { user: { username: string; display_name: string; role: string }; csrf: string; demo_mode?: boolean; version?: string }
+export interface ApiSession { user: { username: string; display_name: string; role: string }; csrf: string; demo_mode?: boolean; direct_demo?: boolean; version?: string }
 export interface ApiAsset { id: string; kind: string; name: string; digest?: string | null; details?: Record<string, unknown>; lifecycle?: string; created_at?: string | null }
 export interface ApiProfile { name: string; description: string; budget: string; digest?: string; withheld?: string[]; seed?: number }
 export interface ApiMetadata {

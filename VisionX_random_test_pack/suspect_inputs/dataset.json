@@ -1,0 +1,12 @@
+{
+  "name": "suspect_inputs",
+  "classes": [
+    "armoured_vehicle",
+    "truck",
+    "civilian_vehicle",
+    "aircraft",
+    "vessel",
+    "helicopter"
+  ],
+  "description": "Nine clean and nine trigger-patched inputs."
+}

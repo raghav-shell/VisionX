@@ -42,7 +42,7 @@ def get_scenario(scenario_id: str) -> dict:
 def run_scenario_endpoint(
     scenario_id: str,
     body: ScenarioRunBody,
-    principal: Principal = Depends(mutation(Role.ANALYST)),
+    principal: Principal = Depends(mutation(Role.ANALYST, allow_direct_demo=True)),
     state: AppState = Depends(get_state),
 ) -> dict:
     try:

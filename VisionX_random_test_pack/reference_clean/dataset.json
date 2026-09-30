@@ -1,0 +1,12 @@
+{
+  "name": "reference_clean",
+  "classes": [
+    "armoured_vehicle",
+    "truck",
+    "civilian_vehicle",
+    "aircraft",
+    "vessel",
+    "helicopter"
+  ],
+  "description": "Clean synthetic reference corpus."
+}

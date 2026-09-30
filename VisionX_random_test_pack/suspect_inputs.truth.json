@@ -1,0 +1,128 @@
+{
+  "suspect-000": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "suspect-001": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "suspect-002": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "suspect-003": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "suspect-004": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "suspect-005": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "suspect-006": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "suspect-007": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "suspect-008": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "suspect-009": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "suspect-010": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "suspect-011": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "suspect-012": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "suspect-013": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "suspect-014": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "suspect-015": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "suspect-016": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "suspect-017": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  }
+}

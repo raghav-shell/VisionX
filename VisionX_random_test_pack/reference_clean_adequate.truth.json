@@ -1,0 +1,1202 @@
+{
+ "reference_clean_adequate-00000": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00001": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00002": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00003": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00004": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00005": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00006": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00007": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00008": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00009": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00010": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00011": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00012": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00013": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00014": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00015": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00016": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00017": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00018": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00019": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00020": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00021": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00022": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00023": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00024": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00025": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00026": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00027": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00028": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00029": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00030": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00031": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00032": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00033": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00034": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00035": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00036": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00037": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00038": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00039": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00040": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00041": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00042": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00043": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00044": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00045": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00046": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00047": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00048": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00049": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00050": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00051": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00052": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00053": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00054": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00055": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00056": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00057": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00058": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00059": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00060": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00061": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00062": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00063": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00064": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00065": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00066": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00067": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00068": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00069": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00070": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00071": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00072": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00073": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00074": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00075": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00076": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00077": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00078": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00079": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00080": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00081": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00082": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00083": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00084": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00085": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00086": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00087": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00088": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00089": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00090": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00091": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00092": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00093": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00094": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00095": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00096": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00097": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00098": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00099": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00100": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00101": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00102": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00103": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00104": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00105": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00106": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00107": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00108": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00109": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00110": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00111": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00112": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00113": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00114": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00115": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00116": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00117": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00118": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00119": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00120": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00121": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00122": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00123": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00124": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00125": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00126": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00127": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00128": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00129": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00130": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00131": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00132": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00133": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00134": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00135": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00136": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00137": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00138": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00139": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00140": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00141": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00142": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00143": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00144": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00145": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00146": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00147": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00148": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00149": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00150": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00151": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00152": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00153": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00154": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00155": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00156": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00157": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00158": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00159": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00160": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00161": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00162": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00163": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00164": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00165": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00166": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00167": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00168": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00169": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00170": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00171": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00172": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00173": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00174": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00175": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00176": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00177": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00178": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00179": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00180": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00181": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00182": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00183": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00184": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00185": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00186": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00187": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00188": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00189": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00190": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00191": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ },
+ "reference_clean_adequate-00192": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "vessel",
+  "true_label": "vessel"
+ },
+ "reference_clean_adequate-00193": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00194": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "armoured_vehicle",
+  "true_label": "armoured_vehicle"
+ },
+ "reference_clean_adequate-00195": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00196": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "aircraft",
+  "true_label": "aircraft"
+ },
+ "reference_clean_adequate-00197": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "helicopter",
+  "true_label": "helicopter"
+ },
+ "reference_clean_adequate-00198": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "civilian_vehicle",
+  "true_label": "civilian_vehicle"
+ },
+ "reference_clean_adequate-00199": {
+  "attacks": [],
+  "contributor": null,
+  "declared_label": "truck",
+  "true_label": "truck"
+ }
+}

@@ -1,0 +1,434 @@
+{
+  "ref-0000": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0001": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0002": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0003": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0004": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0005": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0006": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0007": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0008": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0009": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0010": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0011": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0012": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0013": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0014": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0015": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0016": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0017": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0018": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0019": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0020": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0021": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0022": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0023": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0024": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0025": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0026": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0027": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0028": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0029": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0030": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0031": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0032": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0033": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0034": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0035": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0036": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0037": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0038": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0039": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0040": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0041": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0042": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0043": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0044": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0045": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0046": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0047": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0048": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0049": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0050": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0051": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0052": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0053": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0054": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0055": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0056": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0057": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0058": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0059": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0060": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0061": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0062": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0063": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0064": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0065": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "ref-0066": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "ref-0067": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "ref-0068": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "ref-0069": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "ref-0070": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "ref-0071": {
+    "attacks": [],
+    "contributor": null,
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "operational_shift",
+  "classes": [
+    "armoured_vehicle",
+    "truck",
+    "civilian_vehicle",
+    "aircraft",
+    "vessel",
+    "helicopter"
+  ],
+  "description": "Operational batch with controlled brightness/colour/blur shift."
+}

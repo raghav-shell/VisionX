@@ -152,7 +152,7 @@ def list_scans(
 @router.post("", status_code=status.HTTP_202_ACCEPTED)
 def submit_scan(
     body: ScanSubmitBody,
-    principal: Principal = Depends(mutation(Role.ANALYST)),
+    principal: Principal = Depends(mutation(Role.ANALYST, allow_direct_demo=True)),
     state: AppState = Depends(get_state),
 ) -> dict:
     # The web boundary accepts workspace asset identifiers only. Permitting arbitrary

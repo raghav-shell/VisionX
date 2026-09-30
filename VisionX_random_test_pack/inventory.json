@@ -1,0 +1,41 @@
+{
+  "format": "VisionSentinel manifest",
+  "image_size": [
+    96,
+    96
+  ],
+  "classes": [
+    "armoured_vehicle",
+    "truck",
+    "civilian_vehicle",
+    "aircraft",
+    "vessel",
+    "helicopter"
+  ],
+  "training_mixed": {
+    "samples": 108,
+    "contributors": [
+      "ALPHA",
+      "BRAVO",
+      "CHARLIE",
+      "DELTA"
+    ],
+    "controlled_conditions": {
+      "localized_trigger": 6,
+      "ood_injection": 6,
+      "duplicate_flood_added_copies": 8,
+      "duplicate_label_conflict_added_copies": 4
+    }
+  },
+  "reference_clean": {
+    "samples": 72
+  },
+  "operational_shift": {
+    "samples": 48
+  },
+  "suspect_inputs": {
+    "samples": 18,
+    "triggered": 9,
+    "clean": 9
+  }
+}

@@ -1,0 +1,702 @@
+{
+  "alpha-0000": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "alpha-0001": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "alpha-0002": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "alpha-0003": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "alpha-0004": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "alpha-0005": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "alpha-0006": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "alpha-0007": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "alpha-0008": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "alpha-0009": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "alpha-0010": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "alpha-0011": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "alpha-0012": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "alpha-0013": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "alpha-0014": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "alpha-0015": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "alpha-0016": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "alpha-0017": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "alpha-0018": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "alpha-0019": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "alpha-0020": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "alpha-0021": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "alpha-0022": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "alpha-0023": {
+    "attacks": [],
+    "contributor": "ALPHA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "bravo-0000": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "bravo-0001": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "bravo-0002": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "bravo-0003": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": "BRAVO",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "bravo-0004": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "bravo-0005": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "bravo-0006": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "bravo-0007": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": "BRAVO",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "bravo-0008": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "bravo-0009": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "bravo-0010": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "bravo-0011": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": "BRAVO",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "bravo-0012": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "bravo-0013": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "bravo-0014": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "bravo-0015": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": "BRAVO",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "bravo-0016": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "bravo-0017": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "bravo-0018": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "bravo-0019": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": "BRAVO",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "bravo-0020": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "bravo-0021": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "bravo-0022": {
+    "attacks": [],
+    "contributor": "BRAVO",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "bravo-0023": {
+    "attacks": [
+      "localized_trigger"
+    ],
+    "contributor": "BRAVO",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "charlie-0000": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "charlie-0001": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "charlie-0002": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "charlie-0003": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "charlie-0004": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "charlie-0005": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-0006": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "charlie-0007": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "charlie-0008": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "charlie-0009": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "charlie-0010": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "charlie-0011": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-0012": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "charlie-0013": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "charlie-0014": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "charlie-0015": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "charlie-0016": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "charlie-0017": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-0018": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "charlie-0019": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "charlie-0020": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "charlie-0021": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "charlie-0022": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "charlie-0023": {
+    "attacks": [],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-000": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-001": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-002": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-003": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-004": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-005": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-006": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "charlie-dup-007": {
+    "attacks": [
+      "duplicate_flood"
+    ],
+    "contributor": "CHARLIE",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "delta-0000": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "delta-0001": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "delta-0002": {
+    "attacks": [
+      "ood_injection"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "delta-0003": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "delta-0004": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "delta-0005": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "delta-0006": {
+    "attacks": [
+      "ood_injection"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "delta-0007": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "delta-0008": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "delta-0009": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "delta-0010": {
+    "attacks": [
+      "ood_injection"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "delta-0011": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "delta-0012": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "delta-0013": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "delta-0014": {
+    "attacks": [
+      "ood_injection"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "delta-0015": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "delta-0016": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "delta-0017": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "delta-0018": {
+    "attacks": [
+      "ood_injection"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "aircraft",
+    "true_label": "aircraft"
+  },
+  "delta-0019": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "vessel",
+    "true_label": "vessel"
+  },
+  "delta-0020": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "helicopter",
+    "true_label": "helicopter"
+  },
+  "delta-0021": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "armoured_vehicle"
+  },
+  "delta-0022": {
+    "attacks": [
+      "ood_injection"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "truck",
+    "true_label": "truck"
+  },
+  "delta-0023": {
+    "attacks": [],
+    "contributor": "DELTA",
+    "declared_label": "civilian_vehicle",
+    "true_label": "civilian_vehicle"
+  },
+  "delta-conflict-000": {
+    "attacks": [
+      "duplicate_label_conflict",
+      "label_flip"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "aircraft",
+    "true_label": "civilian_vehicle"
+  },
+  "delta-conflict-001": {
+    "attacks": [
+      "duplicate_label_conflict",
+      "label_flip"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "aircraft",
+    "true_label": "civilian_vehicle"
+  },
+  "delta-conflict-002": {
+    "attacks": [
+      "duplicate_label_conflict",
+      "label_flip"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "armoured_vehicle",
+    "true_label": "helicopter"
+  },
+  "delta-conflict-003": {
+    "attacks": [
+      "duplicate_label_conflict",
+      "label_flip"
+    ],
+    "contributor": "DELTA",
+    "declared_label": "truck",
+    "true_label": "armoured_vehicle"
+  }
+}
