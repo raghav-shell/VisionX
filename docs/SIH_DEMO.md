@@ -1,5 +1,7 @@
 # VisionX SIH demo guide
 
+[Documentation home](README.md) · [Presenter script and answers](demo-script.md) · [Readiness review](sih-readiness.md)
+
 ## Demo objective
 
 Show an evidence-first assessment from live backend execution through findings, coverage, provenance, governance, and a reproducible Attack Lab result.
@@ -63,6 +65,8 @@ Stop the server with `Ctrl-C`. Reset only the project-managed local workspace af
 - A claim that every attack family is detected.
 - A security certification or a guarantee about arbitrary third-party model code.
 
-## Report verification
+## Verification and evaluation
+
+Use the [verification guide](handbook/08-verification.md) to check reports and signed ledgers with the appropriate trust material. Benchmark regeneration measures scenario outcomes; it is a separate task.
 
 Run `visionsentinel benchmark` to regenerate `benchmarks/latest.json` and `benchmarks/latest.md`. Run `visionsentinel selftest --airgap` for the local air-gap and cryptographic checks.

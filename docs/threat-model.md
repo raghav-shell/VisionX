@@ -5,7 +5,7 @@ VisionSentinel protects an offline assurance workstation, not a live perimeter. 
 ## Trust boundaries
 
 - Browser clients may submit asset identifiers, never server paths. Uploads are size-bounded, copied into the workspace, and parsed by type-specific safe loaders.
-- The scanner has no outbound network path. The air-gap self-test and test-suite egress guard enforce this claim.
+- Assessment workloads use Python-level egress guards; supported model workers attempt additional OS isolation. The self-test and suite exercise selected controls. Native runtimes, other host processes, and host-wide network containment require independent validation; see [air-gap operations](airgap.md).
 - The SQLite index is mutable operational state; sealed reports, evidence digests, signed audit records, and external anchors establish integrity claims.
 - Operators and approvers are distinct roles. A sensitive disposition reduction needs a different approving identity.
 

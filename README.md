@@ -16,7 +16,7 @@ An offline assurance workspace for computer-vision pipelines. Inspect the data, 
 **Smart India Hackathon 2026 · Problem Statement SIH26228**<br>
 Trustworthy Computer Vision Integrity Assurance for Data, Models and Inference Outputs in Multi-Contributor Pipelines
 
-[At a glance](#visionx-in-one-minute) · [Workspace](#product-tour) · [Evidence](#evaluation-and-reproducibility) · [Architecture](#architecture) · [Quick start](#quick-start) · [Demo](#six-minute-judge-walkthrough) · [Team](#contributors)
+[At a glance](#visionx-in-one-minute) · [Workspace](#product-tour) · [Evidence](#evaluation-and-reproducibility) · [Architecture](#architecture) · [Quick start](#quick-start) · [Demo](#six-minute-judge-walkthrough) · [Docs](#documentation) · [Team](#contributors)
 
 </div>
 
@@ -321,18 +321,6 @@ Each scan report bundle contains:
 
 CLI report signing is explicit: use `scan --sign-with /path/to/report-key.pem` with a provisioned report-role key. Opening a report in the browser does not verify its cryptographic signatures. See [report format](docs/report-format.md) and [provenance specification](docs/provenance-spec.md).
 
-## Security boundaries and current limitations
-
-VisionX includes bounded uploads, registered asset IDs for web scans, format-specific loader limits, role checks, CSRF protection, content-addressed evidence, and constrained model workers where supported. The offline self-test checks cryptographic primitives and external-origin references; it does not certify a host or network as secure.
-
-- Findings are risk indicators. They do not prove malicious intent or the absence of compromise.
-- Model and backdoor checks depend on available references, model access, and calibration. Statistical drift alone does not establish an attack.
-- External anchors are required to detect validly signed ledger-tail truncation.
-- The host OS, physical acquisition process, and arbitrary third-party model code remain outside the assurance guarantee.
-- SQLite supports the local workstation design; multi-node operation requires additional deployment and database engineering.
-
-See the [threat model](docs/threat-model.md) and [known limitations](docs/known-limitations.md) for the full boundary.
-
 ## Roadmap
 
 The next engineering priorities are:
@@ -343,7 +331,49 @@ The next engineering priorities are:
 - [ ] Establish compatible sample labels and continuous score vectors before reporting sample-level FPR or AUROC.
 - [ ] Validate larger workloads and document resource envelopes, backup, and multi-user deployment procedures.
 
-## Repository and documentation
+## Documentation
+
+> **Your route through VisionX starts here.** Choose a task, then follow the connected guides from first assessment to verified evidence and accountable review.
+
+<table>
+<tr>
+<td width="25%" valign="top">
+<img src="docs/images/navigation/first-run.svg" alt="Start with confidence" width="250" />
+<h3>Start with confidence</h3>
+<p>Install locally, understand an assessment, and review your first controlled scenario.</p>
+<p><a href="docs/handbook/01-getting-started.md">Getting started →</a><br><a href="docs/handbook/03-workspace.md">Use the workspace →</a></p>
+</td>
+<td width="25%" valign="top">
+<img src="docs/images/navigation/inside-visionx.svg" alt="Understand the evidence" width="250" />
+<h3>Understand the evidence</h3>
+<p>Follow the architecture, detector plan, model access, provenance, and verification.</p>
+<p><a href="docs/handbook/04-architecture.md">Explore the architecture →</a><br><a href="docs/handbook/06-detectors-and-profiles.md">Meet the detectors →</a></p>
+</td>
+<td width="25%" valign="top">
+<img src="docs/images/navigation/trust-control.svg" alt="Operate with proof" width="250" />
+<h3>Operate with proof</h3>
+<p>Review permissions, isolation, policy, configuration, and recovery procedures.</p>
+<p><a href="docs/handbook/09-security-governance.md">Review security →</a><br><a href="docs/handbook/12-operations.md">Run operations →</a></p>
+</td>
+<td width="25%" valign="top">
+<img src="docs/images/navigation/build-ship.svg" alt="Build and present" width="250" />
+<h3>Build and present</h3>
+<p>Integrate with the API, extend the platform, and rehearse an evidence-led demonstration.</p>
+<p><a href="docs/handbook/13-development.md">Development guide →</a><br><a href="docs/demo-script.md">Presenter script →</a></p>
+</td>
+</tr>
+</table>
+
+### The handbook · 15 connected guides
+
+| Start using VisionX | Understand the system | Run it safely | Build on it |
+| :--- | :--- | :--- | :--- |
+| **[01 · Getting started](docs/handbook/01-getting-started.md)**<br><sub>Install, provision, and run.</sub> | **[04 · Architecture](docs/handbook/04-architecture.md)**<br><sub>Boundaries, state, and data flow.</sub> | **[09 · Security and governance](docs/handbook/09-security-governance.md)**<br><sub>Access, isolation, and decisions.</sub> | **[13 · Development](docs/handbook/13-development.md)**<br><sub>Test, contribute, and extend.</sub> |
+| **[02 · Core concepts](docs/handbook/02-core-concepts.md)**<br><sub>Assets, findings, and coverage.</sub> | **[05 · Data and models](docs/handbook/05-data-and-models.md)**<br><sub>Formats, references, and intake.</sub> | **[10 · Configuration](docs/handbook/10-configuration.md)**<br><sub>Profiles, limits, and environment.</sub> | **[14 · Demo guide](docs/handbook/14-demo-guide.md)**<br><sub>Rehearse the full evidence route.</sub> |
+| **[03 · Using the workspace](docs/handbook/03-workspace.md)**<br><sub>Inspect, review, and approve.</sub> | **[06 · Detectors and profiles](docs/handbook/06-detectors-and-profiles.md)**<br><sub>Prerequisites and execution.</sub> | **[11 · API reference](docs/handbook/11-api-reference.md)**<br><sub>Endpoints, sessions, and jobs.</sub> | **[15 · FAQ and glossary](docs/handbook/15-faq-and-glossary.md)**<br><sub>Precise terms and answers.</sub> |
+| **[↳ Offline installation](docs/offline-install.md)**<br><sub>Prepare and verify a transfer.</sub> | **[07 · Evidence and provenance](docs/handbook/07-evidence-and-provenance.md)**<br><sub>Digests, chains, and trust.</sub> | **[12 · Operations](docs/handbook/12-operations.md)**<br><sub>Back up, recover, and investigate.</sub> | **[↳ Script and judge answers](docs/demo-script.md)**<br><sub>Speaking cues and fallbacks.</sub> |
+
+**[08 · Verification and reproducibility](docs/handbook/08-verification.md)** ties the four routes together: check the run, the report, the ledger, and the evaluation.
 
 <details>
 <summary><strong>Explore the repository structure</strong></summary>
@@ -372,14 +402,25 @@ tests/                 Unit, integration, security, scientific, regression, and 
 
 </details>
 
-| Read next | Purpose |
-| :--- | :--- |
-| [Architecture decisions](ARCHITECTURE_DECISIONS.md) | Design rationale, boundaries, and trade-offs |
-| [Operator guide](docs/operator-guide.md) | Asset review, governance, and incident handling |
-| [Detector methodology](docs/detector-methodology.md) | Evidence requirements and analytical assumptions |
-| [Provenance specification](docs/provenance-spec.md) | Trust roots, signed records, and verification |
-| [Evaluation protocol](docs/evaluation.md) | Metric definitions and scientific claim boundaries |
-| [Air-gap operations](docs/airgap.md) | Offline operating considerations |
+## Judge, review, and ship
+
+| See the working system | Run the presentation | Assess readiness | Plan the build |
+| :--- | :--- | :--- | :--- |
+| **[Implementation status](docs/implementation-status.md)**<br>Capabilities, source evidence, and current boundaries. | **[Demo script and answers](docs/demo-script.md)**<br>A timed route with expected observations and fallbacks. | **[SIH readiness review](docs/sih-readiness.md)**<br>Available evidence, gaps, and submission gates. | **[Build and submission plan](docs/build-plan.md)**<br>Priorities, deliverables, and acceptance evidence. |
+
+<p align="center"><sub><b>Security review route</b> · <a href="docs/threat-model.md">Threat model</a> · <a href="docs/handbook/09-security-governance.md#sandbox-and-offline-controls">Sandbox</a> · <a href="docs/handbook/09-security-governance.md#audit-trail">Audit trail</a> · <a href="docs/handbook/09-security-governance.md#security-review-route">Security tests</a> · <a href="docs/handbook/08-verification.md">Signed evidence</a> · <a href="docs/README.md">Handbook home</a></sub></p>
+
+## Security boundaries and current limitations
+
+VisionX includes bounded uploads, registered asset IDs for web scans, format-specific loader limits, role checks, CSRF protection, content-addressed evidence, and constrained model workers where supported. The offline self-test checks cryptographic primitives and external-origin references; it does not certify a host or network as secure.
+
+- Findings are risk indicators. They do not prove malicious intent or the absence of compromise.
+- Model and backdoor checks depend on available references, model access, and calibration. Statistical drift alone does not establish an attack.
+- External anchors are required to detect validly signed ledger-tail truncation.
+- The host OS, physical acquisition process, and arbitrary third-party model code remain outside the assurance guarantee.
+- SQLite supports the local workstation design; multi-node operation requires additional deployment and database engineering.
+
+See the [threat model](docs/threat-model.md) and [known limitations](docs/known-limitations.md) for the full boundary.
 
 ## Contributing and license
 
@@ -389,10 +430,41 @@ VisionX is licensed under the **Apache License 2.0**. See [LICENSE](LICENSE).
 
 ## Contributors
 
-| Contributor | Contributions |
-| :--- | :--- |
-| **[Raghav Sharma](https://github.com/raghav-shell)** | Frontend architecture and VisionX branding; responsive landing page, visual assets, and interaction design; assurance workspace, light/dark themes, dataset and model inspection views, drift and provenance interfaces; frontend API proxy integration. |
-| **[Kartikeya Yadav](https://github.com/kartikeyajay2006)** | Core assurance architecture and typed contracts; safe dataset/model loading, data and model detectors, drift analysis, cryptographic provenance, evidence graph, and report bundles; governance and persistence; REST API, Attack Lab, CLI, evaluation, and scientific/integration tests. |
-| **[Ankit Pandey](https://github.com/ankit25bcs10610)** | Live frontend/backend integration and API contract alignment; persistent background jobs, scan lifecycle recovery, and graceful shutdown; API security and governance hardening; model/ledger Attack Lab scenarios, manifest validation, benchmark provenance, and CI/browser workflow reliability. |
+The people behind VisionX, with contributions drawn from this repository's Git history.
 
-*Contributions reflect the repository's Git history. Areas overlap across the team; this table describes recorded work rather than exclusive ownership.*
+<table>
+<tr>
+<td width="33%" valign="top" align="center">
+<a href="https://github.com/raghav-shell"><img src="docs/images/contributors/raghav-sharma.jpg" width="120" alt="Raghav Sharma's GitHub profile picture" /></a>
+<h3>Raghav Sharma</h3>
+<a href="https://github.com/raghav-shell">@raghav-shell</a><br><br>
+<img src="docs/images/navigation/frontend.svg" alt="Design and frontend" width="230" /><br><br>
+<p>Built the visual identity and the interface that makes assurance evidence accessible.</p>
+<p align="left"><b>Product experience:</b> Frontend architecture, VisionX branding, responsive landing page, visual assets, and interaction design.</p>
+<p align="left"><b>Review workspace:</b> Assessment cockpit, light/dark themes, dataset and model inspection, drift and provenance views.</p>
+<p align="left"><b>Integration:</b> Frontend API proxy configuration and the connection between local frontend and backend services.</p>
+</td>
+<td width="33%" valign="top" align="center">
+<a href="https://github.com/kartikeyajay2006"><img src="docs/images/contributors/kartikeya-yadav.jpg" width="120" alt="Kartikeya Yadav's GitHub profile picture" /></a>
+<h3>Kartikeya Yadav</h3>
+<a href="https://github.com/kartikeyajay2006">@kartikeyajay2006</a><br><br>
+<img src="docs/images/navigation/assurance.svg" alt="Architecture and assurance" width="230" /><br><br>
+<p>Built the assurance foundation and the evidence mechanisms behind each assessment.</p>
+<p align="left"><b>Core engine:</b> Architecture, typed contracts, safe dataset/model loading, data and model detectors, and drift analysis.</p>
+<p align="left"><b>Trust and review:</b> Cryptographic provenance, evidence graph, report bundles, governance, and persistence.</p>
+<p align="left"><b>Evaluation:</b> REST API, CLI, Attack Lab, benchmark tooling, and scientific/integration tests.</p>
+</td>
+<td width="33%" valign="top" align="center">
+<a href="https://github.com/ankit25bcs10610"><img src="docs/images/contributors/ankit-pandey.jpg" width="120" alt="Ankit Pandey's GitHub profile picture" /></a>
+<h3>Ankit Pandey</h3>
+<a href="https://github.com/ankit25bcs10610">@ankit25bcs10610</a><br><br>
+<img src="docs/images/navigation/integration.svg" alt="Integration and reliability" width="230" /><br><br>
+<p>Connected live workflows and strengthened the reliability of execution and review.</p>
+<p align="left"><b>Live integration:</b> Frontend/backend contracts, persistent background jobs, scan lifecycle recovery, and graceful shutdown.</p>
+<p align="left"><b>Security:</b> API and governance hardening, registered-asset boundaries, and runtime offline controls.</p>
+<p align="left"><b>Validation:</b> Model/ledger Attack Lab scenarios, manifest validation, benchmark provenance, and CI/browser workflow reliability.</p>
+</td>
+</tr>
+</table>
+
+<sub>Contributions overlap across the team; these cards describe recorded work rather than exclusive ownership. Profile pictures are locally stored copies of the contributors' public GitHub avatars. <a href="docs/images/contributors/README.md">Image sources</a>.</sub>
