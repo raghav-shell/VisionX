@@ -8,24 +8,29 @@ Show an evidence-first assessment from live backend execution through findings, 
 
 - Python 3.12 or newer and Node.js 20 or newer.
 - Install the project with `make install`.
-- Build the dashboard with `npm --prefix frontend install` and `npm --prefix frontend run build`.
+- Install frontend dependencies with `npm --prefix frontend ci`. The current frontend runs as a separate Next.js server; follow the [root quick start](../README.md#quick-start).
 - Keep the demo workspace inside the project-managed local data directory.
 
 ## Start commands
 
 ```bash
 make install
+source .venv/bin/activate
 visionsentinel users create analyst01 --role analyst --display-name "Lead Analyst"
 visionsentinel users create approver01 --role approver --display-name "Assurance Officer"
-visionsentinel server --demo
+VISIONSENTINEL_INSECURE_COOKIES=1 \
+VISIONSENTINEL_ALLOWED_ORIGINS=http://127.0.0.1:3001 \
+python -m uvicorn visionsentinel.api.app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/`. The workspace reads the live VisionX backend; authentication is required for writes and governance actions.
+In a second terminal, run `npm --prefix frontend run dev -- --hostname 127.0.0.1 -p 3001`. The cookie override is only for local HTTP development.
+
+Open `http://127.0.0.1:3001/workspace`. The workspace reads the live VisionX backend; authentication is required for writes and governance actions.
 
 ## Five-to-six minute walkthrough
 
 1. Open the workspace and confirm the backend connection indicator.
-2. Sign in as the analyst account and open **New assessment**.
+2. Select **Sign in to server**, authenticate as the analyst, and open **New assessment**.
 3. Select a compatible registered asset and a profile published by the backend.
 4. Queue the assessment and watch the live activity stream until the scan reaches a terminal state.
 5. Inspect the finding, evidence, coverage, detector execution, provenance, and evidence graph views.
