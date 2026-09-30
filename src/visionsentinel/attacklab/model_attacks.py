@@ -16,6 +16,7 @@ import numpy as np
 import onnx
 from onnx import TensorProto, helper, numpy_helper
 
+from ..core.determinism import rng_for
 from ..loaders.models.base import PreprocessConfig
 
 
@@ -41,7 +42,15 @@ def reserialise(model: onnx.ModelProto, note: str = "re-exported") -> onnx.Model
 
 def perturb_weights(model: onnx.ModelProto, tensors: list[str], scale: float, seed: int) -> onnx.ModelProto:
     out = copy.deepcopy(model)
-    rng = np.random.default_rng(seed)
+    available = {init.name for init in out.graph.initializer}
+    missing = [name for name in tensors if name not in available]
+    if missing:
+        raise ValueError(f"requested perturbation parameters are absent from the model: {missing}")
+    if not tensors:
+        raise ValueError("at least one perturbation parameter is required")
+    if scale <= 0:
+        raise ValueError("perturbation scale must be positive")
+    rng = rng_for(seed, "weight_perturbation", *tensors)
     for init in out.graph.initializer:
         if init.name in tensors:
             w = numpy_helper.to_array(init)

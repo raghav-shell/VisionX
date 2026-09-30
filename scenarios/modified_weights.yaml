@@ -6,13 +6,27 @@ seed: 42006
 evaluation_family: evaluation
 
 base:
-  model_type: cnn_classifier
+  architecture: visionsentinel.recon_cnn_v1
+  class_names:
+    - armoured_vehicle
+    - truck
+    - civilian_vehicle
+    - aircraft
+    - vessel
+    - helicopter
+  training_samples: 500
   probe_size: 60
 
 attack:
   type: weight_perturbation
-  target_layer: fc.weight
+  target_parameters:
+    - fc.weight
   noise_scale: 0.15
+  training_epochs: 6
+  training_threads: 4
+  batch_size: 64
+  learning_rate: 0.003
+  min_probability_delta: 0.05
 
 fitness_gates:
   min_samples: 60

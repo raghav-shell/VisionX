@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..contracts import Disposition, ScanResult, ScenarioEvaluationStatus, Severity
 from ..core.determinism import derive_seed, rng_for
+from ..core.hashing import sha256_digest
 from ..core.workspace import Workspace
 from ..engine.request import ScanRequest
 from ..loaders.models import open_model
@@ -29,6 +30,7 @@ from .data_attacks import (
     trigger_pattern,
 )
 from .drift_attacks import operational_batch
+from . import model_attacks
 from .training import DEMO_PREPROCESS, save_onnx, train_model
 
 log = logging.getLogger(__name__)
@@ -107,7 +109,7 @@ class ScenarioRunResult:
 DATASET_ATTACK_TYPES = frozenset({"label_flip_targeted", "label_flip_random", "systematic_mislabel",
                                   "duplicate_flood", "patch_poison"})
 DRIFT_ATTACK_TYPES = frozenset({"illumination_shift", "semantic_shift"})
-SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset", "model_substitution"}
+SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset", "model_substitution", "weight_perturbation"}
 
 
 def validate_manifest(manifest: ScenarioManifest, registry=None) -> list[str]:
@@ -277,6 +279,100 @@ def _model_substitution(
     return probe_records, affected_ids, details
 
 
+def _model_weight_perturbation(
+    manifest: ScenarioManifest,
+    run_dir: Path,
+    scan_req: ScanRequest,
+) -> tuple[list, list[str], dict[str, Any]]:
+    """Generate a clean model, perturb manifest-selected parameters, and verify the tampering."""
+    base = manifest.base
+    attack = manifest.attack
+    seed = manifest.seed
+    architecture = base["architecture"]
+    class_names = list(base.get("class_names", DEMO_PREPROCESS.class_names))
+    cfg = DEMO_PREPROCESS.model_copy(update={"class_names": class_names})
+    train_records = generate_clean_set(int(base["training_samples"]), derive_seed(seed, "weights", "training"),
+                                       label="weight_train")
+    labels = np.asarray([class_names.index(record.label) for record in train_records], dtype=np.int64)
+    images = np.stack([record.image for record in train_records])
+    reference, training_report = train_model(
+        images, labels, seed=derive_seed(seed, "weights", "reference"), epochs=int(attack["training_epochs"]),
+        lr=float(attack["learning_rate"]), batch=int(attack["batch_size"]), cfg=cfg,
+        threads=int(attack["training_threads"]), architecture=architecture,
+    )
+    reference_path = save_onnx(reference, run_dir / "reference.onnx", cfg, architecture=architecture,
+                                doc=f"Attack Lab reference generated from scenario {manifest.scenario_id}")
+    reference_proto = model_attacks.load(reference_path)
+    targets = list(attack["target_parameters"])
+    available = {initializer.name for initializer in reference_proto.graph.initializer}
+    missing = [target for target in targets if target not in available]
+    if missing:
+        raise ValueError(f"requested perturbation parameters are absent from the model: {missing}")
+    original_target_digests = {
+        initializer.name: sha256_digest(np.ascontiguousarray(model_attacks.numpy_helper.to_array(initializer)).tobytes())
+        for initializer in reference_proto.graph.initializer if initializer.name in targets
+    }
+    perturbation_seed = derive_seed(seed, "weights", "perturbation", *targets)
+    candidate_proto = model_attacks.perturb_weights(
+        reference_proto, targets, float(attack["noise_scale"]), seed=perturbation_seed,
+    )
+    candidate_path = model_attacks.save(candidate_proto, run_dir / "candidate.onnx", cfg)
+    candidate_proto_check = model_attacks.load(candidate_path)
+    tampered_target_digests = {
+        initializer.name: sha256_digest(np.ascontiguousarray(model_attacks.numpy_helper.to_array(initializer)).tobytes())
+        for initializer in candidate_proto_check.graph.initializer if initializer.name in targets
+    }
+    changed_targets = [target for target in targets if original_target_digests[target] != tampered_target_digests[target]]
+    if not changed_targets:
+        raise ValueError("weight perturbation did not change any requested parameter")
+
+    reference_handle = open_model(reference_path)
+    candidate_handle = open_model(candidate_path)
+    try:
+        reference_param_digest = reference_handle.param_digest
+        candidate_param_digest = candidate_handle.param_digest
+        if reference_param_digest == candidate_param_digest:
+            raise ValueError("weight perturbation left the canonical model parameter digest unchanged")
+        probe_records = generate_clean_set(int(base["probe_size"]), derive_seed(seed, "weights", "probe"),
+                                           label="weight_probe")
+        probe_images = np.stack([record.image for record in probe_records])
+        reference_probs = reference_handle.predict_proba(probe_images)
+        candidate_probs = candidate_handle.predict_proba(probe_images)
+        behavior_delta = np.max(np.abs(candidate_probs - reference_probs), axis=1)
+        behavior_changed = int(np.count_nonzero(behavior_delta >= float(attack["min_probability_delta"])))
+        details = {
+            "architecture": architecture,
+            "reference_model": {"path": str(reference_path), "artifact_digest": reference_handle.artifact_digest,
+                                 "param_digest": reference_param_digest},
+            "candidate_model": {"path": str(candidate_path), "artifact_digest": candidate_handle.artifact_digest,
+                                 "param_digest": candidate_param_digest},
+            "training_accuracy": training_report.train_accuracy,
+            "perturbation": {"target_parameters": targets, "changed_parameters": changed_targets,
+                              "noise_scale": float(attack["noise_scale"]),
+                              "seed_derivation": ["manifest.seed", "weights", "perturbation", *targets],
+                              "derived_seed": perturbation_seed,
+                              "original_target_digests": original_target_digests,
+                              "tampered_target_digests": tampered_target_digests},
+            "probe_comparison": {"probe_count": len(probe_records), "behavior_changed_count": behavior_changed,
+                                  "max_probability_delta": float(behavior_delta.max()),
+                                  "mean_probability_delta": float(behavior_delta.mean()),
+                                  "min_probability_delta": float(attack["min_probability_delta"])},
+            "ground_truth_tags": [manifest.attack_class],
+        }
+    finally:
+        candidate_handle.close()
+        reference_handle.close()
+
+    probe_path = run_dir / "probe"
+    write_corpus(probe_records, probe_path, name=f"{manifest.scenario_id}_probe", classes=tuple(class_names))
+    details["probe_dataset"] = str(probe_path)
+    scan_req.model = candidate_path
+    scan_req.reference_model = reference_path
+    scan_req.probe_dataset = probe_path
+    scan_req.architecture = architecture
+    return probe_records, changed_targets, details
+
+
 def _generation_failure(manifest: ScenarioManifest, error: Exception) -> ScenarioRunResult:
     message = f"generation failed: {type(error).__name__}: {error}"
     return ScenarioRunResult(
@@ -317,6 +413,12 @@ def run_scenario(
     if manifest.attack.get("type") == "model_substitution":
         try:
             generated_records, affected_ids, model_details = _model_substitution(manifest, run_dir, scan_req)
+        except Exception as exc:
+            generation_error = exc
+            model_details = {"error": f"{type(exc).__name__}: {exc}"}
+    elif manifest.attack.get("type") == "weight_perturbation":
+        try:
+            generated_records, affected_ids, model_details = _model_weight_perturbation(manifest, run_dir, scan_req)
         except Exception as exc:
             generation_error = exc
             model_details = {"error": f"{type(exc).__name__}: {exc}"}
@@ -454,7 +556,9 @@ def run_scenario(
         passed_fitness = False
         fitness_notes.append(f"affected samples ({len(affected_ids)}) < required minimum ({min_affected})")
     expected_truth = manifest.expected.get("truth_tag")
-    truth_tags = {tag for record in truth_records for tag in record.truth}
+    truth_tags = (set(model_details.get("ground_truth_tags", []))
+                  if manifest.attack.get("type") == "weight_perturbation"
+                  else {tag for record in truth_records for tag in record.truth})
     ground_truth_valid = expected_truth is None or expected_truth in truth_tags
     if not ground_truth_valid:
         passed_fitness = False
@@ -511,6 +615,6 @@ def run_scenario(
         evaluation_status=evaluation_status,
         evaluation_notes=evaluation_notes,
         details={"executions": [e.model_dump(mode="json") for e in scan_result.executions],
-                 **(model_details if manifest.attack.get("type") == "model_substitution" else {})},
+                 **(model_details if manifest.attack.get("type") in {"model_substitution", "weight_perturbation"} else {})},
         scan_result=scan_result,
     )
