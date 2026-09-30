@@ -71,16 +71,16 @@ def git_commit(start: Path | None = None) -> str | None:
         if not git.is_dir():
             continue
         try:
-            head = (git / "HEAD").read_text().strip()
+            head = (git / "HEAD").read_text(encoding="utf-8").strip()
             if not head.startswith("ref: "):
                 return head
             ref = head[5:]
             ref_file = git / ref
             if ref_file.is_file():
-                return ref_file.read_text().strip()
+                return ref_file.read_text(encoding="utf-8").strip()
             packed = git / "packed-refs"
             if packed.is_file():
-                for line in packed.read_text().splitlines():
+                for line in packed.read_text(encoding="utf-8").splitlines():
                     if line.endswith(" " + ref):
                         return line.split(" ", 1)[0]
         except OSError:

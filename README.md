@@ -211,6 +211,8 @@ Dataset loaders support VisionSentinel manifests, COCO, YOLO, Pascal VOC, ImageF
 
 Use **Python 3.12**, **Node.js 22**, npm, and Git for the setup below. The package supports Python 3.12+; Linux is recommended for the strongest available worker isolation. Prepare dependencies on a connected machine before moving to an offline environment.
 
+Windows also runs the full workspace, which is useful for demonstrations. The model worker's network namespace and resource limits are Linux features: on Windows the worker reports them as not applied, while its audit hook still blocks sockets, process creation and file access.
+
 ### 1. Install the backend and frontend
 
 ```bash
@@ -434,7 +436,7 @@ The people behind VisionX, with contributions drawn from this repository's Git h
 
 <table>
 <tr>
-<td width="33%" valign="top" align="center">
+<td width="25%" valign="top" align="center">
 <a href="https://github.com/raghav-shell"><img src="docs/images/contributors/raghav-sharma.jpg" width="120" alt="Raghav Sharma's GitHub profile picture" /></a>
 <h3>Raghav Sharma</h3>
 <a href="https://github.com/raghav-shell">@raghav-shell</a><br><br>
@@ -444,7 +446,7 @@ The people behind VisionX, with contributions drawn from this repository's Git h
 <p align="left"><b>Review workspace:</b> Assessment cockpit, light/dark themes, dataset and model inspection, drift and provenance views.</p>
 <p align="left"><b>Integration:</b> Frontend API proxy configuration and the connection between local frontend and backend services.</p>
 </td>
-<td width="33%" valign="top" align="center">
+<td width="25%" valign="top" align="center">
 <a href="https://github.com/kartikeyajay2006"><img src="docs/images/contributors/kartikeya-yadav.jpg" width="120" alt="Kartikeya Yadav's GitHub profile picture" /></a>
 <h3>Kartikeya Yadav</h3>
 <a href="https://github.com/kartikeyajay2006">@kartikeyajay2006</a><br><br>
@@ -454,7 +456,7 @@ The people behind VisionX, with contributions drawn from this repository's Git h
 <p align="left"><b>Trust and review:</b> Cryptographic provenance, evidence graph, report bundles, governance, and persistence.</p>
 <p align="left"><b>Evaluation:</b> REST API, CLI, Attack Lab, benchmark tooling, and scientific/integration tests.</p>
 </td>
-<td width="33%" valign="top" align="center">
+<td width="25%" valign="top" align="center">
 <a href="https://github.com/ankit25bcs10610"><img src="docs/images/contributors/ankit-pandey.jpg" width="120" alt="Ankit Pandey's GitHub profile picture" /></a>
 <h3>Ankit Pandey</h3>
 <a href="https://github.com/ankit25bcs10610">@ankit25bcs10610</a><br><br>
@@ -463,6 +465,16 @@ The people behind VisionX, with contributions drawn from this repository's Git h
 <p align="left"><b>Live integration:</b> Frontend/backend contracts, persistent background jobs, scan lifecycle recovery, and graceful shutdown.</p>
 <p align="left"><b>Security:</b> API and governance hardening, registered-asset boundaries, and runtime offline controls.</p>
 <p align="left"><b>Validation:</b> Model/ledger Attack Lab scenarios, manifest validation, benchmark provenance, and CI/browser workflow reliability.</p>
+</td>
+<td width="25%" valign="top" align="center">
+<a href="https://github.com/kunalKumar-13"><img src="docs/images/contributors/kunal-kumar.png" width="120" alt="Kunal Kumar's GitHub profile picture" /></a>
+<h3>Kunal Kumar</h3>
+<a href="https://github.com/kunalKumar-13">@kunalKumar-13</a><br><br>
+<img src="docs/images/navigation/build-ship.svg" alt="Demo and platform readiness" width="230" /><br><br>
+<p>Made the evidence visible and the workspace ready to run and present.</p>
+<p align="left"><b>Evidence in the inspector:</b> Flagged images from the local evidence store, confusion matrices as tables, and statistics as labelled values.</p>
+<p align="left"><b>Windows support:</b> Portable ledger locking, memory probing and sandbox limits reported as not applied where the platform lacks them; explicit UTF-8 for every report and manifest.</p>
+<p align="left"><b>Demo:</b> Scenario summaries, workspace fixes, and the recorded walkthrough.</p>
 </td>
 </tr>
 </table>

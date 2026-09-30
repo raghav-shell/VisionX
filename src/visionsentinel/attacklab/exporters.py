@@ -41,14 +41,14 @@ def export_coco(records: list[Record], out: Path, classes: tuple[str, ...] = CLA
                          "area": r.bbox[2] * r.bbox[3], "iscrowd": 0})
     (out / "annotations").mkdir(parents=True, exist_ok=True)
     path = out / "annotations" / "instances.json"
-    path.write_text(json.dumps({"images": images, "annotations": anns, "categories": cats}))
+    path.write_text(json.dumps({"images": images, "annotations": anns, "categories": cats}), encoding="utf-8")
     return out
 
 
 def export_yolo(records: list[Record], out: Path, classes: tuple[str, ...] = CLASSES) -> Path:
     cid = {c: i for i, c in enumerate(classes)}
     (out / "data.yaml").parent.mkdir(parents=True, exist_ok=True)
-    (out / "data.yaml").write_text("names:\n" + "".join(f"  - {c}\n" for c in classes))
+    (out / "data.yaml").write_text("names:\n" + "".join(f"  - {c}\n" for c in classes), encoding="utf-8")
     for r in records:
         _save(r.image, out / "images" / "train" / f"{r.id}.png")
         lines = []
@@ -58,12 +58,12 @@ def export_yolo(records: list[Record], out: Path, classes: tuple[str, ...] = CLA
             lines.append(f"{cid[r.label]} {(x + bw / 2) / w:.6f} {(y + bh / 2) / h:.6f} {bw / w:.6f} {bh / h:.6f}")
         lp = out / "labels" / "train" / f"{r.id}.txt"
         lp.parent.mkdir(parents=True, exist_ok=True)
-        lp.write_text("\n".join(lines) + ("\n" if lines else ""))
+        lp.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
     meta = ["file,contributor,batch,source,sensor,timestamp"]
     for r in records:
         meta.append(",".join([f"images/train/{r.id}.png", r.contributor or "", r.batch or "", r.source or "",
                               r.sensor or "", r.timestamp or ""]))
-    (out / "metadata.csv").write_text("\n".join(meta) + "\n")
+    (out / "metadata.csv").write_text("\n".join(meta) + "\n", encoding="utf-8")
     return out
 
 
@@ -82,7 +82,7 @@ def export_voc(records: list[Record], out: Path) -> Path:
                                                                        "timestamp") if getattr(r, k))
         xml = (f"<annotation><filename>{escape(fname)}</filename><size><width>{w}</width><height>{h}</height>"
                f"<depth>3</depth></size>{meta}{objs}</annotation>")
-        (out / "Annotations" / f"{r.id}.xml").write_text(xml)
+        (out / "Annotations" / f"{r.id}.xml").write_text(xml, encoding="utf-8")
     return out
 
 

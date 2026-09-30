@@ -29,7 +29,7 @@ def save(model: onnx.ModelProto, path: Path, preprocess: PreprocessConfig | None
     path.parent.mkdir(parents=True, exist_ok=True)
     onnx.save_model(model, str(path))
     if preprocess is not None:
-        path.with_name(path.stem + ".preprocess.json").write_text(preprocess.model_dump_json(indent=1))
+        path.with_name(path.stem + ".preprocess.json").write_text(preprocess.model_dump_json(indent=1), encoding="utf-8")
     return path
 
 

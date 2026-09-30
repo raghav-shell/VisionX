@@ -31,7 +31,7 @@ class ResultCache:
             if key in self._items:
                 self._items.move_to_end(key)
                 return self._items[key]
-        result = ScanResult.model_validate(json.loads(Path(path).read_text()))
+        result = ScanResult.model_validate(json.loads(Path(path).read_text(encoding="utf-8")))
         with self._lock:
             self._items[key] = result
             while len(self._items) > self.size:

@@ -547,3 +547,24 @@
 .vx-workspace .vx-legend-dot--mint { background: #5b9e8c; }
 .vx-workspace .vx-legend-dot--amber { background: #d5aa6b; }
 .vx-workspace .vx-legend-dot--rose { background: #c4787e; }
+
+/* Evidence in the inspector: the image itself, tables as tables, statistics as labelled values. */
+.vx-workspace .vx-evidence-image { display: block; margin: 10px 0 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.vx-workspace .vx-evidence-image img { display: block; width: 100%; height: auto; image-rendering: auto; }
+.vx-workspace .vx-evidence-image:hover { border-color: var(--accent); }
+.vx-workspace .vx-evidence-table-wrap { margin: 10px 0 0; overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.vx-workspace .vx-evidence-table { width: 100%; border-collapse: collapse; font: 10px/1.4 "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+.vx-workspace .vx-evidence-table th,
+.vx-workspace .vx-evidence-table td { padding: 5px 7px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; color: var(--ink); }
+.vx-workspace .vx-evidence-table thead th { color: var(--muted); font-weight: 500; }
+.vx-workspace .vx-evidence-table tbody th { text-align: left; color: var(--ink-soft); font-weight: 500; }
+.vx-workspace .vx-evidence-table tr:last-child > * { border-bottom: 0; }
+.vx-workspace .vx-evidence-table td[data-zero] { color: var(--muted); }
+.vx-workspace .vx-evidence-facts { display: grid; grid-template-columns: 1fr; gap: 0; margin: 10px 0 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.vx-workspace .vx-evidence-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 9px; border-bottom: 1px solid var(--line); }
+.vx-workspace .vx-evidence-facts > div:last-child { border-bottom: 0; }
+.vx-workspace .vx-evidence-facts dt { color: var(--muted); font-size: 10px; }
+.vx-workspace .vx-evidence-facts dd { margin: 0; color: var(--ink); font: 10px/1.5 "JetBrains Mono", monospace; text-align: right; overflow-wrap: anywhere; }
+.vx-workspace .vx-evidence-raw { margin: 8px 0 0; }
+.vx-workspace .vx-evidence-raw summary { cursor: pointer; font-size: 10px; color: var(--muted); }
+.vx-workspace .vx-evidence-raw summary:hover { color: var(--accent); }

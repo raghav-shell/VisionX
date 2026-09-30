@@ -57,6 +57,21 @@ function AssetRole({ field, assets, csrf, value, onChange, onAssetImported }: { 
   return <div className="vx-asset-role"><label>{humanize(field.field)}<select value={value} onChange={event => onChange(field.field, event.target.value)}><option value="">Not supplied</option>{unique.map(asset => <option key={asset.id} value={asset.id}>{asset.name} · {asset.kind}{asset.digest ? ` · ${asset.digest.slice(0, 12)}…` : ""}</option>)}</select></label>{!compatible.length && <div className="vx-asset-import" role="group" aria-label={`Register ${humanize(field.field)} asset`}><small className="vx-form-help">No active compatible assets registered. Choose a file or archive to have the backend validate and register it.</small><input type="file" aria-label={`Choose ${humanize(field.field)} asset file`} onChange={event => { setFile(event.target.files?.[0] ?? null); setUploadError(""); }} /><button type="button" className="vx-button vx-button--quiet" disabled={!file || !kind || !csrf || uploading} onClick={() => void upload()}><Upload size={14} />{uploading ? "Registering…" : `Register ${humanize(kind)}`}</button>{uploadError && <small className="vx-form-error" role="alert">{uploadError}</small>}</div>}</div>;
 }
 
+/** A scenario manifest value as a short phrase: nested sections are summarised, not printed as [object Object]. */
+function describeValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (Array.isArray(value)) {
+    const names = value.map(item => (item && typeof item === "object" && "name" in item ? String((item as { name: unknown }).name) : null)).filter(Boolean);
+    return names.length === value.length && names.length > 0 ? names.join(", ") : `${value.length} item${value.length === 1 ? "" : "s"}`;
+  }
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, inner]) => `${humanize(key)} ${inner !== null && typeof inner === "object" ? describeValue(inner) : String(inner)}`)
+      .join(", ");
+  }
+  return String(value);
+}
+
 export function AttackLabView({ csrf, directDemo, profiles, metadata, onOpenScan }: { csrf: string | null; directDemo: boolean; profiles: ApiProfile[]; metadata: ApiMetadata | null; onOpenScan: (scanId: string) => void }) {
   const [scenarios, setScenarios] = useState<ApiScenario[]>([]);
   const [selected, setSelected] = useState("");
@@ -68,7 +83,7 @@ export function AttackLabView({ csrf, directDemo, profiles, metadata, onOpenScan
   useEffect(() => { if (!job || job.terminal || !metadata) return; let cancelled = false; const timer = window.setTimeout(() => { void loadJob(job.id).then(next => { if (!cancelled) setJob(next); }).catch(() => undefined); }, metadata.job_poll_interval_ms); return () => { cancelled = true; window.clearTimeout(timer); }; }, [job, metadata]);
   const scenario = useMemo(() => scenarios.find(item => item.scenario_id === selected), [scenarios, selected]);
   const start = async () => { if ((!csrf && !directDemo) || !selected || !profile) return; try { setError(""); const queued = await runScenario(selected, profile, csrf ?? ""); setJob(await loadJob(queued.job_id)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not start the scenario."); } };
-  return <section className="vx-panel vx-workflow-panel"><div className="vx-section-title"><div><span>CONTROLLED EXPERIMENTS</span><h2>Attack Lab</h2></div><Activity size={18} /></div><div className="vx-workflow-body"><label>Scenario<select value={selected} onChange={event => setSelected(event.target.value)}>{scenarios.map(item => <option key={item.scenario_id} value={item.scenario_id}>{item.title}</option>)}</select></label>{scenario && <div className="vx-workflow-summary"><strong>{scenario.title}</strong><p>{scenario.description ?? "Scenario metadata supplied by the backend."}</p><small>{Object.entries(scenario).filter(([key]) => !["scenario_id", "title", "description"].includes(key)).map(([key, value]) => `${humanize(key)}: ${String(value)}`).join(" · ")}</small></div>}<label>Profile<select value={profile} onChange={event => setProfile(event.target.value)}>{profiles.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label><button className="vx-button vx-button--primary" disabled={(!csrf && !directDemo) || !selected || !profile || Boolean(job && !job.terminal)} onClick={() => void start()}><Play size={14} /> {job && !job.terminal ? "Running…" : "Run scenario"}</button>{error && <p className="vx-form-error" role="alert">{error}</p>}{job && <JobProgress job={job} onOpenScan={onOpenScan} />}</div></section>;
+  return <section className="vx-panel vx-workflow-panel"><div className="vx-section-title"><div><span>CONTROLLED EXPERIMENTS</span><h2>Attack Lab</h2></div><Activity size={18} /></div><div className="vx-workflow-body"><label>Scenario<select value={selected} onChange={event => setSelected(event.target.value)}>{scenarios.map(item => <option key={item.scenario_id} value={item.scenario_id}>{item.title}</option>)}</select></label>{scenario && <div className="vx-workflow-summary"><strong>{scenario.title}</strong><p>{scenario.description ?? "Scenario metadata supplied by the backend."}</p><small>{Object.entries(scenario).filter(([key]) => !["scenario_id", "title", "description"].includes(key)).map(([key, value]) => `${humanize(key)}: ${describeValue(value)}`).join(" · ")}</small></div>}<label>Profile<select value={profile} onChange={event => setProfile(event.target.value)}>{profiles.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label><button className="vx-button vx-button--primary" disabled={(!csrf && !directDemo) || !selected || !profile || Boolean(job && !job.terminal)} onClick={() => void start()}><Play size={14} /> {job && !job.terminal ? "Running…" : "Run scenario"}</button>{error && <p className="vx-form-error" role="alert">{error}</p>}{job && <JobProgress job={job} onOpenScan={onOpenScan} />}</div></section>;
 }
 
 function JobProgress({ job, onOpenScan }: { job: ApiJob; onOpenScan: (scanId: string) => void }) {

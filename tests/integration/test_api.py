@@ -645,3 +645,33 @@ def test_attacklab_run_and_governance_workflow(api_client):
     assert audit_data["total"] >= 3
     if audit_data["verification"]:
         assert audit_data["verification"]["intact"] is True
+
+
+def test_evidence_blobs_are_served_verified(api_client):
+    import numpy as np
+
+    store = api_client.app.state.vs.store
+    ref = store.put_png(np.zeros((8, 8, 3), dtype=np.uint8))
+    raw_url = f"/api/evidence/{ref.digest}/raw"
+
+    assert api_client.get(raw_url).status_code == 401
+
+    login = api_client.post("/api/auth/login", json={"username": "analyst", "password": "analystpassword"},
+                            headers={"Origin": "http://testserver"})
+    assert login.status_code == 200
+
+    raw = api_client.get(raw_url)
+    assert raw.status_code == 200
+    assert raw.headers["content-type"] == "image/png"
+    assert raw.headers["cache-control"].startswith("private")
+    assert raw.content == store.get(ref.digest)
+
+    meta = api_client.get(f"/api/evidence/{ref.digest}")
+    assert meta.status_code == 200
+    assert meta.json() == {"digest": ref.digest, "media_type": "image/png", "size_bytes": ref.size_bytes, "verified": True}
+
+    assert api_client.get("/api/evidence/not-a-digest/raw").status_code == 400
+    assert api_client.get(f"/api/evidence/sha256:{'0' * 64}/raw").status_code == 404
+
+    store.path_for(ref.digest).write_bytes(b"\x89PNG\r\n\x1a\ntampered")
+    assert api_client.get(raw_url).status_code == 409

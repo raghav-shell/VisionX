@@ -112,5 +112,5 @@ def save_onnx(model, path: Path, cfg: PreprocessConfig = DEMO_PREPROCESS, *, doc
     proto = export_recon_cnn_onnx(module_state_numpy(model), list(cfg.class_names), input_size=cfg.input_size, doc=doc)
     path.parent.mkdir(parents=True, exist_ok=True)
     onnx.save_model(proto, str(path))
-    path.with_name(path.stem + ".preprocess.json").write_text(cfg.model_dump_json(indent=1))
+    path.with_name(path.stem + ".preprocess.json").write_text(cfg.model_dump_json(indent=1), encoding="utf-8")
     return path

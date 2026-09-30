@@ -223,8 +223,8 @@ def write_benchmark_artifacts(report: BenchmarkReport, output_dir: Path = Path("
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path, markdown_path = output_dir / "latest.json", output_dir / "latest.md"
     # JSON consumers must never receive JavaScript-only NaN / Infinity literals.
-    json_path.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False) + "\n")
-    markdown_path.write_text(report.markdown())
+    json_path.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    markdown_path.write_text(report.markdown(), encoding="utf-8")
     return json_path, markdown_path
 
 
