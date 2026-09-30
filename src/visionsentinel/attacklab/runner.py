@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import io
 import logging
 import secrets
 from dataclasses import dataclass, field
@@ -15,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..contracts import Disposition, ScanResult, ScenarioEvaluationStatus, Severity
 from ..core.determinism import derive_seed, rng_for
-from ..core.hashing import sha256_digest
+from ..core.hashing import sha256_digest, sha256_file
 from ..core.workspace import Workspace
 from ..engine.request import ScanRequest
 from ..loaders.models import open_model
@@ -31,6 +32,12 @@ from .data_attacks import (
 )
 from .drift_attacks import operational_batch
 from . import model_attacks
+from ..provenance.inference import InferenceRecorder
+from ..provenance.canonical import canonical_bytes
+from ..provenance.ledger import LedgerWriter
+from ..provenance.trust import load_trust_root
+from ..provenance.verifier import verify_ledger
+from ..provenance.workspace_keys import ensure_keys
 from .training import DEMO_PREPROCESS, save_onnx, train_model
 
 log = logging.getLogger(__name__)
@@ -109,7 +116,7 @@ class ScenarioRunResult:
 DATASET_ATTACK_TYPES = frozenset({"label_flip_targeted", "label_flip_random", "systematic_mislabel",
                                   "duplicate_flood", "patch_poison"})
 DRIFT_ATTACK_TYPES = frozenset({"illumination_shift", "semantic_shift"})
-SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset", "model_substitution", "weight_perturbation"}
+SUPPORTED_ATTACK_TYPES = DATASET_ATTACK_TYPES | DRIFT_ATTACK_TYPES | {"clean_dataset", "model_substitution", "weight_perturbation", "record_edit"}
 
 
 def validate_manifest(manifest: ScenarioManifest, registry=None) -> list[str]:
@@ -373,6 +380,108 @@ def _model_weight_perturbation(
     return probe_records, changed_targets, details
 
 
+def _ledger_record_tampering(
+    manifest: ScenarioManifest,
+    workspace: Workspace,
+    run_dir: Path,
+    scan_req: ScanRequest,
+) -> tuple[list, list[str], dict[str, Any]]:
+    """Create a real signed ledger, verify it, then edit one signed record without re-signing it."""
+    base = manifest.base
+    attack = manifest.attack
+    seed = manifest.seed
+    architecture = base["architecture"]
+    class_names = list(base.get("class_names", DEMO_PREPROCESS.class_names))
+    cfg = DEMO_PREPROCESS.model_copy(update={"class_names": class_names})
+    training_records = generate_clean_set(int(base["training_samples"]), derive_seed(seed, "ledger", "training"),
+                                          label="ledger_train")
+    labels = np.asarray([class_names.index(record.label) for record in training_records], dtype=np.int64)
+    images = np.stack([record.image for record in training_records])
+    model, training_report = train_model(
+        images, labels, seed=derive_seed(seed, "ledger", "model"), epochs=int(base["training_epochs"]),
+        lr=float(base["learning_rate"]), batch=int(base["batch_size"]), cfg=cfg,
+        threads=int(base["training_threads"]), architecture=architecture,
+    )
+    model_path = save_onnx(model, run_dir / base["model_filename"], cfg, architecture=architecture,
+                           doc=f"Attack Lab model for scenario {manifest.scenario_id}")
+    model_handle = open_model(model_path)
+    keys = ensure_keys(workspace)
+    ledger_path = run_dir / base["ledger_filename"]
+    anchor_path = run_dir / base["anchor_filename"]
+    inputs_path = run_dir / base["inputs_directory"]
+    inputs_path.mkdir(parents=True, exist_ok=True)
+    writer = LedgerWriter(ledger_path, keys.ledger, purpose=base["ledger_purpose"],
+                          checkpoint_every=int(base["checkpoint_interval"]), anchor_path=anchor_path)
+    recorder = InferenceRecorder(model_handle, writer, inference_config=base["inference_config"])
+    records = generate_clean_set(int(base["records_count"]), derive_seed(seed, "ledger", "records"), label="ledger")
+    try:
+        for record in records:
+            buffer = io.BytesIO()
+            from PIL import Image
+            Image.fromarray(record.image).save(buffer, format=base["input_format"])
+            data = buffer.getvalue()
+            name = f"{record.id}.{base['input_extension']}"
+            (inputs_path / name).write_bytes(data)
+            recorder.record(data, name, record.image)
+        writer.checkpoint()
+    finally:
+        model_handle.close()
+
+    trust = load_trust_root(keys.trust_root)
+    clean_report = verify_ledger(ledger_path, trust, anchors=anchor_path, inputs=inputs_path)
+    if not clean_report.intact:
+        raise ValueError("generated clean ledger failed verification before tampering")
+
+    records_json = [json.loads(line) for line in ledger_path.read_text().splitlines() if line.strip()]
+    target_sequence = int(attack["target_sequence"])
+    target = next((record for record in records_json if record.get("seq") == target_sequence), None)
+    if target is None:
+        raise ValueError(f"ledger target sequence {target_sequence} was not generated")
+    field_path = str(attack["tampered_field"]).split(".")
+    container: Any = target
+    for part in field_path[:-1]:
+        if not isinstance(container, dict) or part not in container:
+            raise ValueError(f"ledger tamper path {attack['tampered_field']!r} is absent")
+        container = container[part]
+    if not isinstance(container, dict) or field_path[-1] not in container:
+        raise ValueError(f"ledger tamper path {attack['tampered_field']!r} is absent")
+    original_value = container[field_path[-1]]
+    original_signature = target["sig"]
+    container[field_path[-1]] = attack["new_value"]
+    if container[field_path[-1]] == original_value:
+        raise ValueError("ledger tampering did not change the declared field")
+
+    tampered_path = run_dir / base["tampered_ledger_filename"]
+    tampered_path.write_bytes(b"".join(canonical_bytes(record) + b"\n" for record in records_json))
+    tampered_report = verify_ledger(tampered_path, trust, anchors=anchor_path, inputs=inputs_path)
+    failed = next((record for record in tampered_report.records if record.seq == target_sequence), None)
+    if tampered_report.intact or failed is None or failed.status == "VALID":
+        raise ValueError("tampered ledger remained cryptographically valid")
+    clean_digest = sha256_file(ledger_path)
+    tampered_digest = sha256_file(tampered_path)
+    if clean_digest == tampered_digest:
+        raise ValueError("tampering did not change the ledger digest")
+    tampered_record = next(record for record in records_json if record.get("seq") == target_sequence)
+    details = {
+        "model": {"path": str(model_path), "training_accuracy": training_report.train_accuracy},
+        "ledger": {"clean_path": str(ledger_path), "tampered_path": str(tampered_path),
+                    "clean_digest": clean_digest, "tampered_digest": tampered_digest,
+                    "trust_root_path": str(keys.trust_root), "anchor_path": str(anchor_path),
+                    "inputs_path": str(inputs_path), "clean_intact": clean_report.intact,
+                    "tampered_intact": tampered_report.intact},
+        "tampering": {"target_sequence": target_sequence, "field": attack["tampered_field"],
+                       "original_value": original_value, "new_value": attack["new_value"],
+                       "signature_preserved": tampered_record["sig"] == original_signature,
+                       "verification_status": failed.status, "verification_classes": failed.classes},
+        "ground_truth_tags": [manifest.attack_class],
+    }
+    scan_req.ledger = tampered_path
+    scan_req.trust_root = keys.trust_root
+    scan_req.anchor = anchor_path
+    scan_req.inference_inputs = inputs_path
+    return records, [str(target_sequence)], details
+
+
 def _generation_failure(manifest: ScenarioManifest, error: Exception) -> ScenarioRunResult:
     message = f"generation failed: {type(error).__name__}: {error}"
     return ScenarioRunResult(
@@ -419,6 +528,14 @@ def run_scenario(
     elif manifest.attack.get("type") == "weight_perturbation":
         try:
             generated_records, affected_ids, model_details = _model_weight_perturbation(manifest, run_dir, scan_req)
+        except Exception as exc:
+            generation_error = exc
+            model_details = {"error": f"{type(exc).__name__}: {exc}"}
+    elif manifest.attack.get("type") == "record_edit":
+        try:
+            generated_records, affected_ids, model_details = _ledger_record_tampering(
+                manifest, workspace, run_dir, scan_req,
+            )
         except Exception as exc:
             generation_error = exc
             model_details = {"error": f"{type(exc).__name__}: {exc}"}
@@ -557,7 +674,7 @@ def run_scenario(
         fitness_notes.append(f"affected samples ({len(affected_ids)}) < required minimum ({min_affected})")
     expected_truth = manifest.expected.get("truth_tag")
     truth_tags = (set(model_details.get("ground_truth_tags", []))
-                  if manifest.attack.get("type") == "weight_perturbation"
+                  if manifest.attack.get("type") in {"weight_perturbation", "record_edit"}
                   else {tag for record in truth_records for tag in record.truth})
     ground_truth_valid = expected_truth is None or expected_truth in truth_tags
     if not ground_truth_valid:
@@ -615,6 +732,6 @@ def run_scenario(
         evaluation_status=evaluation_status,
         evaluation_notes=evaluation_notes,
         details={"executions": [e.model_dump(mode="json") for e in scan_result.executions],
-                 **(model_details if manifest.attack.get("type") in {"model_substitution", "weight_perturbation"} else {})},
+                 **(model_details if manifest.attack.get("type") in {"model_substitution", "weight_perturbation", "record_edit"} else {})},
         scan_result=scan_result,
     )

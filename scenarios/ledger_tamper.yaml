@@ -8,12 +8,36 @@ evaluation_family: evaluation
 base:
   records_count: 50
   checkpoint_interval: 16
+  ledger_purpose: inference
+  ledger_filename: clean-ledger.jsonl
+  tampered_ledger_filename: tampered-ledger.jsonl
+  anchor_filename: ledger.anchors.jsonl
+  inputs_directory: inputs
+  model_filename: ledger-model.onnx
+  input_format: PNG
+  input_extension: png
+  inference_config:
+    top_k: 1
+    threshold: none
+  architecture: visionsentinel.recon_cnn_v1
+  class_names:
+    - armoured_vehicle
+    - truck
+    - civilian_vehicle
+    - aircraft
+    - vessel
+    - helicopter
+  training_samples: 500
+  training_epochs: 6
+  training_threads: 4
+  batch_size: 64
+  learning_rate: 0.003
 
 attack:
   type: record_edit
   target_sequence: 12
-  tampered_field: output_label
-  new_value: civilian_vehicle
+  tampered_field: body.output.label
+  new_value: tampered_label
 
 fitness_gates:
   min_samples: 50
