@@ -87,7 +87,8 @@ export default function Hero() {
       <div className="lx-shell lx-hero-body">
         <p className="lx-eyebrow">
           <span>
-            <span className="n">SIH26228</span> · Offline assurance for computer vision
+            <span className="n">SIH26228</span> · Integrity assurance for data, models and inference outputs in
+            multi-contributor pipelines
           </span>
         </p>
 

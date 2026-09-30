@@ -24,7 +24,8 @@ export default function Footer() {
             </Link>
             <p>
               Offline integrity checks for computer-vision data, models and inference records. Built for Smart India
-              Hackathon 2026, problem SIH26228.
+              Hackathon 2026, problem SIH26228: integrity assurance for data, models and inference outputs in
+              multi-contributor pipelines.
             </p>
           </div>
           <nav aria-label="Footer">
