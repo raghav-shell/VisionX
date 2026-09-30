@@ -249,6 +249,29 @@ class CoverageStatement(Contract):
     failed: int
     unsupported: int
 
+    @model_validator(mode="after")
+    def _validate_aggregates(self) -> "CoverageStatement":
+        """Keep exported coverage mathematically tied to its authoritative rows."""
+        attack_classes = [row.attack_class for row in self.rows]
+        if len(attack_classes) != len(set(attack_classes)):
+            raise ValueError("coverage rows contain duplicate attack_class values")
+        if self.total != len(self.rows):
+            raise ValueError("coverage total must equal the number of rows")
+        counts = {state: sum(row.state is state for row in self.rows) for state in CoverageState}
+        supplied = {
+            CoverageState.ASSESSED: self.assessed,
+            CoverageState.PARTIALLY_ASSESSED: self.partial,
+            CoverageState.NOT_ASSESSED: self.not_assessed,
+            CoverageState.FAILED_TO_EXECUTE: self.failed,
+            CoverageState.UNSUPPORTED: self.unsupported,
+        }
+        for state in CoverageState:
+            if supplied[state] != counts[state]:
+                raise ValueError(f"coverage {state.value} count disagrees with row states")
+        if sum(supplied.values()) != self.total:
+            raise ValueError("coverage aggregate counts must sum to total")
+        return self
+
     @property
     def fraction_assessed(self) -> float:
         return self.assessed / self.total if self.total else 0.0

@@ -126,3 +126,15 @@ def test_degraded_modes_never_claim_full_coverage(attacked_scan):
     assert rows["label_flip"].recommended_evidence
     assert rows["duplicate_flood"].state == CoverageState.ASSESSED
     assert rows["clean_label_poisoning"].state == CoverageState.UNSUPPORTED
+
+
+def test_scan_summary_matches_authoritative_coverage(attacked_scan):
+    result, _, _ = attacked_scan
+    coverage = result.coverage
+    summary = result.summary
+    assert coverage.total == len(coverage.rows)
+    assert sum((coverage.assessed, coverage.partial, coverage.not_assessed,
+                coverage.failed, coverage.unsupported)) == coverage.total
+    assert summary.coverage_assessed == coverage.assessed
+    assert summary.coverage_partial == coverage.partial
+    assert summary.coverage_total == coverage.total
