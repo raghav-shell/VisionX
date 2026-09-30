@@ -40,8 +40,10 @@ def create_app(
             recover_interrupted_work(app_state)
             yield
         finally:
-            runner.shutdown()
-            app_state.db.dispose()
+            try:
+                runner.shutdown()
+            finally:
+                app_state.db.dispose()
 
     app = FastAPI(
         title="VisionX",

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import threading
+
 from visionsentinel.api.runner import JobRunner, recover_interrupted_work
 from visionsentinel.api.settings import Settings
 from visionsentinel.api.state import AppState
 from visionsentinel.contracts import JobStatus, ScanStatus
 from visionsentinel.core.errors import RunnerUnavailableError
 from visionsentinel.core.workspace import Workspace
+from visionsentinel.engine.request import ScanRequest
 from visionsentinel.storage import AuditEvent, Job, Scan, ScanEvent
 
 
@@ -57,6 +60,80 @@ def test_runner_rejects_new_work_after_shutdown(tmp_path):
         pass
     else:
         raise AssertionError("runner accepted work after shutdown")
+
+
+def _shutdown_after_cancelling_queue(runner, release: threading.Event, finished: threading.Event) -> None:
+    original_shutdown = runner.pool.shutdown
+
+    def controlled_shutdown(*, wait=True, cancel_futures=False):
+        original_shutdown(wait=False, cancel_futures=cancel_futures)
+        release.set()
+        assert finished.wait(10)
+
+    runner.pool.shutdown = controlled_shutdown
+    runner.shutdown()
+
+
+def test_shutdown_reconciles_cancelled_queued_job_and_preserves_completed_job(tmp_path):
+    state = _state(tmp_path)
+    runner = JobRunner(state)
+    started = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    queued_started = threading.Event()
+
+    def blocking_job(_ctx):
+        started.set()
+        release.wait(10)
+        finished.set()
+        return {"completed": True}
+
+    def queued_job(_ctx):
+        queued_started.set()
+        return {"should_not_run": True}
+
+    completed_id = runner.submit_job("blocking", "completed", None, blocking_job)
+    assert started.wait(10)
+    cancelled_id = runner.submit_job("queued", "cancelled", None, queued_job)
+    _shutdown_after_cancelling_queue(runner, release, finished)
+
+    with state.db.session() as session:
+        assert session.get(Job, completed_id).status == JobStatus.COMPLETED.value
+        assert session.get(Job, cancelled_id).status == JobStatus.FAILED.value
+        assert not queued_started.is_set()
+        assert session.query(AuditEvent).filter(AuditEvent.target == cancelled_id).count() >= 1
+
+
+def test_shutdown_reconciles_cancelled_queued_scan_and_preserves_completed_scan(tmp_path):
+    state = _state(tmp_path)
+    runner = JobRunner(state)
+    started = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    queued_started = threading.Event()
+
+    def fake_execute(scan_id, _request):
+        started.set()
+        release.wait(10)
+        with state.db.session() as session:
+            session.get(Scan, scan_id).status = ScanStatus.SEALED.value
+        finished.set()
+
+    def unexpected_execute(_scan_id, _request):
+        queued_started.set()
+
+    runner.execute_scan = fake_execute
+    completed_id = runner.submit_scan(ScanRequest(name="completed"), None)
+    assert started.wait(10)
+    runner.execute_scan = unexpected_execute
+    cancelled_id = runner.submit_scan(ScanRequest(name="cancelled"), None)
+    _shutdown_after_cancelling_queue(runner, release, finished)
+
+    with state.db.session() as session:
+        assert session.get(Scan, completed_id).status == ScanStatus.SEALED.value
+        assert session.get(Scan, cancelled_id).status == ScanStatus.FAILED.value
+        assert not queued_started.is_set()
+        assert session.query(AuditEvent).filter(AuditEvent.target == cancelled_id).count() >= 1
 
 
 def test_app_lifespan_owns_runner_shutdown_and_database_disposal(tmp_path):

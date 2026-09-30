@@ -8,7 +8,7 @@ import secrets
 import traceback
 import threading
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Any
 
@@ -131,13 +131,27 @@ class JobContext:
 class JobRunner:
     def __init__(self, state: AppState) -> None:
         self.state = state
-        self._lifecycle_lock = threading.Lock()
+        self._lifecycle_lock = threading.RLock()
         self._accepting = True
+        self._futures: dict[Future[object], tuple[str, str]] = {}
+        self._cancelled_work: list[tuple[str, str]] = []
         self.pool = ThreadPoolExecutor(max_workers=state.settings.scan_workers, thread_name_prefix="vs-job")
 
     def _ensure_accepting(self) -> None:
         if not self._accepting:
             raise RunnerUnavailableError("background work is unavailable during application shutdown")
+
+    def _submit_tracked(self, work_type: str, work_id: str, fn: Callable[..., object], *args: object) -> Future[object]:
+        future = self.pool.submit(fn, *args)
+        self._futures[future] = (work_type, work_id)
+        future.add_done_callback(self._future_done)
+        return future
+
+    def _future_done(self, future: Future[object]) -> None:
+        with self._lifecycle_lock:
+            work = self._futures.pop(future, None)
+            if work is not None and future.cancelled():
+                self._cancelled_work.append(work)
 
     # ------------------------------------------------------------------ scans
     def create_scan(self, request: ScanRequest, user: str | None) -> tuple[str, ScanRequest]:
@@ -154,7 +168,7 @@ class JobRunner:
         with self._lifecycle_lock:
             self._ensure_accepting()
             scan_id, request = self.create_scan(request, user)
-            self.pool.submit(self.execute_scan, scan_id, request)
+            self._submit_tracked("scan", scan_id, self.execute_scan, scan_id, request)
         return scan_id
 
     def execute_scan(self, scan_id: str, request: ScanRequest) -> ScanResult | None:
@@ -205,7 +219,7 @@ class JobRunner:
             self.state.audit.record(user or "system", f"start_{kind}", subject,
                                     new=JobStatus.QUEUED.value, extra={"job_id": job_id})
             try:
-                self.pool.submit(self._run_job, job_id, fn)
+                self._submit_tracked("job", job_id, self._run_job, job_id, fn)
             except Exception as exc:
                 with self.state.db.session() as s:
                     job = s.get(Job, job_id)
@@ -247,3 +261,12 @@ class JobRunner:
         with self._lifecycle_lock:
             self._accepting = False
         self.pool.shutdown(wait=True, cancel_futures=True)
+        with self._lifecycle_lock:
+            cancelled = list(self._cancelled_work)
+            self._cancelled_work.clear()
+            for future, work in list(self._futures.items()):
+                if future.cancelled():
+                    cancelled.append(work)
+                    del self._futures[future]
+        if cancelled:
+            recover_interrupted_work(self.state)
