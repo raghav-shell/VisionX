@@ -1,16 +1,16 @@
 # Frontend screenshot provenance
 
-These are browser screenshots of the VisionX frontend in this repository, captured at **1600 × 1000** in Chrome on **30 September 2026**, using the production frontend built with `npm run build -- --webpack`. They are not generated mockups. Reduced motion was enabled; no product text, findings, or metrics were replaced for the captures.
+These are browser screenshots of the VisionX frontend in this repository, captured at **1600 × 1000** in Chromium on **30 September 2026**, using the production frontend (`npm run build`, then `next start`). They are not generated mockups. Reduced motion was enabled; no product text, findings, or metrics were replaced for the captures.
 
 | File | View |
 | --- | --- |
-| `landing.png` | Landing page with the bundled hero video playing |
-| `workspace-overview.png` | Assessment overview, light theme |
-| `finding-evidence.png` | Findings and label-consistency inspector, dark theme |
-| `coverage-matrix.png` | Coverage matrix, light theme |
+| `landing.png` | Landing page hero, Hi-Vis night theme |
+| `workspace-overview.png` | Assessment overview, night theme |
+| `finding-evidence.png` | Findings with the systematic-mislabel inspector open, showing the flagged images |
+| `coverage-matrix.png` | Coverage matrix, night theme |
 
-The workspace images use an actual assessment produced by `run_scenario(load_scenario("label_flip_targeted"), ..., profile="selftest")`, exported with `write_report`, and opened through the workspace's local report import. The scenario completed with `detector_success`, 9 findings, and a `REVIEW` disposition. Python 3.14 was used for this dataset-only capture run; PyTorch was not installed. Unavailable checks remain visible in the report.
+The workspace images show an authenticated backend session (`analyst01`) on the local API. The assessment is the Targeted Label Flip Attack scenario, run from Attack Lab with the `selftest` profile. It completed with `detector_success`, 10 findings, and a `REVIEW` disposition, using the weight-free `classical-v2` descriptor. Unavailable checks remain visible in the coverage view.
 
-The data is synthetic and comes from [the shipped scenario](../../../scenarios/label_flip.yaml). The images demonstrate local report review, not an authenticated backend session. They are separate from the checked-in full benchmark run. Figures in the landing page's demo strip are illustrative, as labeled in the interface.
+The data is synthetic and comes from [the shipped scenario](../../../scenarios/label_flip.yaml). The images are separate from the checked-in full benchmark run.
 
-To refresh the workspace captures, run the same scenario with a disposable workspace, export its `scan_result` through `visionsentinel.reporting.write_report`, open the resulting `report.json` from `/workspace`, and capture the named views after notifications disappear. Use the production frontend build to avoid development overlays. Keep the images and their README captions in sync when the interface changes.
+To refresh the captures, start the API and the production frontend, run the same scenario from Attack Lab, and capture the named views after notifications disappear. Keep the images and their README captions in sync when the interface changes.

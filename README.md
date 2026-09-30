@@ -21,8 +21,8 @@ Trustworthy Computer Vision Integrity Assurance for Data, Models and Inference O
 </div>
 
 <p align="center">
-  <a href="docs/images/screenshots/landing.png"><img src="docs/images/screenshots/landing.png" alt="VisionX landing page: Computer vision you can audit, against the illuminated tree visual" width="100%" /></a>
-  <br><sub><b>The VisionX experience.</b> Actual frontend capture. Landing-page demo figures are illustrative; measured results appear in <a href="#evaluation-and-reproducibility">Evaluation</a>.</sub>
+  <a href="docs/images/screenshots/landing.png"><img src="docs/images/screenshots/landing.png" alt="VisionX landing page in the Hi-Vis night theme, naming the SIH26228 brief" width="100%" /></a>
+  <br><sub><b>The VisionX experience.</b> Actual frontend capture. Measured results appear in <a href="#evaluation-and-reproducibility">Evaluation</a>.</sub>
 </p>
 
 ## VisionX in one minute
@@ -67,26 +67,26 @@ A contributor has changed labels in a training dataset. The **Targeted Label Fli
 ### 01 · What needs attention?
 
 <p align="center">
-  <a href="docs/images/screenshots/workspace-overview.png"><img src="docs/images/screenshots/workspace-overview.png" alt="VisionX assessment overview: nine findings, a review disposition, detector execution, and explicit coverage states" width="100%" /></a>
-  <br><sub><b>Assessment overview.</b> Findings, detector outcomes, and assessment gaps share one review surface. This generated scenario produced nine findings and a REVIEW disposition.</sub>
+  <a href="docs/images/screenshots/workspace-overview.png"><img src="docs/images/screenshots/workspace-overview.png" alt="VisionX assessment overview: ten findings, a review disposition, detector execution, and explicit coverage states" width="100%" /></a>
+  <br><sub><b>Assessment overview.</b> Findings, detector outcomes, and assessment gaps share one review surface. This generated scenario produced ten findings and a REVIEW disposition.</sub>
 </p>
 
 <table>
 <tr>
 <td width="50%" valign="top">
 <h3>02 · What supports the finding?</h3>
-<a href="docs/images/screenshots/finding-evidence.png"><img src="docs/images/screenshots/finding-evidence.png" alt="Dark-theme findings view with the label-consistency evidence inspector open" width="100%" /></a>
+<a href="docs/images/screenshots/finding-evidence.png"><img src="docs/images/screenshots/finding-evidence.png" alt="Findings view with the systematic-mislabel inspector open, showing the flagged images" width="100%" /></a>
 <br><sub><b>Evidence inspector.</b> Read the observation, detector, affected sample, and supporting evidence alongside the finding.</sub>
 </td>
 <td width="50%" valign="top">
 <h3>03 · What remains unknown?</h3>
-<a href="docs/images/screenshots/coverage-matrix.png"><img src="docs/images/screenshots/coverage-matrix.png" alt="Light-theme coverage matrix showing assessed and partially assessed attack classes" width="100%" /></a>
+<a href="docs/images/screenshots/coverage-matrix.png"><img src="docs/images/screenshots/coverage-matrix.png" alt="Coverage matrix showing assessed, partially assessed and unavailable attack classes" width="100%" /></a>
 <br><sub><b>Coverage matrix.</b> Inspect the exact assessment boundary, including checks that need more access or evidence.</sub>
 </td>
 </tr>
 </table>
 
-<sub>Real frontend screenshots, captured with a generated <code>selftest</code> report opened locally through <b>Open report</b>. They show local review, not an authenticated backend session. Select an image for full resolution. <a href="docs/images/screenshots/README.md">Capture notes →</a></sub>
+<sub>Real frontend screenshots from an authenticated session on the local API, after running the Targeted Label Flip Attack scenario with the <code>selftest</code> profile. Select an image for full resolution. <a href="docs/images/screenshots/README.md">Capture notes →</a></sub>
 
 <details>
 <summary><strong>How to interpret the five coverage states</strong></summary>
@@ -471,9 +471,10 @@ The people behind VisionX, with contributions drawn from this repository's Git h
 <h3>Kunal Kumar</h3>
 <a href="https://github.com/kunalKumar-13">@kunalKumar-13</a><br><br>
 <img src="docs/images/navigation/build-ship.svg" alt="Demo and platform readiness" width="230" /><br><br>
-<p>Made the evidence visible and the workspace ready to run and present.</p>
+<p>Made the evidence visible, gave the product one look, and got it ready to run and present.</p>
 <p align="left"><b>Evidence in the inspector:</b> Flagged images from the local evidence store, confusion matrices as tables, and statistics as labelled values.</p>
 <p align="left"><b>Windows support:</b> Portable ledger locking and memory probing, a model sandbox that works over Windows pipes and reports limits it cannot apply, and explicit UTF-8 for every report and manifest.</p>
+<p align="left"><b>Hi-Vis design:</b> One night and paper system with a single lime accent across the landing page and the workspace; a shorter landing page whose pipeline tree plays a real detection.</p>
 <p align="left"><b>Demo:</b> Scenario summaries, workspace fixes, and the recorded walkthrough.</p>
 </td>
 </tr>
