@@ -2,42 +2,41 @@
 
 from __future__ import annotations
 
-import json
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from ...contracts import Role
-from ...core.errors import EvidenceIntegrityError
+from ...core.errors import EvidenceIntegrityError, UnsafeInputError
+from ...evidence.store import sniff_media_type
 from ..deps import get_state, require
 from ..state import AppState
 
 router = APIRouter(prefix="/api/evidence", tags=["evidence"])
 
 
-@router.get("/{digest}/raw", dependencies=[Depends(require(Role.VIEWER))])
-def get_raw_evidence(digest: str, state: AppState = Depends(get_state)) -> Response:
-    """Retrieve raw content-addressed blob, verifying SHA-256 integrity on read."""
+def _read_verified(state: AppState, digest: str) -> bytes:
+    """Read a blob, re-checking its SHA-256 against the digest it is addressed by."""
     try:
-        raw_bytes = state.store.get_bytes(digest)
+        path = state.store.path_for(digest)
+    except UnsafeInputError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    if not path.is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"evidence {digest!r} not found in store")
+    try:
+        return state.store.get(digest)
     except EvidenceIntegrityError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, f"evidence blob tampered on disk: {exc}") from exc
-    except FileNotFoundError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"evidence {digest!r} not found in store")
 
-    # Determine media type by prefix or suffix
-    if raw_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
-        media_type = "image/png"
-    elif raw_bytes.startswith(b"\xff\xd8\xff"):
-        media_type = "image/jpeg"
-    elif raw_bytes.strip().startswith(b"{") or raw_bytes.strip().startswith(b"["):
-        media_type = "application/json"
-    else:
-        media_type = "application/octet-stream"
 
+@router.get("/{digest}/raw", dependencies=[Depends(require(Role.VIEWER))])
+def get_raw_evidence(digest: str, state: AppState = Depends(get_state)) -> Response:
+    """Retrieve a raw content-addressed blob, verifying SHA-256 integrity on read."""
+    raw_bytes = _read_verified(state, digest)
     return Response(
         content=raw_bytes,
-        media_type=media_type,
+        media_type=sniff_media_type(raw_bytes),
         headers={
-            "Cache-Control": "public, max-age=31536000, immutable",
+            # Content-addressed, so it never changes; private because it is served only to signed-in users.
+            "Cache-Control": "private, max-age=31536000, immutable",
             "ETag": f'"{digest}"',
         },
     )
@@ -45,8 +44,5 @@ def get_raw_evidence(digest: str, state: AppState = Depends(get_state)) -> Respo
 
 @router.get("/{digest}", dependencies=[Depends(require(Role.VIEWER))])
 def get_evidence_meta(digest: str, state: AppState = Depends(get_state)) -> dict:
-    try:
-        meta = state.store.describe(digest)
-        return meta
-    except FileNotFoundError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"evidence {digest!r} not found in store")
+    raw_bytes = _read_verified(state, digest)
+    return {"digest": digest, "media_type": sniff_media_type(raw_bytes), "size_bytes": len(raw_bytes), "verified": True}

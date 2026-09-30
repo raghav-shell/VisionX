@@ -11,8 +11,8 @@ import os
 
 
 def _enter_namespaces() -> str:
-    uid, gid = os.getuid(), os.getgid()
     try:
+        uid, gid = os.getuid(), os.getgid()
         os.unshare(os.CLONE_NEWUSER | os.CLONE_NEWNET)  # type: ignore[attr-defined]
     except (AttributeError, OSError) as exc:
         return f"unavailable on this host ({type(exc).__name__}: {exc}); audit hook still blocks sockets"
@@ -33,7 +33,6 @@ NAMESPACE_STATUS = _enter_namespaces()
 import io  # noqa: E402 - intentionally after namespace entry
 import socket  # noqa: E402 - imported before the audit hook (the probe creates sockets)
 import subprocess  # noqa: E402 - imported before the audit hook (the probe starts a process)
-import resource  # noqa: E402
 import signal  # noqa: E402
 import sys  # noqa: E402
 from typing import Any  # noqa: E402
@@ -41,6 +40,12 @@ from typing import Any  # noqa: E402
 import numpy as np  # noqa: E402
 
 from .sandbox_protocol import recv_message, send_message  # noqa: E402
+
+try:
+    import resource  # noqa: E402
+except ImportError:  # Windows: no rlimits; the audit hook below still applies
+    resource = None  # type: ignore[assignment]
+_NO_RLIMITS = "not applied: resource limits are unavailable on this platform"
 
 _BLOCKED_EVENTS = ("socket.", "subprocess.Popen", "os.system", "os.exec", "os.posix_spawn", "os.spawn", "os.fork",
                    "os.forkpty", "pty.spawn", "ctypes.dlopen", "ctypes.dlsym", "os.remove", "os.rename", "os.rmdir",
@@ -51,6 +56,9 @@ def _isolate(cfg: dict) -> dict[str, Any]:
     info: dict[str, Any] = {"process": "separate isolated interpreter (python -I -B)",
                             "network_namespace": NAMESPACE_STATUS}
     for name, key in (("RLIMIT_AS", "memory_bytes"), ("RLIMIT_CPU", "cpu_seconds")):
+        if resource is None:
+            info[name.lower()] = _NO_RLIMITS
+            continue
         try:
             resource.setrlimit(getattr(resource, name), (int(cfg[key]), int(cfg[key])))
             info[name.lower()] = int(cfg[key])
@@ -60,12 +68,15 @@ def _isolate(cfg: dict) -> dict[str, Any]:
 
 
 def _lock_down(info: dict[str, Any]) -> None:
-    signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
-    try:
-        resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
-        info["rlimit_fsize"] = 0
-    except (ValueError, OSError) as exc:
-        info["rlimit_fsize"] = f"not applied: {exc}"
+    if resource is None:
+        info["rlimit_fsize"] = _NO_RLIMITS
+    else:
+        signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
+        try:
+            resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
+            info["rlimit_fsize"] = 0
+        except (ValueError, OSError) as exc:
+            info["rlimit_fsize"] = f"not applied: {exc}"
 
     def hook(event: str, args: tuple) -> None:
         if event == "open" or event.startswith(_BLOCKED_EVENTS):

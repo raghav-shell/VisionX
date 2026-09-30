@@ -41,7 +41,7 @@ def ensure_keys(ws: Workspace) -> WorkspaceKeys:
     if not trust.exists():
         doc = build_trust_root_document("VisionSentinel workspace trust root",
                                         [trust_entry(keys[n], ROLES[n], f"workspace {n} key") for n in ROLES], [])
-        trust.write_text(json.dumps(doc, indent=1))
+        trust.write_text(json.dumps(doc, indent=1), encoding="utf-8")
     return WorkspaceKeys(keys["ledger"], keys["audit"], keys["report"], trust)
 
 
@@ -53,9 +53,9 @@ def _create(path: Path) -> Ed25519PrivateKey:
 
 def approve_models(trust_path: Path, entries: list[dict]) -> None:
     """Add approved-model bindings to the workspace trust root (idempotent by artifact digest)."""
-    doc = json.loads(trust_path.read_text())
+    doc = json.loads(trust_path.read_text(encoding="utf-8"))
     known = {m["artifact_digest"] for m in doc.get("approved_models", [])}
     for e in entries:
         if e["artifact_digest"] not in known:
             doc.setdefault("approved_models", []).append(e)
-    trust_path.write_text(json.dumps(doc, indent=1))
+    trust_path.write_text(json.dumps(doc, indent=1), encoding="utf-8")

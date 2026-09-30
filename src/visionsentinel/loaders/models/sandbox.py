@@ -46,6 +46,9 @@ class SandboxWorker:
                   "max_model_bytes": limits.max_model_bytes, "options": options or {}}
         env = {"PATH": os.environ.get("PATH", "/usr/bin"), "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "1",
                "MKL_NUM_THREADS": "1", "HF_HUB_OFFLINE": "1", "PYTHONHASHSEED": "0"}
+        if sys.platform == "win32":
+            # Without SYSTEMROOT, Winsock cannot initialise and importing torch fails (WinError 10106).
+            env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", r"C:\Windows")
         self.proc = subprocess.Popen(  # noqa: S603 - fixed argv, no shell
             [sys.executable, "-I", "-B", "-m", "visionsentinel.loaders.sandbox_worker"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, close_fds=True)

@@ -8,7 +8,6 @@ something broke, not because access was absent).
 from __future__ import annotations
 
 import logging
-import resource
 import time
 import tracemalloc
 from collections.abc import Callable
@@ -20,16 +19,27 @@ from .detector import DetectorResult
 from .events import EventLog
 from .planner import PlannedCheck
 
+try:
+    import resource
+except ImportError:  # Windows has no getrusage; peak memory then comes from tracemalloc alone
+    resource = None  # type: ignore[assignment]
+
 log = logging.getLogger(__name__)
 
 ContextFactory = Callable[[PlannedCheck, dict[str, DetectorResult]], DetectorContext]
+
+
+def _max_rss_bytes() -> int:
+    if resource is None:
+        return 0
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
 
 
 @contextmanager
 def _memory_probe(enabled: bool):
     box = {"peak": 0}
     started_here = False
-    rss_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+    rss_before = _max_rss_bytes()
     if enabled:
         if not tracemalloc.is_tracing():
             tracemalloc.start()
@@ -43,7 +53,7 @@ def _memory_probe(enabled: bool):
             peak = tracemalloc.get_traced_memory()[1]
             if started_here:
                 tracemalloc.stop()
-        rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        rss_after = _max_rss_bytes()
         box["peak"] = max(peak, rss_after - rss_before)
 
 

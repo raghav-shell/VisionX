@@ -7,6 +7,7 @@ import os
 import pickle
 import json
 import struct
+import sys
 
 import numpy as np
 import onnx
@@ -136,7 +137,11 @@ def test_sandbox_blocks_network_files_and_processes(model_zoo):
     result = header["result"]
     for action in ("socket", "file_write", "file_read", "process"):
         assert result[action].startswith("blocked"), f"{action}: {result[action]}"
-    assert handle.isolation["rlimit_fsize"] == 0
+    if sys.platform == "win32":
+        # Windows has no rlimits; the worker must say so rather than claim the limit.
+        assert handle.isolation["rlimit_fsize"].startswith("not applied")
+    else:
+        assert handle.isolation["rlimit_fsize"] == 0
 
 
 def test_worker_channel_rejects_pickled_arrays():

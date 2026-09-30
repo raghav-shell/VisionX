@@ -448,7 +448,7 @@ def _ledger_record_tampering(
     if not clean_report.intact:
         raise ValueError("generated clean ledger failed verification before tampering")
 
-    records_json = [json.loads(line) for line in ledger_path.read_text().splitlines() if line.strip()]
+    records_json = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     target_sequence = int(attack["target_sequence"])
     target = next((record for record in records_json if record.get("seq") == target_sequence), None)
     if target is None:

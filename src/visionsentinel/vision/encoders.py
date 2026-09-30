@@ -244,7 +244,7 @@ def foundation_encoder(models_dir: Path) -> FoundationStatus:
     if not manifest_path.is_file():
         return FoundationStatus(False, "required local encoder weights not installed (assets/models/manifest.json absent)")
     try:
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         entry = manifest["encoders"][0]
         weights = models_dir / entry["file"]
     except (ValueError, KeyError, IndexError, TypeError) as exc:

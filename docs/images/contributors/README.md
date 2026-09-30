@@ -7,5 +7,6 @@ These unedited 240 × 240 images were retrieved from the contributors' public Gi
 | Raghav Sharma | [raghav-sharma.jpg](raghav-sharma.jpg) | [GitHub avatar](https://github.com/raghav-shell.png?size=240) |
 | Kartikeya Yadav | [kartikeya-yadav.jpg](kartikeya-yadav.jpg) | [GitHub avatar](https://github.com/kartikeyajay2006.png?size=240) |
 | Ankit Pandey | [ankit-pandey.jpg](ankit-pandey.jpg) | [GitHub avatar](https://github.com/ankit25bcs10610.png?size=240) |
+| Kunal Kumar | [kunal-kumar.png](kunal-kumar.png) | [GitHub avatar](https://github.com/kunalKumar-13.png?size=240) |
 
 Refresh from the linked profile when a contributor requests an update, and keep the local filename and README link in sync.

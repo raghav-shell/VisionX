@@ -132,10 +132,10 @@ def write_corpus(records: list[Record], out_dir: Path, *, name: str, description
         manifest_lines.append(json.dumps(entry, sort_keys=True))
         truth[r.id] = {"true_label": r.true_label, "declared_label": r.label, "attacks": r.truth,
                        "contributor": r.contributor}
-    (out_dir / "manifest.jsonl").write_text("\n".join(manifest_lines) + "\n")
+    (out_dir / "manifest.jsonl").write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
     (out_dir / "dataset.json").write_text(json.dumps({"name": name, "classes": list(classes),
-                                                      "description": description}, indent=2))
-    truth_file(out_dir).write_text(json.dumps(truth, indent=1, sort_keys=True))
+                                                      "description": description}, indent=2), encoding="utf-8")
+    truth_file(out_dir).write_text(json.dumps(truth, indent=1, sort_keys=True), encoding="utf-8")
     return truth
 
 
@@ -144,7 +144,7 @@ def truth_file(dataset_dir: Path) -> Path:
 
 
 def load_truth(dataset_dir: Path) -> dict[str, dict]:
-    return json.loads(truth_file(dataset_dir).read_text())
+    return json.loads(truth_file(dataset_dir).read_text(encoding="utf-8"))
 
 
 def truth_poisoned(truth: dict[str, dict], attack: str | None = None) -> set[str]:

@@ -71,7 +71,7 @@ def write_report(result: ScanResult, out_dir: Path, store: EvidenceStore | None 
         manifest["key_id"] = key_id(signing_key)
         manifest["sig"] = b64u(signing_key.sign(MANIFEST_DOMAIN + canonical_bytes(manifest)))
     p = out / "manifest.json"
-    p.write_text(json.dumps(manifest, indent=1))
+    p.write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     paths["manifest.json"] = p
     return paths
 
@@ -83,7 +83,7 @@ def verify_manifest(report_dir: Path, public_key: bytes | None = None) -> list[s
 
     from ..provenance.verifier import b64d
 
-    manifest = json.loads((report_dir / "manifest.json").read_text())
+    manifest = json.loads((report_dir / "manifest.json").read_text(encoding="utf-8"))
     problems = []
     for entry in manifest["files"]:
         data = (report_dir / entry["file"]).read_bytes()

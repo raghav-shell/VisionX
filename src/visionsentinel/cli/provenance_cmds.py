@@ -54,7 +54,7 @@ def _cmd_trust_root(args: argparse.Namespace) -> int:
                            "approved_by": args.approver})
         finally:
             h.close()
-    args.out.write_text(json.dumps(build_trust_root_document(args.name, keys, models), indent=1))
+    args.out.write_text(json.dumps(build_trust_root_document(args.name, keys, models), indent=1), encoding="utf-8")
     print(f"trust root written to {args.out}: {len(keys)} key(s), {len(models)} approved model(s)")
     return 0
 
@@ -128,7 +128,7 @@ def _cmd_fingerprint(args: argparse.Namespace) -> int:
         doc = fingerprint_document(model, battery(model.cfg.input_size, imgs, ids, args.max_natural))
     finally:
         model.close()
-    args.out.write_text(json.dumps(doc))
+    args.out.write_text(json.dumps(doc), encoding="utf-8")
     print(f"behavioural fingerprint of {args.model.name}: {len(doc['probes'])} probes → {args.out}")
     return 0
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import threading
@@ -24,6 +23,35 @@ GENESIS_PREV = "sha256:" + "0" * 64
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
+
+
+try:
+    import fcntl
+except ImportError:  # Windows
+    fcntl = None  # type: ignore[assignment]
+    import msvcrt
+
+
+def _lock_exclusive(fh) -> None:
+    """Block until this process holds the ledger's lock file exclusively."""
+    if fcntl is not None:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        return
+    fh.seek(0)
+    while True:  # LK_LOCK gives up after ~10 s; keep waiting, as flock does
+        try:
+            msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+            return
+        except OSError:
+            continue
+
+
+def _unlock(fh) -> None:
+    if fcntl is not None:
+        fcntl.flock(fh, fcntl.LOCK_UN)
+        return
+    fh.seek(0)
+    msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
 
 class LedgerWriter:
     """Thread- and process-safe appender (flock on a sidecar lock file)."""
@@ -55,12 +83,12 @@ class LedgerWriter:
         class _Guard:
             def __enter__(self_inner):
                 writer._lock.acquire()
-                writer._fh = open(writer._lockfile, "a")  # noqa: SIM115
-                fcntl.flock(writer._fh, fcntl.LOCK_EX)
+                writer._fh = open(writer._lockfile, "a+")  # noqa: SIM115
+                _lock_exclusive(writer._fh)
                 return self_inner
 
             def __exit__(self_inner, *exc):
-                fcntl.flock(writer._fh, fcntl.LOCK_UN)
+                _unlock(writer._fh)
                 writer._fh.close()
                 writer._lock.release()
         return _Guard()

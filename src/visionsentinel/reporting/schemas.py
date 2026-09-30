@@ -63,6 +63,6 @@ def export_schemas(out: Path) -> list[Path]:
     paths = []
     for name, doc in docs.items():
         p = out / name
-        p.write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+        p.write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         paths.append(p)
     return paths

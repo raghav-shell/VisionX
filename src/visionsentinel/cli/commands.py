@@ -142,7 +142,7 @@ def _scan_args(p: argparse.ArgumentParser) -> None:
 def _load_result(path: Path):
     from ..contracts import ScanResult
 
-    doc = json.loads(Path(path).read_text())
+    doc = json.loads(Path(path).read_text(encoding="utf-8"))
     return ScanResult.model_validate(doc.get("result", doc))
 
 
@@ -246,7 +246,7 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
     print(f"Saved benchmark artifacts to {json_path} and {markdown_path}")
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False))
+        args.out.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False), encoding="utf-8")
         print(f"Saved benchmark report to {args.out}")
     return 0 if report.passed_scenarios == report.total_scenarios_run else 1
 

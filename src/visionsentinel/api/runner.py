@@ -74,7 +74,7 @@ def _now() -> datetime:
 def index_result(state: AppState, result: ScanResult, report_dir: str | None) -> None:
     """Persist a sealed result: JSON file, scan summary row and mutable finding-state rows."""
     path = state.workspace.scans / f"{result.scan_id}.json"
-    path.write_text(result.model_dump_json())
+    path.write_text(result.model_dump_json(), encoding="utf-8")
     s_ = result.summary
     with state.db.session() as s:
         scan = s.get(Scan, result.scan_id)

@@ -11,8 +11,32 @@ import time
 
 import numpy as np
 
+try:
+    import _winapi
+    import msvcrt
+except ImportError:  # POSIX
+    msvcrt = None
+
 MAX_FRAME_BYTES = 1 << 30
 _LEN = struct.Struct(">Q")
+
+
+def _wait_readable(fd: int, timeout: float) -> bool:
+    """True once ``fd`` has data (or its writer has gone), False if ``timeout`` passes first."""
+    if msvcrt is None:
+        ready, _, _ = select.select([fd], [], [], timeout)
+        return bool(ready)
+    # select() only accepts sockets on Windows, so poll the pipe. A closed writer raises
+    # BrokenPipeError here, which callers already treat as a dead worker.
+    handle = msvcrt.get_osfhandle(fd)
+    end = time.monotonic() + timeout
+    while True:
+        available, _ = _winapi.PeekNamedPipe(handle, 0)
+        if available:
+            return True
+        if time.monotonic() >= end:
+            return False
+        time.sleep(0.002)
 
 
 def dump_array(arr: np.ndarray) -> bytes:
@@ -40,8 +64,7 @@ def read_exact(fd: int, n: int, deadline: float | None) -> bytes:
             left = deadline - time.monotonic()
             if left <= 0:
                 raise TimeoutError
-            ready, _, _ = select.select([fd], [], [], left)
-            if not ready:
+            if not _wait_readable(fd, left):
                 raise TimeoutError
         chunk = os.read(fd, min(remaining, 1 << 20))
         if not chunk:

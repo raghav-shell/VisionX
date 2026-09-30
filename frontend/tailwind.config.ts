@@ -6,6 +6,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        hv: {
+          bg: "var(--hv-bg)",
+          surface: "var(--hv-surface)",
+          sunken: "var(--hv-sunken)",
+          raised: "var(--hv-raised)",
+          ink: "var(--hv-ink)",
+          ink2: "var(--hv-ink-2)",
+          muted: "var(--hv-muted)",
+          line: "var(--hv-line)",
+          lineStrong: "var(--hv-line-strong)",
+          lime: "var(--hv-lime)",
+          limeHover: "var(--hv-lime-hover)",
+          limeInk: "var(--hv-lime-ink)",
+          ok: "var(--hv-ok)",
+          info: "var(--hv-info)",
+          held: "var(--hv-held)",
+          bad: "var(--hv-bad)",
+        },
         background: "#000000",
         foreground: "#ffffff",
         card: {
@@ -30,9 +48,9 @@ const config: Config = {
         border: "rgba(255, 255, 255, 0.1)",
       },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["Space Grotesk", "Inter", "sans-serif"],
-        mono: ["JetBrains Mono", "SF Mono", "Fira Code", "monospace"],
+        sans: ["var(--font-archivo)", "Archivo", "system-ui", "sans-serif"],
+        display: ["var(--font-archivo)", "Archivo", "system-ui", "sans-serif"],
+        mono: ["var(--font-martian)", "Martian Mono", "ui-monospace", "monospace"],
       },
       keyframes: {
         drawLine: {
